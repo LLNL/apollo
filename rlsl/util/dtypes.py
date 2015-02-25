@@ -1,3 +1,5 @@
+import numpy as np
+
 """
 This module contains constants specifying the datatypes used for loading RAJA
 data.
@@ -12,6 +14,9 @@ LULESH_DTYPE = {'names':
                 'loop',
                 'range size',
                 'segments',
+                'fracrange',
+                'fracunstructured',
+                'func size',
                 'time'),
             'formats': 
             ('i4',
@@ -22,12 +27,18 @@ LULESH_DTYPE = {'names':
                 'S1024',
                 'i4',
                 'i4',
+                np.float64,
+                np.float64,
+                'i4',
                 np.float64)}
 
 LULESH_XTYPE = {'names': 
-            ('loop type', 'set type', 'range size', 'segments', 'best'),
+            ('loop type', 'set type', 'range size', 'segments', 'fracrange',
+                'fracunstructured',
+                'func size',
+                'best'),
             'formats': 
-            ('S64', 'S64', 'i4', 'i4', 'bool')}
+            ('S64', 'S64', 'i4', 'i4', np.float64, np.float64, 'i4', 'bool')}
 
 LULESH_YTYPE = {'names': ('outer', 'inner', 'time'), 
             'formats': ('S64', 'S64', 'f8')}
