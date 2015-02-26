@@ -20,6 +20,14 @@ class Loader(object):
 
 
 class PandasFeatureLoader(Loader):
+    """
+    Class to load and manipulate RAJA loop samples data as a pandas DataFrame.
+
+    Data is loaded from a CSV file to a DataFrame, containing all named fields,
+    as well as the additional fields 'time_best', 'inner_best', and
+    'outer_best' which contain the best time, inner execution policy, and outer
+    execution policy for each loop-problem size combination.
+    """
     def __init__(self, filename, names):
         super(PandasFeatureLoader, self).__init__(filename, names)
         self._data = pd.read_csv(filename, names=names, header=None)

@@ -9,9 +9,9 @@ from rlsl.util.dtypes import LULESH_DTYPE
 from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
 from rlsl.util.timer import Timer
 
-from sklearn_pandas import DataFrameMapper, cross_val_score
+from sklearn_pandas import DataFrameMapper
 
-from sklearn.cross_validation import cross_val_score
+from sklearn.cross_validation import cross_val_score, KFold
 from sklearn.feature_extraction import DictVectorizer
 import sklearn.preprocessing
 from sklearn.tree import DecisionTreeClassifier
@@ -23,10 +23,10 @@ from sklearn.pipeline import Pipeline
 
 CLASSIFIERS = [
     'DecisionTreeClassifier',
-#    'SVC',
+    'SVC',
     'RandomForestClassifier',
     'KNeighborsClassifier',
-#    'SGDClassifier',
+    'SGDClassifier',
     'GradientBoostingClassifier'
     ]
 
@@ -43,9 +43,7 @@ with Timer() as t:
 
     df = all_data
 
-    print df['best time']
-
-    feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'correct outer', 'correct inner', 'best', 'best time']]
+    feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best']]
 
     x_mapper = DataFrameMapper([(x, sklearn.preprocessing.LabelEncoder()) for x in ['loop type', 'set type']])
     X = np.concatenate((x_mapper.fit_transform(df), 
@@ -53,10 +51,14 @@ with Timer() as t:
 
     #print x_mapper.features[0][1].classes_
 
-    y_mapper = DataFrameMapper([('correct outer', sklearn.preprocessing.MultiLabelBinarizer()),
-        ('correct inner', sklearn.preprocessing.MultiLabelBinarizer())])
-#    y_mapper = DataFrameMapper([('best', sklearn.preprocessing.LabelEncoder())])
+   # y_mapper = DataFrameMapper([('outer_best', sklearn.preprocessing.MultiLabelBinarizer()),
+   #     ('inner_best', sklearn.preprocessing.MultiLabelBinarizer())])
 
+
+    # Comibne the two policies into a single string to deal with multilabel
+    df['best_policy'] = map(lambda inner, outer: inner + ' ' + outer, df['inner_best'], df['outer_best'])
+
+    y_mapper = DataFrameMapper([('best_policy', sklearn.preprocessing.LabelEncoder())])
     y = y_mapper.fit_transform(df)
 
 print 'done in %s s.' % t.secs
@@ -67,9 +69,11 @@ with Timer() as t:
         clfs.append(globals()[c]())
 print 'done in %s s.' % t.secs
 
+kf = KFold(len(y), n_folds=5, shuffle=True)
+
 print '# Classifying...',
 with Timer() as t:
-    scores = [cross_val_score(clf, X, y, cv=5) for clf in clfs]
+    scores = [cross_val_score(clf, X, y, cv=kf, n_jobs=-1) for clf in clfs]
 print 'done in %s s.' % t.secs
 
 for score,label in zip(scores, CLASSIFIERS):
