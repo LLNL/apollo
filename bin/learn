@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+import sys
+
+import numpy as np
+
+import pandas as pd
+
+from rlsl.util.dtypes import LULESH_DTYPE
+from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
+from rlsl.util.timer import Timer
+
+from sklearn_pandas import DataFrameMapper, cross_val_score
+
+from sklearn.cross_validation import cross_val_score
+from sklearn.feature_extraction import DictVectorizer
+import sklearn.preprocessing
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+
+CLASSIFIERS = [
+    'DecisionTreeClassifier',
+#    'SVC',
+    'RandomForestClassifier',
+    'KNeighborsClassifier',
+#    'SGDClassifier',
+    'GradientBoostingClassifier'
+    ]
+
+clfs = []
+
+names = LULESH_DTYPE['names']
+
+print '# Loading data...',
+with Timer() as t:
+    data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/lulesh-data.csv', names)
+    instruction_data = PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/instructions.csv') 
+
+    all_data = pd.merge(data.get_data(), instruction_data.get_data().fillna(0), on='loop')
+
+    df = all_data
+
+    print df['best time']
+
+    feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'correct outer', 'correct inner', 'best', 'best time']]
+
+    x_mapper = DataFrameMapper([(x, sklearn.preprocessing.LabelEncoder()) for x in ['loop type', 'set type']])
+    X = np.concatenate((x_mapper.fit_transform(df), 
+            df[[x for x in feature_names if x not in ['loop type', 'set type']]].values), axis=1)
+
+    #print x_mapper.features[0][1].classes_
+
+    y_mapper = DataFrameMapper([('correct outer', sklearn.preprocessing.MultiLabelBinarizer()),
+        ('correct inner', sklearn.preprocessing.MultiLabelBinarizer())])
+#    y_mapper = DataFrameMapper([('best', sklearn.preprocessing.LabelEncoder())])
+
+    y = y_mapper.fit_transform(df)
+
+print 'done in %s s.' % t.secs
+
+print '# Bulding classifiers...',
+with Timer() as t:
+    for c in CLASSIFIERS:
+        clfs.append(globals()[c]())
+print 'done in %s s.' % t.secs
+
+print '# Classifying...',
+with Timer() as t:
+    scores = [cross_val_score(clf, X, y, cv=5) for clf in clfs]
+print 'done in %s s.' % t.secs
+
+for score,label in zip(scores, CLASSIFIERS):
+    print("Accuracy: {:.2%} (+/- {:.2%}), {:}".format(score.mean(), score.std(), label))

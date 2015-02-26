@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 
-from rlsl.util.sciload import SciLoader
+from rlsl.util.sciload import NumpyLoader
 from rlsl.stats.best import *
 import rlsl.util.dtypes
 
@@ -22,7 +22,6 @@ def sanity_check_sizes(serial, omp, cilk, best, sizes):
             sys.exit(1)
 
 
-
 def print_percentage_improvements(serial, omp, cilk, best, sizes):
     print 'Size', 'Improvement(best)', 'Improvement(serial)'
     for s, o, c, b, size in zip(serial, omp, cilk, best, sizes):
@@ -34,50 +33,57 @@ def print_percentage_improvements(serial, omp, cilk, best, sizes):
         print size, improvement, serial_improvement
 
 
-data_file = sys.argv[1]
-sciloader = SciLoader(data_file, rlsl.util.dtypes.LULESH_DTYPE)
+def main():
+    data_file = sys.argv[1]
+    loader = NumpyLoader(data_file, rlsl.util.dtypes.LULESH_DTYPE)
 
-data = sciloader.get_data()
+    data = loader.get_data()
 
-sizes = np.sort(np.unique(data['problem size']))
+    sizes = np.sort(np.unique(data['problem size']))
 
-# Serial times, map of size to array of per-loop times
-serial_times = {size : get_times(data, size, {'inner':'SEG_SEQ', 'outer':'SEGIT_SEQ'}) 
-        for size in sizes}
+    # Serial times, map of size to array of per-loop times
+    serial_times = {size : get_times(data, size, {'inner':'SEG_SEQ', 'outer':'SEGIT_SEQ'}) 
+            for size in sizes}
 
-# OpenMP times, map of size to array of per-loop times
-omp_times = {size : get_times(data, size, {'inner':'SEG_OMP', 'outer':'SEGIT_SEQ'}) 
-        for size in sizes}
+    # OpenMP times, map of size to array of per-loop times
+    omp_times = {size : get_times(data, size, {'inner':'SEG_OMP', 'outer':'SEGIT_SEQ'}) 
+            for size in sizes}
 
-# Cilk times, map of size to array of per-loop times
-cilk_times = {size : get_times(data, size, {'inner':'SEG_CILK', 'outer':'SEGIT_SEQ'}) 
-        for size in sizes}
+    # Cilk times, map of size to array of per-loop times
+    cilk_times = {size : get_times(data, size, {'inner':'SEG_CILK', 'outer':'SEGIT_SEQ'}) 
+            for size in sizes}
 
-# Best times, map of size to array of per-loop times
-best_times = {size : get_best_time(data, size) for size in sizes}
+    # Best times, map of size to array of per-loop times
+    best_times = {size : get_best_time(data, size) for size in sizes}
+    #best_labels = {size : get_best_label(data, size) for size in sizes}
 
-sanity_check_sizes(serial_times, omp_times, cilk_times, best_times, sizes)
+    sanity_check_sizes(serial_times, omp_times, cilk_times, best_times, sizes)
 
-serial = [np.sum(serial_times[size]) for size in sizes]
-omp = [np.sum(omp_times[size]) for size in sizes]
-cilk = [np.sum(cilk_times[size]) for size in sizes]
-best = [np.sum(best_times[size]) for size in sizes]
+    serial = [np.sum(serial_times[size]) for size in sizes]
+    omp = [np.sum(omp_times[size]) for size in sizes]
+    cilk = [np.sum(cilk_times[size]) for size in sizes]
+    best = [np.sum(best_times[size]) for size in sizes]
 
-plot_lines('Problem Size', 'Runtime (s)',
-        ['Serial', 'OpenMP', 'Cilk', 'Optimal'],
-        "all.pdf",
-        sizes,
-        serial,
-        omp,
-        cilk,
-        best)
+    plot_lines('Problem Size', 'Runtime (s)',
+            ['Serial', 'OpenMP', 'Cilk', 'Optimal'],
+            "all.pdf",
+            sizes,
+            serial,
+            omp,
+            cilk,
+            best)
 
-plot_lines('Problem Size', 'Runtime (s)',
-        ['OpenMP', 'Cilk', 'Optimal'],
-        "no-serial.pdf",
-        sizes,
-        omp,
-        cilk,
-        best)
+    plot_lines('Problem Size', 'Runtime (s)',
+            ['OpenMP', 'Cilk', 'Optimal'],
+            "no-serial.pdf",
+            sizes,
+            omp,
+            cilk,
+            best)
 
-print_percentage_improvements(serial, omp, cilk, best, sizes)
+    print_percentage_improvements(serial, omp, cilk, best, sizes)
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -13,7 +13,6 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.tree import export_graphviz, DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.utils import shuffle
 
-
 def get_cross_validation_scores(clf, X, y, n):
     return cross_val_score(clf, X, y, cv=n) 
 

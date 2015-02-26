@@ -1,8 +1,63 @@
 import numpy as np
+import pandas as pd
 
-class SciLoader(object):
+
+class Loader(object):
+    def __init__(self, filename, names):
+        self.filename = filename
+        self.names = names
+        self._data = None
+
+
+    def get_data(self):
+        """
+        Return loaded data.
+
+        :returns: A numpy array containing all loaded data. The array will have
+                    field names specified by the dtype used to load the data.
+        """
+        return self._data
+
+
+class PandasFeatureLoader(Loader):
+    def __init__(self, filename, names):
+        super(PandasFeatureLoader, self).__init__(filename, names)
+        self._data = pd.read_csv(filename, names=names, header=None)
+
+        best = self._data.loc[self._data.groupby(
+            ["loop", 'problem size'])["time"].idxmin()]
+        withbest = pd.merge(self._data, best,
+                on=['loop', 'problem size'], suffixes=['', '_best'])
+        withbest.drop([x+'_best' for x in list(best) if x not in [
+                    'outer', 'inner', 'time', 'loop', 'problem size']], 
+                axis=1, inplace=True)
+
+        self._data = withbest
+
+
+class PandasInstructionLoader(Loader):
+    def __init__(self, filename):
+        imaps = []
+        for line in open(filename):
+            loop = line.split(",")[0]
+            
+            imap = {}
+            imap['loop'] = int(loop)
+            
+            for instructioncount in line.split(",")[1:]:
+                instruction, count = instructioncount.split(":")
+                imap[instruction] = int(count)
+            
+            imaps.append(imap)
+
+        data = pd.DataFrame(imaps)
+        super(PandasInstructionLoader, self).__init__(filename, list(data))
+        self._data = data
+
+
+class NumpyLoader(Loader):
     """
-    Class to load and manipulate RAJA loop samples data.
+    Class to load and manipulate RAJA loop samples data as a numpy record.
 
     Data is loaded from a CSV file to a numpy record array.  Other methods in
     this class are helpers to extract X and y vectors from this array.
@@ -17,15 +72,6 @@ class SciLoader(object):
                     dtype=np.dtype(self.__dtype), 
                     delimiter=',')
 
-    def get_data(self):
-        """
-        Get full numpy record array of loaded data.
-
-        Returns:
-            A numpy array containing all loaded data. The array will have field
-            names specified by the dtype used to load the data.
-        """
-        return self.__data
 
     def get_x(dtype):
         x_data = np.empty(((len(data))), dtype=np.dtype(dtype))
@@ -41,6 +87,7 @@ class SciLoader(object):
                     x_data[i][name] = data[i][name]
 
         return x_data
+
 
     def get_y(data, dtype):
         y_data = np.empty((len(data)), dtype=np.dtype(dtype))
@@ -58,6 +105,7 @@ class SciLoader(object):
 
         return y_data
 
+
     def get_label(data, loop, size):
         if not (loop, size) in _labels:
             data = data[np.logical_and(data['loop'] == loop, data['range size'] == size)]
@@ -65,6 +113,7 @@ class SciLoader(object):
             _labels[(loop, size)] = (data['outer'][label_index], data['inner'][label_index])
 
         return _labels[(loop, size)]
+
 
     def labels(data, index):
         return (data['outer'][index], data['inner'][index])
