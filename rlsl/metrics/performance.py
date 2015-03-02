@@ -4,11 +4,22 @@ class PerformanceErrorMetric(object):
     optimal policy runtime.
     """
     
-    def __init__(self, runtimes):
-        pass
+    def __init__(self, dataframe, x_data_mapper, y_data_mapper):
+        """
+        Create a new PerformanceErrorMetric object with the provided runtime
+        data.
 
-    def error(estimator, X, y):
+        :param runtimes: pandas DataFrame containing loop, size and runtime
+        columns.
+        """
+        self._data_frame = dataframe
+
+    def score(self, estimator, X, y):
         """
         Return score based on distance from optimal policy runtime.
         """
-        pass
+
+        print X
+        print y
+
+        return 0.0

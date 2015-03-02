@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 import sys
 
-import numpy as np
+import itertools
 
+import numpy as np
 import pandas as pd
 
+from rlsl.learn import get_mean_accuracy
 from rlsl.util.dtypes import LULESH_DTYPE
 from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
 from rlsl.util.timer import Timer
+from rlsl.metrics.performance import PerformanceErrorMetric
 
-from sklearn_pandas import DataFrameMapper
-
-from sklearn.cross_validation import cross_val_score, KFold
 from sklearn.feature_extraction import DictVectorizer
 import sklearn.preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import make_scorer
 from sklearn.svm import SVC
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.pipeline import Pipeline
 
 CLASSIFIERS = [
     'DecisionTreeClassifier',
@@ -33,33 +33,16 @@ CLASSIFIERS = [
 clfs = []
 
 names = LULESH_DTYPE['names']
+APP = 'ares'
 
 print '# Loading data...',
 with Timer() as t:
-    data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/lulesh-data.csv', names)
-    instruction_data = PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/instructions.csv') 
+    data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-data.csv' % APP, names)
+    instruction_data = PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % APP) 
 
     all_data = pd.merge(data.get_data(), instruction_data.get_data().fillna(0), on='loop')
 
     df = all_data
-
-    feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best']]
-
-    x_mapper = DataFrameMapper([(x, sklearn.preprocessing.LabelEncoder()) for x in ['loop type', 'set type']])
-    X = np.concatenate((x_mapper.fit_transform(df), 
-            df[[x for x in feature_names if x not in ['loop type', 'set type']]].values), axis=1)
-
-    #print x_mapper.features[0][1].classes_
-
-   # y_mapper = DataFrameMapper([('outer_best', sklearn.preprocessing.MultiLabelBinarizer()),
-   #     ('inner_best', sklearn.preprocessing.MultiLabelBinarizer())])
-
-
-    # Comibne the two policies into a single string to deal with multilabel
-    df['best_policy'] = map(lambda inner, outer: inner + ' ' + outer, df['inner_best'], df['outer_best'])
-
-    y_mapper = DataFrameMapper([('best_policy', sklearn.preprocessing.LabelEncoder())])
-    y = y_mapper.fit_transform(df)
 
 print 'done in %s s.' % t.secs
 
@@ -69,12 +52,61 @@ with Timer() as t:
         clfs.append(globals()[c]())
 print 'done in %s s.' % t.secs
 
-kf = KFold(len(y), n_folds=5, shuffle=True)
+#feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop']]
+feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best']]
 
-print '# Classifying...',
-with Timer() as t:
-    scores = [cross_val_score(clf, X, y, cv=kf, n_jobs=-1) for clf in clfs]
-print 'done in %s s.' % t.secs
+#y_cat = df[['inner_best', 'outer_best']].T.to_dict().values()
 
-for score,label in zip(scores, CLASSIFIERS):
-    print("Accuracy: {:.2%} (+/- {:.2%}), {:}".format(score.mean(), score.std(), label))
+df['inner_outer_best'] = df.apply(lambda row: 
+        str(row['inner_best'] + ' ' + row['outer_best']), axis=1)
+
+#y_cat = df[['inner_outer_best']].T.to_dict().values()
+#
+#y_vec = DictVectorizer(sparse=False)
+#y_lab = sklearn.preprocessing.LabelEncoder()
+#
+#y = y_lab.fit_transform(y_cat)
+
+accuracies = []
+
+#for l in [1]:#range(1, len(feature_names)+1):
+#l = len(feature_names)
+    #for subset in itertools.combinations(feature_names, l):
+
+for size in np.unique(df['problem size'].values):
+
+    sdf = df[df['problem size'] == size]
+
+    y_cat = sdf[['inner_outer_best']].T.to_dict().values()
+
+    y_vec = DictVectorizer(sparse=False)
+    y_lab = sklearn.preprocessing.LabelEncoder()
+
+    y = y_lab.fit_transform(y_cat)
+
+    #x_num = sdf[[x for x in subset if x not in ['loop type', 'set type']]].as_matrix()
+    #x_cat = sdf[[x for x in ['loop type', 'set type'] if x in subset]].T.to_dict().values()
+
+    x_num = sdf[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
+    x_cat = sdf[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
+
+    vectorizer = DictVectorizer(sparse=False)
+    vec_x_cat = vectorizer.fit_transform(x_cat)
+
+    X = np.hstack((x_num, vec_x_cat))
+
+    accuracy = [get_mean_accuracy(clf, X, y, 10, scoring='accuracy') for clf in clfs]
+    f1 = [get_mean_accuracy(clf, X, y, 10, scoring='f1') for clf in clfs]
+
+    for acc,f,label in zip(accuracy, f1, CLASSIFIERS):
+        accuracy_map = {'problem size': size,#'num_features':len(subset),
+            'classifier':label,
+            'accuracy':acc,
+            'f1':f}
+        #for feature in subset:
+            #accuracy_map[feature] = True
+
+        accuracies.append(accuracy_map)
+
+accuracy_df = pd.DataFrame(accuracies)
+accuracy_df.to_csv(path_or_buf='%s_accuracy_loop.csv' % APP)

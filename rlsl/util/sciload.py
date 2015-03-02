@@ -31,6 +31,7 @@ class PandasFeatureLoader(Loader):
     def __init__(self, filename, names):
         super(PandasFeatureLoader, self).__init__(filename, names)
         self._data = pd.read_csv(filename, names=names, header=None)
+        self._data = self._data[~(self._data['range size'] == 0)]
 
         best = self._data.loc[self._data.groupby(
             ["loop", 'problem size'])["time"].idxmin()]
@@ -39,6 +40,8 @@ class PandasFeatureLoader(Loader):
         withbest.drop([x+'_best' for x in list(best) if x not in [
                     'outer', 'inner', 'time', 'loop', 'problem size']], 
                 axis=1, inplace=True)
+
+
 
         self._data = withbest
 
@@ -75,7 +78,7 @@ class NumpyLoader(Loader):
         self.__dtype = dtype
 
         with open(filename, 'r') as data_file:
-            self.__data = np.loadtxt(
+            self._data = np.loadtxt(
                     data_file, 
                     dtype=np.dtype(self.__dtype), 
                     delimiter=',')
