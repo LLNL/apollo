@@ -3,7 +3,7 @@ import sys
 
 import pandas as pd
 
-from rlsl.viz.bar import plot_bars
+from rlsl.viz.bar import plot_bars,plot_importances
 
 
 APPS = ['lulesh', 'ares']
@@ -16,6 +16,10 @@ def main():
 
         plot_bars('%s-bars.pdf' % app, pd.concat([df, df_all]))
         #plot_bars('%s-bars.pdf' % app, df)
+
+    for app in APPS:
+        df = pd.read_csv('%s-importances.csv' % app)
+        plot_importances('%s-importance-chart.pdf' % app, df)
 
     return 0
 

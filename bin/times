@@ -97,15 +97,16 @@ def main():
 
 
     plot_lines('Problem Size', 'Runtime (s)',
-            ['Serial', 'OpenMP', 'Cilk', 'OpenMP Inner', 'OpenMP Outer', 'Cilk Inner', 'Cilk Outer', 'Optimal'],
+            #['Serial', 'OpenMP', 'Cilk', 'OpenMP Inner', 'OpenMP Outer', 'Cilk Inner', 'Cilk Outer', 'Optimal'],
+            ['Serial', 'OpenMP', 'Cilk', 'Best'],
             "all.pdf",
             sizes,
             serial,
-            omp_both,
-            cilk_both,
-            omp,
+            #omp_both,
+            #cilk_both,
+            #omp,
             omp_outer,
-            cilk,
+            #cilk,
             cilk_outer,
             best)
 

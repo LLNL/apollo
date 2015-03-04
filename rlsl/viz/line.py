@@ -21,14 +21,18 @@ def plot_lines(xlabel, ylabel, legend, output_filename, xlabels, *args):
 
     plt.xlim([-0.5,x_locations.size-0.5])
 
-    ax.legend(legend, loc='upper left')
+    ax.legend(legend, loc='lower right')
 
     plt.xlim([-0.5,x_locations.size-0.5])
+    
+    ax.set_yscale('log')
 
-    ax.set_ylabel(ylabel, fontsize=14)
-    ax.set_xlabel(xlabel, fontsize=14)
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
     ax.set_xticks(x_locations)
     ax.set_xticklabels(xlabels)
+
+    tuftestyle(ax)
 
     fig.tight_layout()
     plt.savefig(output_filename)

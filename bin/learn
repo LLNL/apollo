@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from rlsl.learn import get_mean_accuracy
+from rlsl.learn import get_kfold_score
 from rlsl.util.dtypes import LULESH_DTYPE
 from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
 from rlsl.util.timer import Timer
@@ -33,7 +33,7 @@ CLASSIFIERS = [
 clfs = []
 
 names = LULESH_DTYPE['names']
-APP = 'ares'
+APP = 'lulesh'
 
 print '# Loading data...',
 with Timer() as t:
@@ -43,6 +43,7 @@ with Timer() as t:
     all_data = pd.merge(data.get_data(), instruction_data.get_data().fillna(0), on='loop')
 
     df = all_data
+    #df = data.get_data()
 
 print 'done in %s s.' % t.secs
 
@@ -53,7 +54,8 @@ with Timer() as t:
 print 'done in %s s.' % t.secs
 
 #feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop']]
-feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best']]
+#feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop']]
+feature_names = [x for x in list(df) if x not in list(data.get_data())]
 
 #y_cat = df[['inner_best', 'outer_best']].T.to_dict().values()
 
@@ -73,40 +75,79 @@ accuracies = []
 #l = len(feature_names)
     #for subset in itertools.combinations(feature_names, l):
 
-for size in np.unique(df['problem size'].values):
+#for size in np.unique(df['problem size'].values):
+#
+sdf = df#[df['problem size'] == size]
+#sdf = df#[df['problem size'] == 25]
 
-    sdf = df[df['problem size'] == size]
+y_cat = sdf[['inner_outer_best']].T.to_dict().values()
 
-    y_cat = sdf[['inner_outer_best']].T.to_dict().values()
+y_vec = DictVectorizer(sparse=False)
+y_lab = sklearn.preprocessing.LabelEncoder()
 
-    y_vec = DictVectorizer(sparse=False)
-    y_lab = sklearn.preprocessing.LabelEncoder()
+y = y_lab.fit_transform(y_cat)
 
-    y = y_lab.fit_transform(y_cat)
+#x_num = sdf[[x for x in subset if x not in ['loop type', 'set type']]].as_matrix()
+#x_cat = sdf[[x for x in ['loop type', 'set type'] if x in subset]].T.to_dict().values()
 
-    #x_num = sdf[[x for x in subset if x not in ['loop type', 'set type']]].as_matrix()
-    #x_cat = sdf[[x for x in ['loop type', 'set type'] if x in subset]].T.to_dict().values()
+x_num = sdf[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
+x_cat = sdf[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
 
-    x_num = sdf[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
-    x_cat = sdf[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
+vectorizer = DictVectorizer(sparse=False)
+vec_x_cat = vectorizer.fit_transform(x_cat)
 
-    vectorizer = DictVectorizer(sparse=False)
-    vec_x_cat = vectorizer.fit_transform(x_cat)
+X = np.hstack((x_num, vec_x_cat))
 
-    X = np.hstack((x_num, vec_x_cat))
+#    feature_names = list(sdf[[x for x in feature_names if x not in ['loop type', 'set type']]])
+#    for f in vectorizer.feature_names_:
+#        feature_names.append(f)
 
-    accuracy = [get_mean_accuracy(clf, X, y, 10, scoring='accuracy') for clf in clfs]
-    f1 = [get_mean_accuracy(clf, X, y, 10, scoring='f1') for clf in clfs]
+#pem_scorer = PerformanceErrorMetric(sdf, feature_names, y_lab)
 
-    for acc,f,label in zip(accuracy, f1, CLASSIFIERS):
-        accuracy_map = {'problem size': size,#'num_features':len(subset),
-            'classifier':label,
-            'accuracy':acc,
-            'f1':f}
-        #for feature in subset:
-            #accuracy_map[feature] = True
+accuracy = [get_kfold_score(clf, X, y, 10, scoring='accuracy') for clf in clfs]
+f1 = [get_kfold_score(clf, X, y, 10, scoring='f1') for clf in clfs]
+#pem = [get_kfold_score(clf, X, y, 10, scoring=pem_scorer.score) for clf in clfs]
 
-        accuracies.append(accuracy_map)
+#    for acc,f,label in zip(accuracy, f1, CLASSIFIERS):
+#        accuracy_map = {'problem size': size,#'num_features':len(subset),
+#            'classifier':label,
+#            'accuracy':acc,
+#            'f1':f}
+#        #for feature in subset:
+#            #accuracy_map[feature] = True
+#
+#        accuracies.append(accuracy_map)
+
+for acc,f,label in zip(accuracy, f1, CLASSIFIERS):
+    accuracy_map = {'problem size': 'all',#'num_features':len(subset),
+        'classifier':label,
+        'accuracy':acc,
+        'f1':f}
+    #for feature in subset:
+        #accuracy_map[feature] = True
+
+    accuracies.append(accuracy_map)
 
 accuracy_df = pd.DataFrame(accuracies)
-accuracy_df.to_csv(path_or_buf='%s_accuracy_loop.csv' % APP)
+accuracy_df.to_csv(path_or_buf='%s_accuracy_only_instructions_all.csv' % APP)
+
+#importances = []
+#ilist = []
+#
+#for clf,label in zip(clfs,CLASSIFIERS):
+#    clf.fit(X, y)
+#    importances = clf.feature_importances_
+#    indices = np.argsort(importances)[::-1]
+#
+#    print("Feature ranking:")
+#    for f in range(len(importances)):
+#        imap = {'rank': f+1,
+#                'feature_name': feature_names[indices[f]],
+#                'importance':importances[indices[f]],
+#                'classifier':label}
+#
+#        print("%d. %s (%f)" % (f + 1, feature_names[indices[f]], importances[indices[f]]))
+#        ilist.append(imap)
+#
+#idf = pd.DataFrame(ilist)
+#idf.to_csv('%s-importances.csv' % APP)

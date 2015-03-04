@@ -7,11 +7,21 @@ matplotlib.rcParams['font.size'] = '10'
 __lines = ["o-","*--","s-.","^:"]
 #__hatch = ["", "/", "\\", "//", "\\\\", "-", "+"]
 __hatch = ['/', '\\', '|', '-', '+', 'x', 'o', 'O', '.', '*']
-__color = ['r', 'g', 'b', 'y']
+__color = ['#348ABD', '#7A68A6', '#A60628', '#467821', '#CF4457', '#188487', '#E24A33']
 
 LINES = cycle(__lines)
 HATCH = cycle(__hatch)
 COLOR = cycle(__color)
+
+
+def reset_cycles():
+    global COLOR
+    global LINES
+    global HATCH
+
+    COLOR = cycle(__color)
+    LINES = cycle(__lines)
+    HATCH = cycle(__hatch)
 
 
 def tuftestyle(ax):
@@ -26,6 +36,8 @@ def tuftestyle(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["bottom"].set_visible(True)
     ax.spines["left"].set_visible(True)
+    ax.tick_params(right='off', top='off')
+    ax.xaxis.grid(False)
 
 #    #restyle the tick lines
 #    for line in ax.get_xticklines() + ax.get_yticklines():
