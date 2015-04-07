@@ -2,6 +2,7 @@
 
 import re
 from collections import defaultdict
+from itertools import product
 
 segit_policies = ['SEGIT_SEQ', 'SEGIT_OMP', 'SEGIT_CILK']
 seg_policies = ['SEG_SEQ', 'SEG_OMP', 'SEG_CILK']
@@ -12,34 +13,32 @@ loops = defaultdict(dict)
 data = 'data.csv'
 
 with open(data, 'w') as data_file:
-  for segit in segit_policies:
-    for seg in seg_policies:
-      for size in sizes:
-        filename = segit + "-" + seg + "-" + str(size) + ".out"
-        #print filename
-        with open(filename, 'r') as f:
-          for line in f:
-            if 'Sym' in line:
-                continue
-            if not 'RAJA' in line:
-                  continue
-            if 'INSTRUCTION' in line:
-                break
-            line = line.replace(' : ', '+')
-            line = line.replace(': ', ',')
-            line = line.replace('+', ':')
-            line = ''.join(line.split())
-            labels = str(size) + ',' + segit + ',' + seg
-            #func = '@'.join(line.split(",")[2:4])
-            time = line.split(",")[-1]
-            #if func in loops:
-            #  if loops[func]["time"] > time:
-            #    loops[func]["time"] = time
-            #    loops[func]["labels"] = labels
-            #else:
-            #  loops[func]["time"] = time
-            #  loops[func]["labels"] = labels
-            data_file.write(labels + ',' + line + '\n')
+  for segit, seg, size in itertools.product(segit_policies, seg_policies, sizes):
+    filename = segit + "-" + seg + "-" + str(size) + ".out"
+    #print filename
+    with open(filename, 'r') as f:
+      for line in f:
+        if 'Sym' in line:
+            continue
+        if not 'RAJA' in line:
+              continue
+        if 'INSTRUCTION' in line:
+            break
+        line = line.replace(' : ', '+')
+        line = line.replace(': ', ',')
+        line = line.replace('+', ':')
+        line = ''.join(line.split())
+        labels = str(size) + ',' + segit + ',' + seg
+        #func = '@'.join(line.split(",")[2:4])
+        time = line.split(",")[-1]
+        #if func in loops:
+        #  if loops[func]["time"] > time:
+        #    loops[func]["time"] = time
+        #    loops[func]["labels"] = labels
+        #else:
+        #  loops[func]["time"] = time
+        #  loops[func]["labels"] = labels
+        data_file.write(labels + ',' + line + '\n')
 
 #print loops
 
