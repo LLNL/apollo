@@ -5,6 +5,35 @@ This module contains constants specifying the datatypes used for loading RAJA
 data.
 """
 
+PATH_DTYPE = {'names': 
+            ('problem size',
+                'outer',
+                'inner',
+                'loop type',
+                'set type',
+                'path',
+                'loop',
+                'range size',
+                'segments',
+                'fracrange',
+                'fracunstructured',
+                'func size',
+                'time'),
+            'formats': 
+            ('i4',
+                'S64',
+                'S64',
+                'S64',
+                'S64',
+                'S1024',
+                'S64',
+                'i4',
+                'i4',
+                np.float64,
+                np.float64,
+                'i4',
+                np.float64)}
+
 LULESH_DTYPE = {'names': 
             ('problem size',
                 'outer',
