@@ -3,79 +3,56 @@
 import re
 from collections import defaultdict
 
-import sys
-sys.path.append("/g/g92/ukbeck/Projects/Machine/src/scripts")
-import translate
+segit_policies = ['SEGIT_SEQ', 'SEGIT_OMP', 'SEGIT_CILK']
+seg_policies = ['SEG_SEQ', 'SEG_OMP', 'SEG_CILK']
+sizes = [1, 2, 3, 4, 5, 6, 7, 8]
 
-from subprocess import *
-
-import argparse
-
-segit_policies = ['SEGIT_SEQ', 'SEGIT_OMP']
-seg_policies = ['SEG_SEQ', 'SEG_SIMD', 'SEG_OMP']
-sizes = [1, 2, 3]
-
-write_paths = False
-write_data = True
+loops = defaultdict(dict)
 
 data = 'data.csv'
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--write-paths', action='store_true')
-parser.add_argument('-C', action='store_const', const=1)
-args = parser.parse_args()
+with open(data, 'w') as data_file:
+  for segit in segit_policies:
+    for seg in seg_policies:
+      for size in sizes:
+        filename = segit + "-" + seg + "-" + str(size) + ".out"
+        #print filename
+        with open(filename, 'r') as f:
+          for line in f:
+            if 'Sym' in line:
+                continue
+            if not 'RAJA' in line:
+                  continue
+            if 'INSTRUCTION' in line:
+                break
+            line = line.replace(' : ', '+')
+            line = line.replace(': ', ',')
+            line = line.replace('+', ':')
+            line = ''.join(line.split())
+            labels = str(size) + ',' + segit + ',' + seg
+            #func = '@'.join(line.split(",")[2:4])
+            time = line.split(",")[-1]
+            #if func in loops:
+            #  if loops[func]["time"] > time:
+            #    loops[func]["time"] = time
+            #    loops[func]["labels"] = labels
+            #else:
+            #  loops[func]["time"] = time
+            #  loops[func]["labels"] = labels
+            data_file.write(labels + ',' + line + '\n')
 
-print vars(args)
+#print loops
 
-write_paths = args.write_paths
-
-if write_paths:
-    for segit in segit_policies:
-        for seg in seg_policies:
-            for size in sizes:
-                filename = segit + "-" + seg + "-" + str(size) + ".out"
-                with open(filename, 'r') as f:
-                    for line in f:
-                        if not 'ares-' in line:
-                            continue
-
-                        line = line.replace(' : ', ':')
-
-                        translated_paths = [re.sub(translate.expr, translate.translate, path) for path in (line.split(',')[2]).split(':')]
-                        no_par_paths = [path for path in translated_paths if not "_par_" in path]
-
-                        for path in translated_paths:
-                            sys.stdout.write(path.split('=')[0] + '!!')
-                        sys.stdout.write('\n')
-else:
-    with open(data, 'w') as data_file:
-        for segit in segit_policies:
-            for seg in seg_policies:
-                for size in sizes:
-                    filename = segit + "-" + seg + "-" + str(size) + ".out"
-                    with open(filename, 'r') as f:
-                        for line in f:
-                            if not 'ares-' in line:
-                                continue
-                            if "Symtab" in line:
-                                continue
-
-                            line = line.replace(' : ', ':')
-
-                            translated_paths = [re.sub(translate.expr, translate.translate, path) for path in (line.split(',')[2]).split(':')]
-                            no_par_paths = [path for path in translated_paths if not "_par_" in path]
-
-                            if write_data:
-                                linenum = '??' # translated_path.split(':')[-1]
-                                func = no_par_paths[-1].split('=')[-1]  #translated_path.split('\t')[0]
-                                args = ['c++filt', '-p', '%s' % func]
-                                proc = Popen(args, stdout=PIPE, stdin=PIPE)
-                                filt_func = proc.stdout.readline().rstrip('\n')
-
-                                path = (line.split(',')[2])
-                                line = line.replace(path, '%s' % (func, ))
-
-                                line = line.replace(': ', ',')
-                                line = ''.join(line.split())
-                                labels = str(size) + ',' + segit + ',' + seg
-                                data_file.write(labels + ',' + line + '\n')
+#features_file = 'X.csv'
+#classes_file = 'y.csv'
+#times_file = 'times.csv'
+#
+#with open(features_file, 'w') as features, open(classes_file, 'w') as classes, open(times_file, 'w') as times:
+#  with open(data, 'r') as data_file:
+#    for line in data_file:
+#      func = '@'.join(line.split(",")[5:7])
+#      labels = ','.join(line.split(",")[:3])
+#      times.write(','.join([func, loops[func]["time"] + '\n']))
+#      if loops[func]["labels"] == labels:
+#        classes.write(labels + '\n')
+#        features.write(','.join(line.split(',')[4:-1]) + '\n')
