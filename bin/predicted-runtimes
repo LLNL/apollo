@@ -6,12 +6,11 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from rlsl.learn import get_kfold_score, get_kfold_pem_score
+from rlsl.learn import get_kfold_score, get_kfold_pem_score, get_pem_time
 from rlsl.util import df_to_unique_csv
 from rlsl.util.dtypes import LULESH_DTYPE, PATH_DTYPE
 from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
 from rlsl.util.timer import Timer
-from rlsl.util.instructions import coarsen_instruction_data
 from rlsl.metrics.performance import PerformanceErrorMetric, RuntimeScorer
 
 from sklearn.feature_extraction import DictVectorizer
@@ -31,44 +30,34 @@ CLASSIFIERS = [
     'KNeighborsClassifier',
     ]
 
-FEATURES = {}
-
 clfs = []
 
 NAMES = PATH_DTYPE['names']
 
-deck = sys.argv[2]
-instructions = sys.argv[3]
+deck = sys.argv[1]
+instructions = sys.argv[2]
 
 INPUT = {
         'deck': deck,
         'instructions': instructions
         }
 
+data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/with-path/%s.csv' % INPUT['deck'], NAMES)
+instruction_data = PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % INPUT['instructions'])
 
+print "Running %s with instruction %s..." % (deck, instructions)
 
-data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/with-path/%s-data.csv' % INPUT['deck'], NAMES)
-instruction_data = coarsen_instruction_data(PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % INPUT['instructions']).get_data())
-
-all_data = pd.merge(data.get_data(), instruction_data.fillna(0), on='loop')
+all_data = pd.merge(data.get_data(), instruction_data.get_data().fillna(0), on='loop')
 
 df = all_data
 
 for c in CLASSIFIERS:
     clfs.append(globals()[c]())
 
-FEATURES['all'] = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path']]
-FEATURES['inst'] = [x for x in list(df) if x not in list(data.get_data())]
-FEATURES['no-inst'] = [x for x in list(data.get_data()) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop', 'path']]
-
-FEATURES['coarse'] = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path', 'loop']]
-
+#feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop']]
+feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop', 'path']]
 loop_feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path']]
 
-feature_set = sys.argv[1]
-feature_names = FEATURES[feature_set]
-
-print "Running %s with instruction %s and feature set %s..." % (deck, instructions, feature_set)
 df['inner_outer_best'] = df.apply(lambda row:
         str(row['inner_best'] + ' ' + row['outer_best']), axis=1)
 
@@ -93,28 +82,27 @@ X_loop = np.hstack((x_num_loop, vec_x_cat))
 X, X_loop, y = shuffle(X,X_loop,y)
 pem_scorer = PerformanceErrorMetric(df, [x for x in loop_feature_names if x not in ['loop type', 'set type']], y_lab)
 
-print "Accuracy...",
-accuracy = [get_kfold_score(clf, X, y, 10, scoring='accuracy') for clf in clfs]
-print "done."
-print "F1...",
-f1 = [get_kfold_score(clf, X, y, 10, scoring='f1') for clf in clfs]
-print "done."
-print "PEM...",
-pem = [get_kfold_pem_score(clf, X_loop, X, y, 1, scoring=pem_scorer.score) for clf in clfs]
-print "done"
+print "Getting predicted times..."
+pem = [get_pem_time(clf, X_loop, X, y, scoring=pem_scorer.get_predicted_times) for clf in clfs]
+print "DONE"
+
+print pem
 
 scores = []
-for acc,f,p,label in zip(accuracy, f1, pem,CLASSIFIERS):
-    score_map = {'problem size': 'all',
-            'classifier':label,
-            'accuracy':acc,
-            'f1':f,
-            'pem':p}
+for time,label in zip(pem, CLASSIFIERS):
+    for size in time:
+        score_map = {'problem size': size,
+                'classifier':label,
+                'time':time[size]}
 
-    scores.append(score_map)
+        scores.append(score_map)
 
 scores_df = pd.DataFrame(scores)
-df_to_unique_csv(scores_df, "%s-%s" % (INPUT['deck'], feature_set))
+
+for classifier in np.unique(scores_df['classifier']):
+    scores_df[classifier] = scores_df[scores_df['classifier'] == classifier]['time']
+
+df_to_unique_csv(scores_df, "%s-predicted-time" % INPUT['deck'])
 
 #
 # #importances = []

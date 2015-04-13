@@ -1,0 +1,162 @@
+#!/usr/bin/env python
+import sys
+
+import itertools
+
+import numpy as np
+import pandas as pd
+
+from rlsl.learn import get_kfold_score, get_kfold_pem_score, get_cross_app_score, get_cross_app_pem_score
+from rlsl.util import df_to_unique_csv
+from rlsl.util.dtypes import LULESH_DTYPE, PATH_DTYPE
+from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
+from rlsl.util.timer import Timer
+from rlsl.util.instructions import coarsen_instruction_data
+from rlsl.metrics.performance import PerformanceErrorMetric, RuntimeScorer
+
+from sklearn.feature_extraction import DictVectorizer
+import sklearn.preprocessing
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import make_scorer
+from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cross_validation import train_test_split
+from sklearn.utils import shuffle
+
+CLASSIFIERS = [
+    'DecisionTreeClassifier',
+    'RandomForestClassifier',
+    'KNeighborsClassifier',
+    ]
+
+FEATURES = {}
+
+clfs = []
+
+NAMES = PATH_DTYPE['names']
+
+train_deck = sys.argv[1]
+test_deck = sys.argv[2]
+train_instructions = sys.argv[3]
+test_instructions = sys.argv[4]
+
+INPUT = {
+        'train-deck': train_deck,
+        'test-deck': test_deck,
+        'train-instructions': train_instructions,
+        'test-instructions': test_instructions
+        }
+
+
+
+train_data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/with-path/%s-data.csv' % INPUT['train-deck'], NAMES)
+test_data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/with-path/%s-data.csv' % INPUT['test-deck'], NAMES)
+train_instruction_data = coarsen_instruction_data(PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % INPUT['train-instructions']).get_data())
+test_instruction_data = coarsen_instruction_data(PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % INPUT['test-instructions']).get_data())
+
+all_train_data = pd.merge(train_data.get_data(), train_instruction_data.fillna(0), on='loop')
+all_test_data = pd.merge(test_data.get_data(), test_instruction_data.fillna(0), on='loop')
+
+train_df = all_train_data
+test_df = all_test_data
+
+for c in CLASSIFIERS:
+    clfs.append(globals()[c]())
+
+FEATURES['all'] = [x for x in list(train_df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop', 'path']]
+FEATURES['inst'] = [x for x in list(train_df) if x not in list(train_data.get_data())]
+FEATURES['no-inst'] = [x for x in list(train_data.get_data()) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop', 'path']]
+
+loop_feature_names = [x for x in list(train_df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path']]
+
+feature_set = 'all'#sys.argv[1]
+feature_names = FEATURES[feature_set]
+
+print "Running %s to predict %s and feature set %s..." % (train_deck, test_deck, feature_set)
+
+train_df['inner_outer_best'] = train_df.apply(lambda row:
+        str(row['inner_best'] + ' ' + row['outer_best']), axis=1)
+test_df['inner_outer_best'] = test_df.apply(lambda row:
+        str(row['inner_best'] + ' ' + row['outer_best']), axis=1)
+
+train_y_cat = train_df[['inner_outer_best']].T.to_dict().values()
+test_y_cat = test_df[['inner_outer_best']].T.to_dict().values()
+
+y_vec = DictVectorizer(sparse=False)
+y_lab = sklearn.preprocessing.LabelEncoder()
+
+y_lab.fit(np.hstack((train_y_cat, test_y_cat)))
+
+train_y = y_lab.transform(train_y_cat)
+test_y = y_lab.transform(test_y_cat)
+
+train_x_num = train_df[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
+train_x_num_loop = train_df[[x for x in loop_feature_names if x not in ['loop type', 'set type']]].as_matrix()
+test_x_num = test_df[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
+test_x_num_loop = test_df[[x for x in loop_feature_names if x not in ['loop type', 'set type']]].as_matrix()
+
+train_x_cat = train_df[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
+test_x_cat = test_df[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
+
+vectorizer = DictVectorizer(sparse=False)
+vectorizer.fit(np.hstack((train_x_cat, test_x_cat)))
+
+train_vec_x_cat = vectorizer.transform(train_x_cat)
+test_vec_x_cat = vectorizer.transform(test_x_cat)
+
+train_X = np.hstack((train_x_num, train_vec_x_cat))
+test_X = np.hstack((test_x_num, test_vec_x_cat))
+train_X_loop = np.hstack((train_x_num_loop, train_vec_x_cat))
+test_X_loop = np.hstack((test_x_num_loop, test_vec_x_cat))
+
+train_X, train_X_loop, train_y = shuffle(train_X,train_X_loop,train_y)
+test_X, test_X_loop, test_y = shuffle(test_X,test_X_loop,test_y)
+
+pem_scorer = PerformanceErrorMetric(test_df, [x for x in loop_feature_names if x not in ['loop type', 'set type']], y_lab)
+
+print "Accuracy...",
+accuracy = [get_cross_app_score(clf, train_X, train_y, test_X, test_y, scoring='accuracy') for clf in clfs]
+print "done."
+print "F1...",
+f1 = [get_cross_app_score(clf, train_X, train_y, test_X, test_y, scoring='f1') for clf in clfs]
+print "done."
+print "PEM...",
+pem = [get_cross_app_pem_score(clf, test_X_loop, train_X, train_y, test_X, test_y, 1, scoring=pem_scorer.score) for clf in clfs]
+print "done"
+
+scores = []
+for acc,f,p,label in zip(accuracy, f1, pem,CLASSIFIERS):
+    score_map = {'problem size': 'all',
+            'classifier':label,
+            'accuracy':acc,
+            'f1':f,
+            'pem':p}
+
+    scores.append(score_map)
+
+scores_df = pd.DataFrame(scores)
+df_to_unique_csv(scores_df, "%s-pred-%s-%s" % (INPUT['train-deck'], INPUT['test-deck'], feature_set))
+
+#
+# #importances = []
+# #ilist = []
+# #
+# #for clf,label in zip(clfs,CLASSIFIERS):
+# #    clf.fit(X, y)
+# #    importances = clf.feature_importances_
+# #    indices = np.argsort(importances)[::-1]
+# #
+# #    print("Feature ranking:")
+# #    for f in range(len(importances)):
+# #        imap = {'rank': f+1,
+# #                'feature_name': feature_names[indices[f]],
+# #                'importance':importances[indices[f]],
+# #                'classifier':label}
+# #
+# #        print("%d. %s (%f)" % (f + 1, feature_names[indices[f]], importances[indices[f]]))
+# #        ilist.append(imap)
+# #
+# #idf = pd.DataFrame(ilist)
+# #idf.to_csv('%s-importances.csv' % APP)

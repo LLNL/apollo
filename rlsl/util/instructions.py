@@ -19,7 +19,6 @@ INSTRUCTION_GROUPS = {
 
 def coarsen_instruction_data(instruction_data):
     columns = list(instruction_data)
-    print columns
 
     grouped_columns = {}
 
