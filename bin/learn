@@ -1,139 +1,182 @@
 #!/usr/bin/env python
 import sys
 
-import itertools
+from rlsl.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from rlsl.util.transformers import *
+from rlsl.util.codegen import CodeGenerator
+from rlsl.util import df_to_unique_csv
+from rlsl.util.timer import Timer
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import *
+
+from sklearn.cross_validation import cross_val_score
+
+from sklearn.pipeline import Pipeline
 
 import numpy as np
 import pandas as pd
 
-from rlsl.learn import get_kfold_score, get_kfold_pem_score
-from rlsl.util import df_to_unique_csv
-from rlsl.util.dtypes import LULESH_DTYPE, PATH_DTYPE
-from rlsl.util.sciload import PandasFeatureLoader, PandasInstructionLoader
-from rlsl.util.timer import Timer
-from rlsl.util.instructions import coarsen_instruction_data
-from rlsl.metrics.performance import PerformanceErrorMetric, RuntimeScorer
+def get_train_test_inds(y,train_proportion=0.7):
+    '''Generates indices, making random stratified split into training set and testing sets
+    with proportions train_proportion and (1-train_proportion) of initial sample.
+    y is any iterable indicating classes of each observation in the sample.
+    Initial proportions of classes inside training and
+    testing sets are preserved (stratified sampling).
+    '''
 
-from sklearn.feature_extraction import DictVectorizer
-import sklearn.preprocessing
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import make_scorer
-from sklearn.svm import SVC
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.cross_validation import train_test_split
-from sklearn.utils import shuffle
+    y=np.array(y)
+    train_inds = np.zeros(len(y),dtype=bool)
+    test_inds = np.zeros(len(y),dtype=bool)
+    values = np.unique(y)
+    for value in values:
+        value_inds = np.nonzero(y==value)[0]
+        np.random.shuffle(value_inds)
+        n = int(train_proportion*len(value_inds))
+
+        train_inds[value_inds[:n]]=True
+        test_inds[value_inds[n:]]=True
+
+    return train_inds,test_inds
+
+
+def optimal_times(data):
+    print "Optimal times."
+    print data.groupby('problem_size')['time.duration'].sum()
+
+
+def get_code(X, y, labelencoder):
+    adf = AutoDataFrameMapper()
+    pipeline = Pipeline([
+        ('mapper', adf),
+        ('clf', DecisionTreeClassifier(max_leaf_nodes=15))])
+    features = adf.get_feature_list(X)
+    pipeline.fit(X,y)
+    CodeGenerator().get_code(pipeline.steps[-1][1], features,
+                             labelencoder.get_labels())
+
 
 CLASSIFIERS = [
     'DecisionTreeClassifier',
-    'RandomForestClassifier',
-    'KNeighborsClassifier',
-    ]
-
-FEATURES = {}
+]
 
 clfs = []
-
-NAMES = PATH_DTYPE['names']
-
-deck = sys.argv[2]
-instructions = sys.argv[3]
-
-INPUT = {
-        'deck': deck,
-        'instructions': instructions
-        }
-
-
-
-data = PandasFeatureLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/with-path/%s-data.csv' % INPUT['deck'], NAMES)
-instruction_data = coarsen_instruction_data(PandasInstructionLoader('/Users/david/PhD/Research/Papers/SC 2015 Machine Learning/data/learning/%s-instructions.csv' % INPUT['instructions']).get_data())
-
-all_data = pd.merge(data.get_data(), instruction_data.fillna(0), on='loop')
-
-df = all_data
 
 for c in CLASSIFIERS:
     clfs.append(globals()[c]())
 
-FEATURES['all'] = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path']]
-FEATURES['inst'] = [x for x in list(df) if x not in list(data.get_data())]
-FEATURES['no-inst'] = [x for x in list(data.get_data()) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'loop', 'path']]
+data = {}
+timers = {}
+config = {}
+config['app'] = 'lulesh'
 
-FEATURES['coarse'] = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path', 'loop']]
+with Timer() as t:
+    data['loop'] = PandasCaliperLoader('%s' % (sys.argv[1]), id_column='loop_count').get_data()
+    data['instruction'] = PandasInstructionLoader('%s' % sys.argv[2]).get_data().fillna(0)
+timers['load'] = t.msecs
 
-loop_feature_names = [x for x in list(df) if x not in ['time', 'outer', 'inner', 'outer_best', 'inner_best', 'time_best', 'path']]
+with Timer() as t:
+    data['loop'] = DropThreads().transform(data['loop'])
+    #data['loop'] = SelectThreads().transform(data['loop'])
+    data['all_loop'] = data['loop']
+    data['loop'] = FilterDuplicates().transform(data['loop'])
+timers['transform'] = t.msecs
 
-feature_set = sys.argv[1]
-feature_names = FEATURES[feature_set]
+with Timer() as t:
+    data['all'] = pd.merge(data['loop'], data['instruction'], left_on='loop_id', right_on='loop', how='left')
+    data['all'].drop('loop', axis=1, inplace=True)
+    #data['all'] = data['loop']
+timers['merge'] = t.msecs
 
-print "Running %s with instruction %s and feature set %s..." % (deck, instructions, feature_set)
-df['inner_outer_best'] = df.apply(lambda row:
-        str(row['inner_best'] + ' ' + row['outer_best']), axis=1)
+from IPython import embed; embed()
 
-y_cat = df[['inner_outer_best']].T.to_dict().values()
+X = data['all']
+X = X.iloc[np.random.permutation(len(X))]
 
-y_vec = DictVectorizer(sparse=False)
-y_lab = sklearn.preprocessing.LabelEncoder()
+DROPPED_FEATURES = ['loop_id', 'callpath.address', 'num_threads', 'time.duration', 'seg_exec', 'seg_it', 'loop_count', 'reduction']
 
-y = y_lab.fit_transform(y_cat)
+#FONE = [x for x in list(X) if x not in ['num_indices']]
+#FTWO = [x for x in list(X) if x not in ['num_indices', 'problem_size']]
+#FTHREE = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep']]
+#FFOUR = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep', '8b48']]
+#FFIVE = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep', '8b48', '2674']]
 
-x_num = df[[x for x in feature_names if x not in ['loop type', 'set type']]].as_matrix()
-x_num_loop = df[[x for x in loop_feature_names if x not in ['loop type', 'set type']]].as_matrix()
+FONE = [x for x in list(X) if x not in ['num_indices']]
+FTWO = [x for x in list(X) if x not in ['num_indices', 'problem_size']]
+FTHREE = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep']]
+FFOUR = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep', '58808d48']]
+FFIVE = [x for x in list(X) if x not in ['num_indices', 'problem_size', 'timestep', '58808d48', '55']]
 
-x_cat = df[[x for x in ['loop type', 'set type'] if x in feature_names]].T.to_dict().values()
+FTEN = [x for x in list(X) if x not in [ 'num_indices', 'problem_size', 'timestep', '8b48', '2674', '58808d48', '68808d48', 'ff47eee8', 'b87589']]
 
-vectorizer = DictVectorizer(sparse=False)
-vec_x_cat = vectorizer.fit_transform(x_cat)
+#fsets = [FONE, FTWO, FTHREE, FFOUR, FFIVE]
+fsets = [DROPPED_FEATURES]
+#fsets = [FTEN]
 
-X = np.hstack((x_num, vec_x_cat))
-X_loop = np.hstack((x_num_loop, vec_x_cat))
+labelencoder = GetLabels()
+#labelencoder = GetThreads()
+y = labelencoder.transform(X)
 
-X, X_loop, y = shuffle(X,X_loop,y)
-pem_scorer = PerformanceErrorMetric(df, [x for x in loop_feature_names if x not in ['loop type', 'set type']], y_lab)
+data['full'] = X
 
-print "Accuracy...",
-accuracy = [get_kfold_score(clf, X, y, 10, scoring='accuracy') for clf in clfs]
-print "done."
-print "F1...",
-f1 = [get_kfold_score(clf, X, y, 10, scoring='f1') for clf in clfs]
-print "done."
-print "PEM...",
-pem = [get_kfold_pem_score(clf, X_loop, X, y, 1, scoring=pem_scorer.score) for clf in clfs]
-print "done"
+for fset in fsets:
+    X = FeatureDropper().transform(data['full'], columns=fset)
 
-scores = []
-for acc,f,p,label in zip(accuracy, f1, pem,CLASSIFIERS):
-    score_map = {'problem size': 'all',
-            'classifier':label,
-            'accuracy':acc,
-            'f1':f,
-            'pem':p}
+    #get_code(X, y, labelencoder)
 
-    scores.append(score_map)
+    embed()
 
-scores_df = pd.DataFrame(scores)
-df_to_unique_csv(scores_df, "%s-%s" % (INPUT['deck'], feature_set))
+    for i,c  in enumerate(CLASSIFIERS):
+        pipeline = Pipeline([
+            ('mapper', AutoDataFrameMapper()),
+            ('clf', clfs[i])])
 
-#
-# #importances = []
-# #ilist = []
-# #
-# #for clf,label in zip(clfs,CLASSIFIERS):
-# #    clf.fit(X, y)
-# #    importances = clf.feature_importances_
-# #    indices = np.argsort(importances)[::-1]
-# #
-# #    print("Feature ranking:")
-# #    for f in range(len(importances)):
-# #        imap = {'rank': f+1,
-# #                'feature_name': feature_names[indices[f]],
-# #                'importance':importances[indices[f]],
-# #                'classifier':label}
-# #
-# #        print("%d. %s (%f)" % (f + 1, feature_names[indices[f]], importances[indices[f]]))
-# #        ilist.append(imap)
-# #
-# #idf = pd.DataFrame(ilist)
-# #idf.to_csv('%s-importances.csv' % APP)
+        scores = cross_val_score(pipeline, X, y, cv=3)
+        print "%0.6f, %s" % (scores.mean(), config['app'])
+
+        sys.exit()
+
+        print "Actual time."
+        train_inds, test_inds = get_train_test_inds(y)
+
+        pipeline.fit(X[train_inds], y[train_inds])
+        results = pipeline.predict(X)
+        resultlabels = labelencoder.get_encoder().inverse_transform(results)
+
+        test_df = data['full'][['problem_size', 'loop_count', 'seg_it', 'seg_exec']]
+        #test_df['num_threads'] = resultlabels
+
+        #merged_test_df = pd.merge(test_df, data['all_loop'][['loop_count', 'problem_size',
+        #                                                 'num_threads',
+        #                                                 'seg_it', 'seg_exec',
+        #                                                 'time.duration']],
+        #                         on=['problem_size', 'loop_count', 'seg_it', 'seg_exec'], how='inner')
+
+        #mdf = merged_test_df[(merged_test_df['num_threads_x'] == merged_test_df['num_threads_y'])]
+
+        test_df['seg_it'] = map(lambda x: x.split(' ')[0],
+                                labelencoder.get_encoder().inverse_transform(results))
+        test_df['seg_exec'] = map(lambda x: x.split(' ')[1],
+                                labelencoder.get_encoder().inverse_transform(results))
+
+        merged_test_df = pd.merge(test_df, data['all_loop'][['loop_count', 'problem_size', 'seg_it', 'seg_exec', 'time.duration']], on=['problem_size', 'loop_count'], how='inner')
+        mdf = merged_test_df[(merged_test_df['seg_exec_x'] == merged_test_df['seg_exec_y']) & (merged_test_df['seg_it_x'] == merged_test_df['seg_it_y'])]
+
+        print mdf.groupby('problem_size')['time.duration'].sum()
+
+        pipeline = Pipeline([
+            ('mapper', AutoDataFrameMapper()),
+            ('clf', RandomForestClassifier())])
+
+        with Timer() as t:
+            pipeline.fit(X,y)
+        features = AutoDataFrameMapper().get_feature_list(X)
+        forest = pipeline.steps[-1][1]
+        importances = forest.feature_importances_
+        std = np.std([tree.feature_importances_ for tree in forest.estimators_],
+                    axis=0)
+        indices = np.argsort(importances)[::-1]
+
+        print("Feature ranking:")
+        for f in range(min(10, len(features))):
+            print("%d. feature %s (%f)" % (f + 1, features[indices[f]], importances[indices[f]]))
