@@ -1,18 +1,18 @@
 import numpy as np
 
 POLICY_LINE = {
-    'SEGIT_CILK SEG_CILK' : 'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
-    'SEGIT_OMP SEG_CILK' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
-    'SEGIT_SEQ SEG_CILK' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
-    'SEGIT_CILK SEG_OMP' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
-    'SEGIT_SEQ SEG_OMP' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
-    'SEGIT_OMP SEG_OMP' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
-    'SEGIT_CILK SEG_SEQ' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::seq_exec> >(iset, loop_body)',
-    'SEGIT_OMP SEG_SEQ' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::seq_exec> >(iset, loop_body)',
-    'SEGIT_SEQ SEG_SEQ' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::seq_exec> >(iset, loop_body)',
-    'SEGIT_CILK SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::simd_exec> >(iset, loop_body)',
-    'SEGIT_OMP SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_fon_segit, RAJA::simd_exec> >(iset, loop_body)',
-    'SEGIT_SEQ SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::simd_exec> >(iset, loop_body)'
+    'CILK_FOR CILK_FOR' : 'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
+    'OMP_SEGIT SEG_CILK' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
+    'SEQ_SEGIT CILK_FOR' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::cilk_for_exec> >(iset, loop_body)',
+    'CILK_SEGIT SEG_OMP' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
+    'SEQ_SEGIT OMP_PARALLEL' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
+    'OMP_SEGIT OMP_PARALLEL' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::omp_parallel_for_exec> >(iset, loop_body)',
+    'CILK_SEGIT SEG_SEQ' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::seq_exec> >(iset, loop_body)',
+    'OMP_SEGIT SEG_SEQ' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_for_segit, RAJA::seq_exec> >(iset, loop_body)',
+    'SEQ_SEGIT SEQ_EXEC' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::seq_exec> >(iset, loop_body)',
+    'CILK_FOR SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::cilk_for_segit, RAJA::simd_exec> >(iset, loop_body)',
+    'OMP_SEGIT SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::omp_parallel_fon_segit, RAJA::simd_exec> >(iset, loop_body)',
+    'SEQ_SEGIT SEG_SIMD' :  'RAJA::forall<RAJA::IndexSet::ExecPolicy<RAJA::seq_segit, RAJA::simd_exec> >(iset, loop_body)'
 }
 
 class CodeGenerator(object):

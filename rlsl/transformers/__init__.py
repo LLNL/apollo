@@ -1,9 +1,57 @@
 import pandas as pd
+import numpy as np
+
+import logging
+
+import re
 
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn_pandas import DataFrameMapper
-import pdb; pdb.set_trace()  # XXX BREAKPOINT
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+
+
+class DataframePipeline():
+    def __init__(self, steps):
+        self.names, self.transformers = zip(*steps)
+        logging.info('Creating DataframePipeline with steps: [%s]', ', '.join(s for s in self.names))
+        self.steps = list(steps)
+        self.X = {}
+
+    def fit_transform(self, X):
+        Xt = X
+        y = None
+
+        for name, transform in self.steps:
+            logging.info('Applying %s', name)
+            self.X[name] = Xt
+            if 'y' == name:
+                y = transform.transform(Xt)
+            else:
+                Xt = transform.transform(Xt)
+
+        return Xt, y
+
+    def __getitem__(self, key):
+        return self.transformers[self.names.index(key)]
+
+    def get_x(self, name):
+        return self.X[name]
+
+
+class MergeMapper():
+    def __init__(self, data, column='loop'):
+        self.column = column
+        self.data = data
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, **transform_params):
+        df = pd.merge(X, self.data, left_on='loop_id', right_on=self.column,
+                        how='left').dropna()
+        logging.debug('Dropped %d records due to NaN in MergeMapper.' % (len(X) - len(df)))
+        return df
+
 
 class AutoDataFrameMapper(TransformerMixin):
     def fit(self, X, y=None, **fit_params):
@@ -49,13 +97,21 @@ class DuplicateDropper(TransformerMixin):
         columns = transform_params.get('id_column', 'loop_id')
         return X.drop_duplicates(subset=[columns, 'problem_size'])
 
+
 class FeatureDropper(TransformerMixin):
+    def __init__(self, columns=None):
+        self.cols = columns
+
     def fit(self, X, y=None, **fit_params):
         return self
 
     def transform(self, X, **transform_params):
         columns = transform_params.get('columns', None)
-        return X.drop(columns, axis=1)
+        if self.cols:
+            columns = self.cols
+
+        droppers = [x for x in self.cols if x in X]
+        return X.drop(droppers, axis=1)
 
 
 class ColumnSelector(TransformerMixin, BaseEstimator):
@@ -123,8 +179,11 @@ class DropThreads(TransformerMixin):
 
     def transform(self, X, **transform_params):
         tcol = transform_params.get('thread_column', 'num_threads')
-        return X[((X[tcol] == 1) & ((X.seg_exec != 'SEG_OMP') & (X.seg_it != 'SEGIT_OMP'))) |
-                 ((X[tcol] == 16) & ((X.seg_exec == 'SEG_OMP') | (X.seg_it == 'SEGIT_OMP')))]
+        if tcol in X:
+            return X[((X[tcol] == 1) & ((X.seg_exec != 'SEG_OMP') & (X.seg_it != 'SEGIT_OMP'))) |
+                    ((X[tcol] == 16) & ((X.seg_exec == 'SEG_OMP') | (X.seg_it == 'SEGIT_OMP')))]
+        else:
+            return X
 
 class SelectThreads(TransformerMixin):
     def fit(self, X, y=None, **fit_params):
@@ -150,7 +209,8 @@ class ShuffleDataframe(TransformerMixin):
         return self
 
     def transform(self, X, **transform_params):
-        return X.iloc[np.random.permutation(len(df))]
+        return X.iloc[np.random.permutation(len(X))]
+
 
 class ReorderCols(TransformerMixin):
     def fit(self, X, y=None, **fit_params):
@@ -162,3 +222,28 @@ class ReorderCols(TransformerMixin):
         cols.insert(0, cols.pop(cols.index('problem_size')))
         return X[cols]
 
+
+class StringifyPolicies():
+    def demunge_name(self, name):
+        policy_regex = re.compile('[a-z]+_[a-z]+')
+        return policy_regex.search(name).group(0).upper()
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, **transform_params):
+        X['seg_it'] = X.apply(lambda row: self.demunge_name(str(row['seg_it'])), axis=1)
+        X['seg_exec'] = X.apply(lambda row: self.demunge_name(str(row['seg_exec'])), axis=1)
+
+        return X
+
+class DropPolicies(TransformerMixin):
+    def __init__(self, policy):
+        self.policy = policy
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, **transform_params):
+        return X[~((X.seg_it.str.contains(self.policy, na=False)) |
+                 (X.seg_exec.str.contains(self.policy, na=False)))]

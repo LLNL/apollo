@@ -79,3 +79,10 @@ class PandasCaliperLoader(Loader):
         data = pd.DataFrame(maps)
         super(PandasCaliperLoader, self).__init__(filename, list(data))
         self._data = data
+
+
+def load(app_data, instruction_data):
+    ldata = PandasCaliperLoader(app_data, id_column='loop_count').get_data()
+    idata = PandasInstructionLoader(instruction_data).get_data().fillna(0)
+
+    return ldata, idata

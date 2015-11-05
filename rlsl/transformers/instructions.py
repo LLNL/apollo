@@ -33,5 +33,3 @@ def coarsen_instruction_data(instruction_data):
         instruction_data = instruction_data.drop(grouped_columns[group], axis=1)
 
     return instruction_data
-
-        
