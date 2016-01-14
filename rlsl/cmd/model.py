@@ -31,9 +31,6 @@ for c in CLASSIFIERS:
 
 def setup_parser(subparser):
     subparser.add_argument(
-        '-v', '--verbose', action='store_true', dest='verbose',
-        help="Display verbose build output while installing.")
-    subparser.add_argument(
         '-p', '--predict', action='store', dest='predict',
         help="Select which label to predict for: policy or thread")
     subparser.add_argument(
@@ -41,28 +38,87 @@ def setup_parser(subparser):
         default='dropped_features',
         help="Feature set to use for predictions")
     subparser.add_argument(
-        'files', nargs=argparse.REMAINDER, help="specs of packages to install")
+        'files', nargs=argparse.REMAINDER, help="files containing application samples and instruction data")
 
 
-def run_model(app_data, instruction_data, kind, features):
-    steps = get_pipeline_steps(
-        kind=kind, data=instruction_data,
-        dropped_features=getattr(rlsl, features))
+def run_model(app_data, instruction_data, kind, features, interactive=True, keep_features=False, **kwargs):
+    if keep_features:
+        all_features = list(app_data) + list(instruction_data)
+        steps = get_pipeline_steps(
+            kind=kind, data=instruction_data,
+            dropped_features=[x for x in all_features if x not in features])
+    else:
+        steps = get_pipeline_steps(
+            kind=kind, data=instruction_data,
+            dropped_features=getattr(rlsl, features))
+
     steps = [x for x in steps if x[0] != 'threads']
 
     pipeline = DataframePipeline(steps)
 
     X, y = pipeline.fit_transform(app_data)
 
-    for i,c  in enumerate(CLASSIFIERS):
-        pipeline = Pipeline([
-            ('mapper', AutoDataFrameMapper()),
-            #('pca', PCA(n_components=2)),
-            #('pca', PCA(n_components=3)),
-            ('clf', clfs[i])])
+    pipeline = Pipeline([
+        ('mapper', AutoDataFrameMapper()),
+        #('pca', PCA(n_components=2)),
+        #('pca', PCA(n_components=3)),
+        #('clf', DecisionTreeClassifier(max_depth=kwargs.get('depth')))])
+        ('clf', DecisionTreeClassifier(max_depth=3))])
 
-        scores = cross_val_score(pipeline, X, y, cv=3)
+    scores = cross_val_score(pipeline, X, y, cv=3)
+
+    if interactive:
         print scores.mean()
+    else:
+        return scores.mean()
+
+def run_cross_app_model(train_app, train_inst, test_app, test_inst, kind, features):
+    train_inst_set = set(list(train_inst))
+    test_inst_set = set(list(test_inst))
+
+    train_app_set = set(list(train_app))
+    test_app_set = set(list(test_app))
+
+    for inst in train_inst_set - test_inst_set:
+        test_inst[inst] = 0
+    for inst in test_inst_set - train_inst_set:
+        train_inst[inst] = 0
+
+    feats_in_both = train_app_set & test_app_set
+
+    train_app = train_app[list(feats_in_both)]
+    test_app = test_app[list(feats_in_both)]
+
+    steps = get_pipeline_steps(
+        kind=kind, data=train_inst,
+        dropped_features=getattr(rlsl, features))
+    pipeline = DataframePipeline(steps)
+
+    X_train, y_train = pipeline.fit_transform(train_app)
+
+    steps = get_pipeline_steps(
+        kind=kind, data=test_inst,
+        dropped_features=getattr(rlsl, features))
+    pipeline = DataframePipeline(steps)
+
+    X_test, y_test = pipeline.fit_transform(test_app)
+
+    pipeline = Pipeline([
+        ('mapper', AutoDataFrameMapper()),
+        ('clf', DecisionTreeClassifier())])
+
+    pipeline.fit_transform(X_train, y_train)
+
+    test_size = min(len(X_train), len(X_test))
+    print "Test size is %d" % test_size
+
+    y_pred = pipeline.predict(X_test[:test_size])
+
+    results = (y_pred == y_test[:test_size])
+    if True in results:
+        return pd.value_counts(results)[True]/float(len(results))
+    else:
+        return 0.0
 
 
 def model(parser, args):

@@ -141,7 +141,22 @@ class GetLabels(object):
         #X['exec_it_best'] = X.apply(lambda row: str(row['seg_it_best'] + ' ' + row['seg_exec_best']), axis=1)
         #return DataFrameMapper([(['exec_it_best'], LabelEncoder())]).fit_transform(X.apply(lambda row: str(row['seg_it_best'] + ' ' + row['seg_exec_best']), axis=1))
         self.le = LabelEncoder()
-        return self.le.fit_transform(X.apply(lambda row: str(row['seg_it'] + ' ' + row['seg_exec']), axis=1))
+        #return self.le.fit_transform(X.apply(lambda row: str(row['seg_it'] + ' ' + row['seg_exec']), axis=1))
+        return self.le.fit_transform(X.policy)
+
+    def get_labels(self):
+        return self.le.classes_
+
+    def get_encoder(self):
+        return self.le
+
+class GetChunks(object):
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, **transform_params):
+        self.le = LabelEncoder()
+        return self.le.fit_transform(X.chunk_size)
 
     def get_labels(self):
         return self.le.classes_
@@ -199,9 +214,9 @@ class FilterDuplicates(TransformerMixin):
         return self
 
     def transform(self, X, **transform_params):
-        return X.loc[X.groupby(
-            ['loop_count', 'problem_size'])
-            ['time.duration'].idxmin()]
+        #return X.loc[X.groupby(['numeric_loop_id', 'problem_size'])
+            #['time.duration'].idxmin()]
+        return X.sort('time.duration').groupby(['numeric_loop_id', 'problem_size'], as_index=False).first()
 
 
 class ShuffleDataframe(TransformerMixin):
@@ -218,12 +233,12 @@ class ReorderCols(TransformerMixin):
 
     def transform(self, X, **transform_params):
         cols = list(X)
-        cols.insert(0, cols.pop(cols.index('loop_count')))
+        cols.insert(0, cols.pop(cols.index('numeric_loop_id')))
         cols.insert(0, cols.pop(cols.index('problem_size')))
         return X[cols]
 
 
-class StringifyPolicies():
+class SplitPolicies():
     def demunge_name(self, name):
         policy_regex = re.compile('[a-z]+_[a-z]+')
         return policy_regex.search(name).group(0).upper()
@@ -232,7 +247,7 @@ class StringifyPolicies():
         return self
 
     def transform(self, X, **transform_params):
-        X['seg_it'] = X.apply(lambda row: self.demunge_name(str(row['seg_it'])), axis=1)
+        X['seg_it'] = X.apply(lambda row: self.demunge_name(str(row['policy'])), axis=1)
         X['seg_exec'] = X.apply(lambda row: self.demunge_name(str(row['seg_exec'])), axis=1)
 
         return X

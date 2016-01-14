@@ -17,16 +17,22 @@ from rlsl.util.timer import Timer
 
 def setup_parser(subparser):
     subparser.add_argument(
-        '-v', '--verbose', action='store_true', dest='verbose',
-        help="Display verbose build output while installing.")
-    subparser.add_argument(
         '-p', '--predict', action='store', dest='predict',
         help="Select which label to predict for: policy or thread")
     subparser.add_argument(
-        'files', nargs=argparse.REMAINDER, help="specs of packages to install")
+        'files', nargs=argparse.REMAINDER, help="files containing application samples and instruction data")
 
 
-def get_features(X, y):
+def get_features(app_data, instruction_data, kind, features):
+    steps = get_pipeline_steps(
+        kind=kind, data=instruction_data,
+        dropped_features=getattr(rlsl,features))
+
+    steps = [x for x in steps if x[0] != 'threads']
+
+    pipeline = DataframePipeline(steps)
+    X, y = pipeline.fit_transform(app_data)
+
     pipeline = Pipeline([
         ('mapper', AutoDataFrameMapper()),
         ('clf', RandomForestClassifier())])
@@ -56,16 +62,7 @@ def features(parser, args):
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
     app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
 
-    steps = get_pipeline_steps(
-        kind=args.predict, data=instruction_data,
-        dropped_features=rlsl.dropped_features)
-
-    steps = [x for x in steps if x[0] != 'threads']
-
-    pipeline = DataframePipeline(steps)
-    X, y = pipeline.fit_transform(app_data)
-
-    features, importances = get_features(X, y)
+    features, importances = get_features(app_data, instruction_data, args.predict, 'dropped_features')
 
     print("Feature ranking:")
     for count,(f,i) in enumerate(zip(features, importances)):

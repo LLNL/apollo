@@ -81,8 +81,19 @@ class PandasCaliperLoader(Loader):
         self._data = data
 
 
-def load(app_data, instruction_data):
+def load(app_data, instruction_data=None):
     ldata = PandasCaliperLoader(app_data, id_column='loop_count').get_data()
-    idata = PandasInstructionLoader(instruction_data).get_data().fillna(0)
 
-    return ldata, idata
+    if instruction_data:
+        idata = PandasInstructionLoader(instruction_data).get_data().fillna(0)
+        return ldata, idata
+    else:
+        return ldata
+
+
+def load_app(app_data):
+    return PandasCaliperLoader(app_data, id_column='loop_count').get_data()
+
+
+def load_inst(instruction_data):
+    return PandasInstructionLoader(instruction_data).get_data().fillna(0)

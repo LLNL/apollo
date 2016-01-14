@@ -32,17 +32,14 @@ for c in CLASSIFIERS:
 
 def setup_parser(subparser):
     subparser.add_argument(
-        '-v', '--verbose', action='store_true', dest='verbose',
-        help="Display verbose build output while installing.")
-    subparser.add_argument(
         '-p', '--predict', action='store', dest='predict',
         help="Select which label to predict for: policy or thread")
     subparser.add_argument(
-        'files', nargs=argparse.REMAINDER, help="specs of packages to install")
+        'files', nargs=argparse.REMAINDER, help="files containing application samples and instruction data")
 
 
 def get_optimal_time(X):
-    print X.groupby('problem_size')['time.duration'].sum()
+    return X.groupby('problem_size')['time.duration'].sum()
 
 
 def get_time(data, Xf, X, y, labelencoder, kind=None):
@@ -58,34 +55,57 @@ def get_time(data, Xf, X, y, labelencoder, kind=None):
         results = pipeline.predict(X)
 
         resultlabels = labelencoder.get_encoder().inverse_transform(results)
-        test_df = Xf[['problem_size', 'loop_count', 'seg_it', 'seg_exec']]
 
         if 'policy' in kind:
-            test_df['seg_it'] = map(lambda x: x.split(' ')[0], resultlabels)
-            test_df['seg_exec'] = map(lambda x: x.split(' ')[1], resultlabels)
-            merged_test_df = pd.merge(test_df, data[['loop_count', 'problem_size', 'seg_it', 'seg_exec', 'time.duration']], on=['problem_size', 'loop_count'], how='left')
-            mdf = merged_test_df[(merged_test_df['seg_exec_x'] == merged_test_df['seg_exec_y']) & (merged_test_df['seg_it_x'] == merged_test_df['seg_it_y'])]
+            test_df = Xf[['problem_size', 'numeric_loop_id', 'policy']]
+            test_df['policy'] = resultlabels
+            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'policy', 'time.duration']], on=['problem_size', 'numeric_loop_id'], how='left')
+            mdf = merged_test_df[(merged_test_df['policy_x'] == merged_test_df['policy_y'])]
 
         elif 'thread' in kind:
+            test_df = Xf[['problem_size', 'numeric_loop_id', 'policy', 'num_threads']]
             test_df['num_threads'] = resultlabels
-            merged_test_df = pd.merge(test_df, data[['loop_count', 'problem_size',
+            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size',
                                                             'num_threads',
-                                                            'seg_it', 'seg_exec',
+                                                            'policy',
                                                             'time.duration']],
-                                    on=['problem_size', 'loop_count', 'seg_it', 'seg_exec'], how='inner')
+                                    on=['problem_size', 'numeric_loop_id', 'policy'], how='inner')
             mdf = merged_test_df[(merged_test_df['num_threads_x'] == merged_test_df['num_threads_y'])]
 
-        print mdf.groupby('problem_size')['time.duration'].sum()
+        elif 'chunk' in kind:
+            test_df = Xf[['problem_size', 'numeric_loop_id', 'num_threads', 'chunk_size']]
+            test_df['chunk_size'] = resultlabels
+            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'chunk_size', 'time.duration']],
+                                    on=['problem_size', 'numeric_loop_id'], how='inner')
+            mdf = merged_test_df[(merged_test_df['chunk_size_x'] == merged_test_df['chunk_size_y'])]
+
+        return mdf.groupby('problem_size')['time.duration'].sum()
 
 
-def do_time(app_data, instruction_data, kind):
-    pipeline = DataframePipeline(get_pipeline_steps(
-        kind=kind, data=instruction_data,
-        dropped_features=rlsl.dropped_features))
+def do_time(app_data, instruction_data, kind, features, interactive=True, keep_features=False):
+    if keep_features:
+        all_features = list(app_data) + list(instruction_data)
+        steps = get_pipeline_steps(
+            kind=kind, data=instruction_data,
+            dropped_features=[x for x in all_features if x not in features])
+    else:
+        steps = get_pipeline_steps(
+            kind=kind, data=instruction_data,
+            dropped_features=getattr(rlsl, features))
+
+    pipeline = DataframePipeline(steps)
 
     X, y = pipeline.fit_transform(app_data)
-    get_optimal_time(pipeline.get_x('drop features'))
-    get_time(pipeline.get_x('duplicates'), pipeline.get_x('drop features'), X, y, pipeline['y'], kind=kind)
+    optimal = get_optimal_time(pipeline.get_x('drop features'))
+    times = get_time(pipeline.get_x('duplicates'), pipeline.get_x('drop features'), X, y, pipeline['y'], kind=kind)
+
+    if interactive:
+        print "Optimal"
+        print optmal
+        print "Timel"
+        print times
+    else:
+        return (optimal, times)
 
 
 def time(parser, args):
