@@ -26,7 +26,7 @@ def setup_parser(subparser):
 
 def gen_code(app_data, instruction_data, kind, features, interactive=True, keep_features=False, instructions=False):
     if keep_features:
-        #print features
+        print features
         all_features = list(app_data) + list(instruction_data)
         if instructions:
             steps = get_pipeline_steps(

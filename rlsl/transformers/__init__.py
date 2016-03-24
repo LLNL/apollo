@@ -133,6 +133,21 @@ class AddBestTime(TransformerMixin):
         df['exec_it_best'] = df.apply(lambda row: str(row['seg_it_best'] + ' ' + row['seg_exec_best']), axis=1)
 
 
+class GetFraction(object):
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, **transform_params):
+        self.le = LabelEncoder()
+        return self.le.fit_transform(X.dynamic_fraction)
+
+    def get_labels(self):
+        return self.le.classes_
+
+    def get_encoder(self):
+        return self.le
+
+
 class GetLabels(object):
     def fit(self, X, y=None, **fit_params):
         return self
@@ -185,7 +200,7 @@ class GetTimes(object):
         return self
 
     def transform(self, X, **transform_params):
-        return X['time.duration_best']
+        return X['time.duration'].astype(float)
 
 
 class DropThreads(TransformerMixin):
@@ -216,7 +231,8 @@ class FilterDuplicates(TransformerMixin):
     def transform(self, X, **transform_params):
         #return X.loc[X.groupby(['numeric_loop_id', 'problem_size'])
             #['time.duration'].idxmin()]
-        return X.sort('time.duration').groupby(['numeric_loop_id', 'problem_size'], as_index=False).first()
+        #return X.sort('time.inclusive.duration').groupby(['problem_name', 'numeric_loop_id', 'problem_size'], as_index=False).first()
+        return X.sort('time.inclusive.duration').groupby(['numeric_loop_id', 'problem_size'], as_index=False).first()
 
 
 class ShuffleDataframe(TransformerMixin):
@@ -262,3 +278,19 @@ class DropPolicies(TransformerMixin):
     def transform(self, X, **transform_params):
         return X[~((X.seg_it.str.contains(self.policy, na=False)) |
                  (X.seg_exec.str.contains(self.policy, na=False)))]
+
+
+class MakeFraction():
+    def __init__(self, instructions):
+        self.instructions = instructions
+
+    def transform(self, X):
+        for col in self.instructions:
+            #print col
+            if col is 'loop':
+                continue
+            X[col] = X[col].astype(float)/X['func_size']
+
+        return X
+
+

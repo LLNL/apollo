@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 from sklearn.decomposition import PCA
@@ -48,6 +49,9 @@ def run_model(app_data, instruction_data, kind, features, interactive=True, keep
             kind=kind, data=instruction_data,
             dropped_features=[x for x in all_features if x not in features])
     else:
+
+        print features
+
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
             dropped_features=getattr(rlsl, features))
@@ -58,14 +62,19 @@ def run_model(app_data, instruction_data, kind, features, interactive=True, keep
 
     X, y = pipeline.fit_transform(app_data)
 
+
+    #print X['loop']
+
     pipeline = Pipeline([
         ('mapper', AutoDataFrameMapper()),
         #('pca', PCA(n_components=2)),
         #('pca', PCA(n_components=3)),
         #('clf', DecisionTreeClassifier(max_depth=kwargs.get('depth')))])
-        ('clf', DecisionTreeClassifier(max_depth=3))])
+        #('clf', SGDClassifier())])
+        ('clf', DecisionTreeClassifier())])
+        #('clf', DecisionTreeClassifier(max_depth=3))])
 
-    scores = cross_val_score(pipeline, X, y, cv=3)
+    scores = cross_val_score(pipeline, X, y, cv=5)
 
     if interactive:
         print scores.mean()

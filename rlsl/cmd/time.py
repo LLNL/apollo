@@ -39,11 +39,13 @@ def setup_parser(subparser):
 
 
 def get_optimal_time(X):
-    return X.groupby('problem_size')['time.duration'].sum()
+    return X.groupby('problem_size')['time.inclusive.duration'].sum()
 
 
 def get_time(data, Xf, X, y, labelencoder, kind=None):
     train_inds, test_inds = get_train_test_inds(y)
+
+    #print len(X), len(Xf)
 
     for i,c  in enumerate(CLASSIFIERS):
         pipeline = Pipeline([
@@ -56,30 +58,32 @@ def get_time(data, Xf, X, y, labelencoder, kind=None):
 
         resultlabels = labelencoder.get_encoder().inverse_transform(results)
 
+        #print len(results)
+
         if 'policy' in kind:
-            test_df = Xf[['problem_size', 'numeric_loop_id', 'policy']]
+            test_df = Xf[['problem_size', 'numeric_loop_id']]
             test_df['policy'] = resultlabels
-            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'policy', 'time.duration']], on=['problem_size', 'numeric_loop_id'], how='left')
-            mdf = merged_test_df[(merged_test_df['policy_x'] == merged_test_df['policy_y'])]
-
-        elif 'thread' in kind:
-            test_df = Xf[['problem_size', 'numeric_loop_id', 'policy', 'num_threads']]
-            test_df['num_threads'] = resultlabels
+            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'policy', 'time.inclusive.duration']], on=['problem_size', 'numeric_loop_id', 'policy'], how='left')
+            #mdf = merged_test_df[(merged_test_df['policy_x'] == merged_test_df['policy_y'])]
+            mdf = merged_test_df
+        elif 'dynamic' in kind:
+            test_df = Xf[['problem_size', 'numeric_loop_id', 'policy', 'dynamic_fraction']]
+            test_df['dynamic_fraction'] = resultlabels
             merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size',
-                                                            'num_threads',
+                                                            'dynamic_fraction',
                                                             'policy',
-                                                            'time.duration']],
+                                                            'time.inclusive.duration']],
                                     on=['problem_size', 'numeric_loop_id', 'policy'], how='inner')
-            mdf = merged_test_df[(merged_test_df['num_threads_x'] == merged_test_df['num_threads_y'])]
-
+            mdf = merged_test_df[(merged_test_df['dynamic_fraction_x'] == merged_test_df['dynamic_fraction_y'])]
         elif 'chunk' in kind:
-            test_df = Xf[['problem_size', 'numeric_loop_id', 'num_threads', 'chunk_size']]
+            test_df = Xf[['problem_size', 'numeric_loop_id', 'chunk_size']]
             test_df['chunk_size'] = resultlabels
-            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'chunk_size', 'time.duration']],
+            merged_test_df = pd.merge(test_df, data[['numeric_loop_id', 'problem_size', 'chunk_size', 'time.inclusive.duration']],
                                     on=['problem_size', 'numeric_loop_id'], how='inner')
             mdf = merged_test_df[(merged_test_df['chunk_size_x'] == merged_test_df['chunk_size_y'])]
 
-        return mdf.groupby('problem_size')['time.duration'].sum()
+        #return mdf.groupby('problem_size')['time.duration'].sum()
+        return mdf
 
 
 def do_time(app_data, instruction_data, kind, features, interactive=True, keep_features=False):
@@ -96,7 +100,7 @@ def do_time(app_data, instruction_data, kind, features, interactive=True, keep_f
     pipeline = DataframePipeline(steps)
 
     X, y = pipeline.fit_transform(app_data)
-    optimal = get_optimal_time(pipeline.get_x('drop features'))
+    optimal = pipeline.get_x('y')
     times = get_time(pipeline.get_x('duplicates'), pipeline.get_x('drop features'), X, y, pipeline['y'], kind=kind)
 
     if interactive:
