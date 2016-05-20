@@ -8,14 +8,14 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 
-import rlsl
-from rlsl.pipeline import get_pipeline_steps
-from rlsl.transformers import DataframePipeline, AutoDataFrameMapper
+import artemis
+from artemis.pipeline import get_pipeline_steps
+from artemis.transformers import DataframePipeline, AutoDataFrameMapper
 
-from rlsl.util.loader import PandasCaliperLoader, PandasInstructionLoader
-from rlsl.util import get_train_test_inds
-from rlsl.codegen import CodeGenerator
-from rlsl.util.timer import Timer
+from artemis.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from artemis.util import get_train_test_inds
+from artemis.codegen import CodeGenerator
+from artemis.util.timer import Timer
 
 description = "Model..."
 
@@ -95,7 +95,7 @@ def do_time(app_data, instruction_data, kind, features, interactive=True, keep_f
     else:
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
-            dropped_features=getattr(rlsl, features))
+            dropped_features=getattr(artemis, features))
 
     pipeline = DataframePipeline(steps)
 
@@ -120,6 +120,6 @@ def time(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
 
     do_time(app_data, instruction_data, args.predict)

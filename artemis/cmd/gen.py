@@ -7,12 +7,12 @@ import warnings
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.pipeline import Pipeline
 
-import rlsl
-from rlsl.pipeline import get_pipeline_steps
-from rlsl.transformers import DataframePipeline, AutoDataFrameMapper
+import artemis
+from artemis.pipeline import get_pipeline_steps
+from artemis.transformers import DataframePipeline, AutoDataFrameMapper
 
-from rlsl.codegen import CodeGenerator
-from rlsl.util.timer import Timer
+from artemis.codegen import CodeGenerator
+from artemis.util.timer import Timer
 
 description = "Build and install packages"
 
@@ -39,14 +39,14 @@ def gen_code(app_data, instruction_data, kind, features, interactive=True, keep_
     else:
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
-            dropped_features=getattr(rlsl, features))
+            dropped_features=getattr(artemis, features))
 
     pipeline = DataframePipeline(steps)
 
     #pipeline = DataframePipeline(get_pipeline_steps(
     #    kind='policy', data=instruction_data,
-    #    dropped_features=rlsl.dropped_features + list(instruction_data)))
-    #    #dropped_features=rlsl.dropped_features))
+    #    dropped_features=artemis.dropped_features + list(instruction_data)))
+    #    #dropped_features=artemis.dropped_features))
 
     X, y = pipeline.fit_transform(app_data)
     labelencoder = pipeline['y']
@@ -80,7 +80,7 @@ def grab_tree(app_data, instruction_data, kind, features, interactive=True, keep
     else:
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
-            dropped_features=getattr(rlsl, features))
+            dropped_features=getattr(artemis, features))
 
     pipeline = DataframePipeline(steps)
     X, y = pipeline.fit_transform(app_data)
@@ -105,7 +105,7 @@ def gen(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
 
     get_model(app_data, instruction_data, args.kind, args.features)
 

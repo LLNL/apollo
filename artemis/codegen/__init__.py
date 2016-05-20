@@ -93,7 +93,7 @@ class CodeGenerator(object):
                     self.model += spacer + "p.policy = RAJA::apollo::" + target_name + ';\n'
                 elif 'chunk' in self.kind:
                     self.model += spacer + "p.chunk_size = " + str(target_name) + ';\n'
-                elif 'fraction' in self.kind:
+                elif 'dynamic' in self.kind:
                     self.model += spacer + "p.dynamic_fraction = " + str(target_name) + ';\n'
 
         recurse(left, right, threshold, features, 0, 0)

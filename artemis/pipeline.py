@@ -1,4 +1,4 @@
-from rlsl.transformers import *
+from artemis.transformers import *
 
 
 def get_pipeline_steps(kind=None, data=None, dropped_features=None):

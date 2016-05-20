@@ -10,15 +10,15 @@ from sklearn.cross_validation import cross_val_score
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 
-import rlsl
-from rlsl.pipeline import get_pipeline_steps
-from rlsl.transformers import DataframePipeline, AutoDataFrameMapper
+import artemis
+from artemis.pipeline import get_pipeline_steps
+from artemis.transformers import DataframePipeline, AutoDataFrameMapper
 
-from rlsl.util import get_train_test_inds
+from artemis.util import get_train_test_inds
 
-from rlsl.util.loader import PandasCaliperLoader, PandasInstructionLoader
-from rlsl.codegen import CodeGenerator
-from rlsl.util.timer import Timer
+from artemis.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from artemis.codegen import CodeGenerator
+from artemis.util.timer import Timer
 
 description = "Model..."
 
@@ -55,11 +55,11 @@ def confusion(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
 
     steps = get_pipeline_steps(
         kind=args.predict, data=instruction_data,
-        dropped_features=getattr(rlsl, args.features))
+        dropped_features=getattr(artemis, args.features))
 
     steps = [x for x in steps if x[0] != 'threads']
 

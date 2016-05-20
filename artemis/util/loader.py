@@ -82,6 +82,21 @@ class PandasCaliperLoader(Loader):
         super(PandasCaliperLoader, self).__init__(filename, list(data))
         self._data = data
 
+class PandasCsvLoader(Loader):
+    def __init__(self, filename, id_column='loop_id'):
+        data = pd.read_csv(filename)
+        super(PandasCsvLoader, self).__init__(filename, list(data))
+        self._data = data
+
+
+def load_csv(app_data, instruction_data=None):
+    ldata = PandasCsvLoader(app_data, id_column='loop_count').get_data()
+
+    if instruction_data:
+        idata = PandasInstructionLoader(instruction_data).get_data().fillna(0)
+        return ldata, idata
+    else:
+        return ldata
 
 def load(app_data, instruction_data=None):
     ldata = PandasCaliperLoader(app_data, id_column='loop_count').get_data()

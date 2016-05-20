@@ -10,13 +10,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 from sklearn.decomposition import PCA
 
-import rlsl
-from rlsl.pipeline import get_pipeline_steps
-from rlsl.transformers import DataframePipeline, AutoDataFrameMapper
+import artemis
+from artemis.pipeline import get_pipeline_steps
+from artemis.transformers import DataframePipeline, AutoDataFrameMapper
 
-from rlsl.util.loader import PandasCaliperLoader, PandasInstructionLoader
-from rlsl.codegen import CodeGenerator
-from rlsl.util.timer import Timer
+from artemis.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from artemis.codegen import CodeGenerator
+from artemis.util.timer import Timer
 
 description = "Interactive session just loads up the files"
 
@@ -32,6 +32,6 @@ def interactive(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
 
     embed()

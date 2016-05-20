@@ -5,12 +5,12 @@ from sklearn.linear_model import SGDRegressor, BayesianRidge, Lasso
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score, cross_val_predict
 
-import rlsl
-from rlsl.pipeline import get_pipeline_steps
-from rlsl.transformers import DataframePipeline, AutoDataFrameMapper
+import artemis
+from artemis.pipeline import get_pipeline_steps
+from artemis.transformers import DataframePipeline, AutoDataFrameMapper
 
-from rlsl.util.loader import PandasCaliperLoader, PandasInstructionLoader
-from rlsl.codegen import CodeGenerator
+from artemis.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from artemis.codegen import CodeGenerator
 
 
 description = "Regression..."
@@ -37,7 +37,7 @@ def run_regression(app_data, instruction_data, kind, features, interactive=True,
     else:
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
-            dropped_features=getattr(rlsl, features))
+            dropped_features=getattr(artemis, features))
 
     steps = [x for x in steps if x[0] != 'threads']
 
@@ -66,6 +66,6 @@ def regression(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = rlsl.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
 
     run_model(app_data, instruction_data, args.predict, args.features)
