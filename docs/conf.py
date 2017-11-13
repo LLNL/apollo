@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'rlsl'
+project = u'apollo'
 copyright = u'2015, David Beckingsale'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -178,7 +178,7 @@ htmlhelp_basename = 'rlsldoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'rlsl.tex', u'rlsl Documentation',
+  ('index', 'apollo.tex', u'apollo Documentation',
    u'David Beckingsale', 'manual'),
 ]
 
@@ -211,6 +211,6 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'rlsl', u'rlsl Documentation',
+    ('index', 'apollo', u'apollo Documentation',
      [u'David Beckingsale'], 1)
 ]

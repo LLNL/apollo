@@ -10,13 +10,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 from sklearn.decomposition import PCA
 
-import artemis
-from artemis.pipeline import get_pipeline_steps
-from artemis.transformers import DataframePipeline, AutoDataFrameMapper
+import apollo
+from apollo.pipeline import get_pipeline_steps
+from apollo.transformers import DataframePipeline, AutoDataFrameMapper
 
-from artemis.util.loader import PandasCaliperLoader, PandasInstructionLoader
-from artemis.codegen import CodeGenerator
-from artemis.util.timer import Timer
+from apollo.util.loader import PandasCaliperLoader, PandasInstructionLoader
+from apollo.codegen import CodeGenerator
+from apollo.util.timer import Timer
 
 description = "Model..."
 
@@ -54,7 +54,7 @@ def run_model(app_data, instruction_data, kind, features, interactive=True, keep
 
         steps = get_pipeline_steps(
             kind=kind, data=instruction_data,
-            dropped_features=getattr(artemis, features))
+            dropped_features=getattr(apollo, features))
 
     steps = [x for x in steps if x[0] != 'threads']
 
@@ -100,14 +100,14 @@ def run_cross_app_model(train_app, train_inst, test_app, test_inst, kind, featur
 
     steps = get_pipeline_steps(
         kind=kind, data=train_inst,
-        dropped_features=getattr(artemis, features))
+        dropped_features=getattr(apollo, features))
     pipeline = DataframePipeline(steps)
 
     X_train, y_train = pipeline.fit_transform(train_app)
 
     steps = get_pipeline_steps(
         kind=kind, data=test_inst,
-        dropped_features=getattr(artemis, features))
+        dropped_features=getattr(apollo, features))
     pipeline = DataframePipeline(steps)
 
     X_test, y_test = pipeline.fit_transform(test_app)
@@ -119,7 +119,7 @@ def run_cross_app_model(train_app, train_inst, test_app, test_inst, kind, featur
     pipeline.fit_transform(X_train, y_train)
 
     test_size = min(len(X_train), len(X_test))
-    print "Test size is %d" % test_size
+    #print "Test size is %d" % test_size
 
     y_pred = pipeline.predict(X_test[:test_size])
 
@@ -138,6 +138,6 @@ def model(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = apollo.util.loader.load(app_data_name, instruction_data_name)
 
     run_model(app_data, instruction_data, args.predict, args.features)

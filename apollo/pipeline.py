@@ -1,4 +1,4 @@
-from artemis.transformers import *
+from apollo.transformers import *
 
 
 def get_pipeline_steps(kind=None, data=None, dropped_features=None):

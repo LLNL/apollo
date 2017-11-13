@@ -19,9 +19,9 @@ def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(metavar='SUBCOMMAND', dest="command")
 
-    import rlsl.cmd
-    for cmd in rlsl.cmd.commands:
-        module = rlsl.cmd.get_module(cmd)
+    import apollo.cmd
+    for cmd in apollo.cmd.commands:
+        module = apollo.cmd.get_module(cmd)
         subparser = subparsers.add_parser(cmd, help=module.description)
         module.setup_parser(subparser)
 
@@ -31,7 +31,7 @@ def main():
 
     args = parser.parse_args()
 
-    command = rlsl.cmd.get_command(args.command)
+    command = apollo.cmd.get_command(args.command)
 
     command(parser, args)
 

@@ -7,12 +7,12 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 
-import artemis
-from artemis.pipeline import get_pipeline_steps
-from artemis.transformers import DataframePipeline, AutoDataFrameMapper
+import apollo
+from apollo.pipeline import get_pipeline_steps
+from apollo.transformers import DataframePipeline, AutoDataFrameMapper
 
-from artemis.codegen import CodeGenerator
-from artemis.util.timer import Timer
+from apollo.codegen import CodeGenerator
+from apollo.util.timer import Timer
 
 
 def setup_parser(subparser):
@@ -26,7 +26,7 @@ def setup_parser(subparser):
 def get_features(app_data, instruction_data, kind, features):
     steps = get_pipeline_steps(
         kind=kind, data=instruction_data,
-        dropped_features=getattr(artemis, features))
+        dropped_features=getattr(apollo, features))
 
     steps = [x for x in steps if x[0] != 'threads']
 
@@ -60,7 +60,7 @@ def features(parser, args):
         sys.exit(-1)
 
     app_data_name, instruction_data_name = (args.files[0], args.files[1])
-    app_data, instruction_data = artemis.util.loader.load(app_data_name, instruction_data_name)
+    app_data, instruction_data = apollo.util.loader.load(app_data_name, instruction_data_name)
 
     features, importances = get_features(app_data, instruction_data, args.predict, 'dropped_features')
 
