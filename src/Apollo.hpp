@@ -6,6 +6,16 @@
 
 #define APOLLO_VERBOSE 1
 
+#if (APOLLO_VERBOSE < 1)
+    // Nullify the variadic macro for production runs.
+    #define apollo_log(level, ...)
+#else
+    #define apollo_log(level, ...)                                      \
+    {   if (level <= APOLLO_VERBOSE) {                                  \
+            fprintf(stdout, "APOLLO: " __VA_ARGS__);                    \
+            fflush(stdout);                                             \
+    }   };
+#endif
 
 extern "C" {
     // SOS will delivery triggers and query results here:
