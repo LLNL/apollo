@@ -1,23 +1,29 @@
 
-#include <iostream.h>
+#include <iostream>
 
-#include "Apollo.hpp"
+//#include <RAJA/RAJA.hpp>
+//#include <RAJA/pattern/nested.hpp>
 
-#include "raja.h"
+#include "Apollo.h"
+
 #include "sos.h"
 #include "sos_types.h"
 
-static SOS_feedback_handler_f
+
+
+void 
 handleFeedback(int msg_type, int msg_size, void *data)
 {
+
     switch (msg_type) {
         //
         case SOS_FEEDBACK_TYPE_QUERY:
-            apollo_log(1, "Query results received.\n");
+            apollo_log(1, "Query results received.  (msg_size == %d)\n", msg_size);
             break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
-            apollo_log(1, "Trigger payload received.\n");
+            apollo_log(1, "Trigger payload received.  (msg_size == %d, data == %s\n",
+                    msg_size, (char *) data);
             break;
     }
 
@@ -25,20 +31,21 @@ handleFeedback(int msg_type, int msg_size, void *data)
     return;
 }
 
+
 Apollo::Apollo()
 {
     sos = NULL;
     pub = NULL;
 
     SOS_init(&sos, SOS_ROLE_CLIENT,
-            SOS_RECEIVES_DIRECT_FEEDBACK, handleFeedback);
+            SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
 
     if (sos == NULL) {
         fprintf(stderr, "APOLLO: Unable to communicate with the SOS daemon.\n");
         return;
     }
 
-    SOS_pub_init(sos, &pub, "APOLLO", SOS_NATURE_SUPPORT_EXEC);
+    SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
 
     if (pub == NULL) {
         fprintf(stderr, "APOLLO: Unable to create publication handle.\n");
@@ -47,7 +54,7 @@ Apollo::Apollo()
         return;
     }
 
-    apollo_log(0, "Initialized.  (GUID == " << sos->my_guid << ")\n");
+    apollo_log(0, "Initialized.\n");
 
     return;
 }

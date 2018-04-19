@@ -1,5 +1,6 @@
+#ifndef APOLLO_H
+#define APOLLO_H
 
-#include "raja.h"
 #include "sos.h"
 #include "sos_types.h"
 
@@ -12,18 +13,20 @@
 #else
     #define apollo_log(level, ...)                                      \
     {   if (level <= APOLLO_VERBOSE) {                                  \
-            fprintf(stdout, "APOLLO: " __VA_ARGS__);                    \
+            fprintf(stdout, "APOLLO: ");                                \
+            fprintf(stdout, __VA_ARGS__);                               \
             fflush(stdout);                                             \
     }   };
 #endif
 
 extern "C" {
     // SOS will delivery triggers and query results here:
-    static SOS_feedback_handler_f
+    void  
     handleFeedback(int msg_type,
                    int msg_size,
                    void *data);
 }
+
 
 class Apollo
 {
@@ -49,4 +52,4 @@ class Apollo
         SOS_pub         *pub;
 };
 
-
+#endif
