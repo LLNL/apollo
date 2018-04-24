@@ -1,0 +1,68 @@
+
+API Discussion : "Where the code lives."
+    - Apollo itself is written as a generic oracle serving this and other in situ ML4PERF interests
+    - Artemis (?) is a sophisticated RAJA multipolicy that interacts with Apollo.
+    - SOSflow handles the data staging / query resolution / triggered message delivery
+
+
+Apollo (RAJA "Multipolicy Manager w/Apollo Hooks")
+----------
+** Configuration
+--> Reach out and register an instance with SOS.
+--> Express policy to SOS
+--> Express parameters to SOS
+--> Express goals or target parameter to SOS (always just 'fastest?')
+<-- OPTIONALLY (Load "final model" from .json file)
+-x- Ignore Apollo if SOS is not available (stub-like behavior)
+
+** General
+--- SetMode (BOOTSTRAP || RUN || REVIEW), controlled by Apollo
+
+** Learning
+<-- Setup policy package (1 or more policies and configs, whatever Apollo said to do)
+--- Run a standard battery of tests to attemt to predict best policy (future?)
+--> Report metrics associated with policy choices (can this be done automatically?)
+--- Loop back again if requested to do so.
+
+** Running
+<-- StartRunning
+<-- SetReviewFrequency to determine how often Apollo should be updated w/metrics, if at all
+--> Push metrics to Apollo for determination regarding retraining or other tuning 
+
+SOSflow
+-----------
+Q:  Does this use case map well onto the existing SOS_pub object, or do we need
+    to construct a new object type optimized for in situ ML use?
+        (Or do we have the NATURE handle this?  TBD)
+        - Does data flow match?
+        - Do access patterns match?
+        - Is there ANY value in the ML data points being in the SQL?  (NO...)
+        - Is the KVS concept useful here?
+
+Q:  How can the training phases be directed by Apollo to map Apollo's
+    execution plan to the generic "oracle" API.
+        - Does it need to?
+        - Will it work for >1 ML technique?
+
+Q:  Perhaps it makes sense to ship this out to ScikitLearn
+
+** Configuration
+<-- Accept policy, which is basically just a feature that defines a set (i.e. a RAJA loop head)
+<-- Accept parameters to the named "policy".
+<-- Accept "goals"  i.e. a parameter to check, a comparator, and an RVALUE.
+
+** General
+--- Generate SHA1 set for model as-trained
+--> Export learned model to file.
+<-- Load learned model from file (callable from client, too)
+
+** Learning
+--- computeWeights(int numStepsMax, bool discardPastAfterUse);
+--> putWeights
+
+** Running
+--- Passively "stream modifications to the weights" for methods that support it
+
+
+
+

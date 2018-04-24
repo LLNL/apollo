@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.1)
 # Options
 #
 
-set(APOLLO_ENABLE_TESTS OFF CACHE Bool "")
+set(APOLLO_ENABLE_TESTS ON CACHE Bool "")
 
 
 #

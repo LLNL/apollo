@@ -1,8 +1,8 @@
 #ifndef APOLLO_H
 #define APOLLO_H
 
-#include "sos.h"
-#include "sos_types.h"
+//#include "sos.h"
+//#include "sos_types.h"
 
 
 #define APOLLO_VERBOSE 1
@@ -34,29 +34,17 @@ class Apollo
         Apollo();
         ~Apollo();
         
-
-        
-        
-        
-        
-        
-        
-        //Function ideas:
         //  setLearnMode()
         //  getLearnMode()
         //  double getHysterisis()
         //  requestDecisionTree()
         //  generateMultiPolicy()
-        //  
-        // 
 
         //NOTE: Eventually, let's disallow certain operators.
-        //Apollo(const Apollo&) = delete;
-        //Apollo& operator=(const Apollo&) = delete;
-        
+        Apollo(const Apollo&) = delete;
+        Apollo& operator=(const Apollo&) = delete;
+
     private:
-        SOS_runtime     *sos;
-        SOS_pub         *pub;
 };
 
 #endif

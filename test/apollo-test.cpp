@@ -1,11 +1,18 @@
-include <iostream>
+#include <iostream>
 
 #include "Apollo.h"
-#include "../tests/apollo-test.h"
+#include "apollo-test.h"
 
 int main()
 {
     int rc = 0;
+    fprintf(stdout, "testing Apollo.\n");
+
+    Apollo *apollo = new Apollo();
+    
+
+
+    fprintf(stdout, "testing complete.\n");
 
     return rc;
 }

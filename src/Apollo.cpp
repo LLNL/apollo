@@ -9,7 +9,8 @@
 #include "sos.h"
 #include "sos_types.h"
 
-
+SOS_runtime *sos;
+SOS_pub     *pub;
 
 void 
 handleFeedback(int msg_type, int msg_size, void *data)
