@@ -34,6 +34,13 @@ class Apollo
         Apollo();
         ~Apollo();
         
+
+        
+        
+        
+        
+        
+        
         //Function ideas:
         //  setLearnMode()
         //  getLearnMode()

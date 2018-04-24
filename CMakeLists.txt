@@ -1,6 +1,26 @@
+#
+# Apollo
+#
+
+project(APOLLO LANGUAGES CXX C)
 cmake_minimum_required(VERSION 3.1)
 
-project(APOLLO LANGUAGES CXX)
+#####
+#
+# Options
+#
+
+option(WITH_TESTS "Build Apollo test apps" ON)
+
+
+#
+#####
+
+# Version information
+set(APOLLO_MAJOR_VERSION 2)
+set(APOLLO_MINOR_VERSION 0)
+set(APOLLO_PATCH_VERSION dev)
+set(APOLLO_VERSION "${APOLLO_MAJOR_VERSION}.${APOLLO_MINOR_VERSION}.${APOLLO_PATCH_VERSION}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable")
@@ -9,21 +29,6 @@ set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 include(PreventInSourceBuilds)
-
-set(BLT_CXX_STD c++14)
-
-#
-# Initialize the BLT build system
-#
-
-set(ENABLE_GTEST Off CACHE Bool "")
-set(ENABLE_TESTS Off CACHE Bool "")
-set(ENABLE_TBB Off CACHE Bool "")
-set(ENABLE_EXAMPLES Off CACHE Bool "")
-set(ENABLE_DOCUMENTATION Off CACHE Bool "")
-
-include(blt/SetupBLT.cmake)
-
 
 #
 # Configure APOLLO
@@ -64,8 +69,36 @@ set(APOLLO_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
 set(APOLLO_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${APOLLO_BUILD_TYPE}}")
 set(APOLLO_LINK_FLAGS   "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINK_FLAGS_${CMAKE_BUILD_TYPE}}")
 
-configure_file(${PROJECT_SOURCE_DIR}/src/ApolloConfig.h.in
-               ${PROJECT_BINARY_DIR}/include/ApolloConfig.h)
+
+# Create pkg-confic .pc file
+set(PKG_CONFIG_INCLUDEDIR "\${prefix}/include")
+set(PKG_CONFIG_LIBDIR "\${prefix}/lib")
+set(PKG_CONFIG_LIBS "-L\${libdir} -lapollo")
+set(PKG_CONFIG_CFLAGS "-I\${includedir}")
+
+configure_file(
+  ${PROJECT_SOURCE_DIR}/apollo.pc.in
+  ${PROJECT_BINARY_DIR}/apollo.pc)
+
+# Make apollo findable for cmake
+configure_file(
+  ${PROJECT_SOURCE_DIR}/apollo-config.cmake.in
+  ${PROJECT_BINARY_DIR}/apollo-config.cmake
+  @ONLY)
+
+install(FILES ${PROJECT_BINARY_DIR}/apollo-config.cmake 
+  DESTINATION share/cmake/apollo)
+install(EXPORT apollo
+  DESTINATION share/cmake/apollo)
+
+install(FILES ${PROJECT_BINARY_DIR}/apollo-config.h 
+  DESTINATION include/apollo)
+
+install(FILES ${PROJECT_BINARY_DIR}/apollo.pc 
+  DESTINATION lib/pkgconfig)
+
+
+
 
 
 find_package(SOS REQUIRED)
@@ -74,6 +107,7 @@ if(SOS_FOUND)
     message(STATUS "SOS:    SOS_INCLUDE_DIRS = ${SOS_INCLUDE_DIRS}")
     message(STATUS "SOS:    SOS_LIB_DIRS     = ${SOS_LIB_DIRS}")
     message(STATUS "SOS:    SOS_LIBRARY      = ${SOS_LIBRARY}")
+    include_directories(${SOS_INCLUDE_DIRS})
 else()
     message(STATUS "SOS:  Could not locate SOS installation.")
 endif(SOS_FOUND)
@@ -89,10 +123,11 @@ blt_add_library(
   DEPENDS_ON  ${APOLLO_DEPENDS}
               ${SOS_LIBRARY}
 )
-if (SOS_FOUND)
-    include_directories(${SOS_INCLUDE_DIRS})
-endif(SOS_FOUND)
+
 get_property(APOLLO_INCLUDE_DIRS TARGET apollo PROPERTY INCLUDE_DIRECTORIES)
 include_directories(${APOLLO_INCLUDE_DIRS})
 
-
+add_subdirectory(src)
+if(WITH_TESTS)
+    add_subdirectory(test)
+endif(WITH_TESTS)
