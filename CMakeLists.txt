@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.1)
 # Options
 #
 
-option(WITH_TESTS "Build Apollo test apps" ON)
+set(APOLLO_ENABLE_TESTS OFF CACHE Bool "")
 
 
 #
@@ -19,7 +19,7 @@ option(WITH_TESTS "Build Apollo test apps" ON)
 # Version information
 set(APOLLO_MAJOR_VERSION 2)
 set(APOLLO_MINOR_VERSION 0)
-set(APOLLO_PATCH_VERSION dev)
+set(APOLLO_PATCH_VERSION 0)
 set(APOLLO_VERSION "${APOLLO_MAJOR_VERSION}.${APOLLO_MINOR_VERSION}.${APOLLO_PATCH_VERSION}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
@@ -30,11 +30,7 @@ set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 include(PreventInSourceBuilds)
 
-#
-# Configure APOLLO
-#
 
-set(APOLLO_ENABLE_TESTS Off CACHE Bool "")
 
 #
 # Setup variables to pass to ApolloConfig.h
@@ -70,6 +66,11 @@ set(APOLLO_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${APOLLO_BUILD_TYP
 set(APOLLO_LINK_FLAGS   "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINK_FLAGS_${CMAKE_BUILD_TYPE}}")
 
 
+# Create a config header file
+configure_file(
+    ${PROJECT_SOURCE_DIR}/apollo-config.h.in
+    ${PROJECT_BINARY_DIR}/apollo-config.h)
+
 # Create pkg-confic .pc file
 set(PKG_CONFIG_INCLUDEDIR "\${prefix}/include")
 set(PKG_CONFIG_LIBDIR "\${prefix}/lib")
@@ -88,6 +89,7 @@ configure_file(
 
 install(FILES ${PROJECT_BINARY_DIR}/apollo-config.cmake 
   DESTINATION share/cmake/apollo)
+
 install(EXPORT apollo
   DESTINATION share/cmake/apollo)
 
@@ -97,9 +99,10 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo-config.h
 install(FILES ${PROJECT_BINARY_DIR}/apollo.pc 
   DESTINATION lib/pkgconfig)
 
-
-
-
+#####
+#
+# External libraries
+#
 
 find_package(SOS REQUIRED)
 if(SOS_FOUND)
@@ -108,26 +111,23 @@ if(SOS_FOUND)
     message(STATUS "SOS:    SOS_LIB_DIRS     = ${SOS_LIB_DIRS}")
     message(STATUS "SOS:    SOS_LIBRARY      = ${SOS_LIBRARY}")
     include_directories(${SOS_INCLUDE_DIRS})
+    list(APPEND APOLLO_EXTERNAL_LIBS ${SOS_LIBRARY}) 
 else()
     message(STATUS "SOS:  Could not locate SOS installation.")
 endif(SOS_FOUND)
 
 #
+#####
+#
 # Define build targets for Apollo
 #
+
 include_directories(./src ${PROJECT_BINARY_DIR}/include)
 
-blt_add_library(
-  NAME        apollo 
-  SOURCES     "src/Apollo.cpp"
-  DEPENDS_ON  ${APOLLO_DEPENDS}
-              ${SOS_LIBRARY}
-)
-
-get_property(APOLLO_INCLUDE_DIRS TARGET apollo PROPERTY INCLUDE_DIRECTORIES)
-include_directories(${APOLLO_INCLUDE_DIRS})
-
 add_subdirectory(src)
-if(WITH_TESTS)
+if(APOLLO_ENABLE_TESTS)
     add_subdirectory(test)
-endif(WITH_TESTS)
+endif(APOLLO_ENABLE_TESTS)
+
+#
+# EOF

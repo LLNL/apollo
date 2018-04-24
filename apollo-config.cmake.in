@@ -1,0 +1,46 @@
+#=============================================================================
+#
+# Apollo is an online machine learning utility designed to support
+# performance portability of HPC codes using RAJA and SOSflow.
+#
+#=== Usage ===================================================================
+#
+# This file allows Apollo to be automatically detected by other libraries
+# using CMake.  To build with Apollo, you can do one of two things:
+#
+#   1. Set the apollo_DIR environment variable to the root of the Caliper
+#      installation.  If you loaded apollo through a dotkit, this may already
+#      be set, and apollo will be autodetected by CMake.
+#
+#   2. Configure your project with this option:
+#      -Dapollo_DIR=<apollo install prefix>/share/
+#
+# If you have done either of these things, then CMake should automatically find
+# and include this file when you call find_package(apollo) from your
+# CMakeLists.txt file.
+#
+#=== Components ==============================================================
+#
+# To link against these, just do, for example:
+#
+#   find_package(apollo REQUIRED)
+#   add_executable(foo foo.c)
+#   target_link_libraries(foo apollo)
+#
+#
+if (NOT apollo_CONFIG_LOADED)
+  set(apollo_CONFIG_LOADED TRUE)
+
+  # Install layout
+  set(apollo_INSTALL_PREFIX @CMAKE_INSTALL_PREFIX@)
+  set(apollo_INCLUDE_DIR    ${apollo_INSTALL_PREFIX}/include)
+  set(apollo_LIB_DIR        ${apollo_INSTALL_PREFIX}/lib)
+  set(apollo_CMAKE_DIR      ${apollo_INSTALL_PREFIX}/share/cmake/apollo)
+
+  # Includes needed to use apollo
+  set(apollo_INCLUDE_PATH ${apollo_INCLUDE_DIR})
+  set(apollo_LIB_PATH     ${apollo_LIB_DIR})
+
+  # Library targets imported from file
+  include(${apollo_CMAKE_DIR}/apollo.cmake)
+endif()
