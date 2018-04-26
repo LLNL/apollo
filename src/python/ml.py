@@ -7,7 +7,11 @@ from sklearn.pipeline        import Pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 
+from ssos import SSOS 
+
 def main():
+
+    sos = SSOS()
 
     # print "numpy.__version__   == " + str(np.__version__)
     # print "pandas.__version__  == " + str(pd.__version__)
