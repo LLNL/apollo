@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.1)
 #
 
 set(APOLLO_ENABLE_TESTS ON CACHE Bool "")
-
+set(APOLLO_ENABLE_EXAMPLES ON CACHE Bool "")
 
 #
 #####
@@ -125,6 +125,11 @@ endif(SOS_FOUND)
 include_directories(./src ${PROJECT_BINARY_DIR}/include)
 
 add_subdirectory(src)
+
+if(APOLLO_ENABLE_EXAMPLES)
+    add_subdirectory(examples)
+endif(APOLLO_ENABLE_EXAMPLES)
+
 if(APOLLO_ENABLE_TESTS)
     add_subdirectory(test)
 endif(APOLLO_ENABLE_TESTS)

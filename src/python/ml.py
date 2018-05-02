@@ -28,13 +28,14 @@ def main():
     x = data.drop("percent_of_fastest", axis="columns").values
 
     print ">>>>> Initializing pipelines..."
+    basic_pipe = [('estimator',   DecisionTreeClassifier(max_depth=5))]
     dtree_pipe = [('standardize', StandardScaler()),\
                  ('estimator',    DecisionTreeClassifier(max_depth=5))]
     svc_pipe =   [('standardize', StandardScaler()),\
                  ('estimator',    SVC())]
 
     print ">>>>> Selecting pipe:"
-    pipe = dtree_pipe
+    pipe = basic_pipe
     print pipe
 
 

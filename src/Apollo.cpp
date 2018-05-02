@@ -55,6 +55,8 @@ Apollo::Apollo()
         return;
     }
 
+     
+
     apollo_log(0, "Initialized.\n");
 
     return;

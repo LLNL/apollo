@@ -34,6 +34,8 @@ class Apollo
         Apollo();
         ~Apollo();
         
+        
+        
         //  setLearnMode()
         //  getLearnMode()
         //  double getHysterisis()
@@ -48,3 +50,5 @@ class Apollo
 };
 
 #endif
+
+
