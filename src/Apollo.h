@@ -1,11 +1,12 @@
 #ifndef APOLLO_H
 #define APOLLO_H
 
-//#include "sos.h"
-//#include "sos_types.h"
+#include <string>
+#include "Apollo/Region.h"
 
-
+#ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 1
+#endif
 
 #if (APOLLO_VERBOSE < 1)
     // Nullify the variadic macro for production runs.
@@ -34,19 +35,17 @@ class Apollo
         Apollo();
         ~Apollo();
         
-        
-        
-        //  setLearnMode()
-        //  getLearnMode()
-        //  double getHysterisis()
-        //  requestDecisionTree()
-        //  generateMultiPolicy()
-
-        //NOTE: Eventually, let's disallow certain operators.
-        Apollo(const Apollo&) = delete;
+        Apollo(const Apollo&) = delete; // disallow copy constructor
         Apollo& operator=(const Apollo&) = delete;
 
+        friend class Apollo::Region;
+
+        bool isOnline();
+
     private:
+        void *getContextHandle();
+        bool  ynConnectedToSOS;
+        PublishUpdates(Apollo::Region *rgn);
 };
 
 #endif

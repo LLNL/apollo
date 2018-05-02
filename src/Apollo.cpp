@@ -19,11 +19,13 @@ handleFeedback(int msg_type, int msg_size, void *data)
     switch (msg_type) {
         //
         case SOS_FEEDBACK_TYPE_QUERY:
-            apollo_log(1, "Query results received.  (msg_size == %d)\n", msg_size);
+            apollo_log(1, "Query results received."
+                    "  (msg_size == %d)\n", msg_size);
             break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
-            apollo_log(1, "Trigger payload received.  (msg_size == %d, data == %s\n",
+            apollo_log(1, "Trigger payload received."
+                    "  (msg_size == %d, data == %s\n",
                     msg_size, (char *) data);
             break;
     }
@@ -33,8 +35,16 @@ handleFeedback(int msg_type, int msg_size, void *data)
 }
 
 
+bool Apollo::isOnline()
+{
+    return ynConnectedToSOS;
+}
+
+
 Apollo::Apollo()
 {
+    ynConnectedToSOS = false;
+
     sos = NULL;
     pub = NULL;
 
@@ -55,7 +65,7 @@ Apollo::Apollo()
         return;
     }
 
-     
+    ynConnectedToSOS = true; 
 
     apollo_log(0, "Initialized.\n");
 
