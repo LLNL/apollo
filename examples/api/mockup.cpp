@@ -78,11 +78,11 @@ Application::XYZPolicySwitcher(
 		RAJA::nested::forall(
 			exec_policy,
 			camp::make_tuple(
-				RAJA::RangeSegment(0, some_things),
-				RAJA::RangeSegment(0, more_things),
-				RAJA::RangeSegment(0, diff_things),
-				RAJA::RangeSegment(0, lost_things) ),
-			APP_LAMBDA (Some so, More mo, Diff df, Lost lo) {
+				RAJA::RangeSegment(0, num_moments),
+				RAJA::RangeSegment(0, num_directions),
+				RAJA::RangeSegment(0, num_groups),
+				RAJA::RangeSegment(0, num_zones) ),
+			APP_LAMBDA (Moment mo, Direction di, Group gp, Zone zn) {
 				// Computation here
 			    // ...
             }
