@@ -65,8 +65,8 @@ void XYZPolicySwitcher(int choice, BODY body) {
 
 Apollo *apollo = new Apollo();
 
-// Make this a factory for thread-safe reuse
-// in nested loops:
+// TODO: Make this a factory for thread-safe reuse
+//       in nested loops:
 Apollo::Region *loop = new Apollo::Region(apollo);
 
 loop.meta("Description", "Some basic description");
@@ -74,11 +74,12 @@ loop.meta("Type", "RAJA::nested::forall")
 //
 loop.note("optionA", a);
 loop.note("optionB", b);
-loop.note("systemHealth", SomePerfTool.getSystemHealth());
+loop.note("systemHealth", getSystemHealth());
 
 // NOTE: See section on lambdas' below!
 
 // NOTE: Do we need an "outer loop" wrapper to manage training?
+//       Technically, the XYZPolicySwitcher is this guide...
 //
 // loop.guide({
 //      // Grab some per-testing-block updated features:
