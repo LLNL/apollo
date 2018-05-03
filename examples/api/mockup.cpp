@@ -64,12 +64,37 @@ void XYZPolicySwitcher(int choice, BODY body) {
 #include "Apollo.h"
 
 Apollo *apollo = new Apollo();
+
+// Make this a factory for thread-safe reuse
+// in nested loops:
 Apollo::Region *loop = new Apollo::Region(apollo);
 
 loop.meta("Description", "Some basic description");
 loop.meta("Type", "RAJA::nested::forall")
+//
+loop.note("optionA", a);
+loop.note("optionB", b);
+loop.note("systemHealth", SomePerfTool.getSystemHealth());
 
 // NOTE: See section on lambdas' below!
+
+// NOTE: Do we need an "outer loop" wrapper to manage training?
+//
+// loop.guide({
+//      // Grab some per-testing-block updated features:
+//      // i.e.:
+//      loop.note("currentSystemHealth", getSystemHealth());
+//      loop.note("currentQueueBacklog", getQueueBacklog());
+//      loop.note("currentNodeTemerature", getNodeTemperature());
+//      loop.sendNotes();
+//
+//      // Now run the exact multipolicy as shown below.
+//      loop.enter()
+//      ...
+//      ...
+//      loop.leave()
+// });
+
 
 loop.enter();
 Application::XYZPolicySwitcher(
