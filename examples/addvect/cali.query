@@ -1,1 +1,6 @@
-SELECT event.end#loop,count(),sum(time.inclusive.duration) WHERE event.end#loop FORMAT expand
+
+# Summary:
+SELECT event.end#loop,statistics(time.inclusive.duration) WHERE event.end#loop GROUP BY event.end#loop FORMAT table
+
+# Each iteration:
+SELECT event.end#loop,vector_size,iter_now,iter_max,time.inclusive.duration WHERE event.end#loop ORDER BY iter_now ASC FORMAT table
