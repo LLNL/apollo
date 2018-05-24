@@ -116,6 +116,18 @@ else()
     message(STATUS "SOS:  Could not locate SOS installation.")
 endif(SOS_FOUND)
 
+find_package(Caliper REQUIRED)
+if(CALIPER_FOUND)
+    message(STATUS "CALIPER:  Found!")
+    message(STATUS "CALIPER:    CALIPER_INCLUDE_DIRS = ${CALIPER_INCLUDE_DIRS}")
+    message(STATUS "CALIPER:    CALIPER_LIB_DIRS     = ${CALIPER_LIB_DIRS}")
+    message(STATUS "CALIPER:    CALIPER_LIBRARY      = ${CALIPER_LIBRARY}")
+    include_directories(${CALIPER_INCLUDE_DIRS})
+    list(APPEND APOLLO_EXTERNAL_LIBS ${CALIPER_LIBRARY}) 
+else()
+    message(STATUS "CALIPER:  Could not locate Caliper installation.")
+endif(CALIPER_FOUND)
+
 #
 #####
 #

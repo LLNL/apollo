@@ -24,14 +24,14 @@ if(NOT SOS_DIR)
     MESSAGE(FATAL_ERROR "Could not find SOSflow. SOSflow requires explicit SOS_DIR.")
 endif()
 
-if(NOT EXISTS ${SOS_DIR}/lib/cmake/sosflow.cmake)
+if(NOT EXISTS ${SOS_DIR}/tmplib/cmake/sosflow.cmake)
     MESSAGE(FATAL_ERROR "Could not find SOSflow CMake include file (${SOS_DIR}/lib/cmake/sosflow.cmake)")
 endif()
 
 ###############################################################################
 # Import SOSflow's CMake targets
 ###############################################################################
-include(${SOS_DIR}/lib/cmake/sosflow.cmake)
+include(${SOS_DIR}/tmplib/cmake/sosflow.cmake)
 
 ###############################################################################
 # Set remaining CMake variables 

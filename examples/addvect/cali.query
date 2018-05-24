@@ -1,0 +1,1 @@
+SELECT event.end#loop,count(),sum(time.inclusive.duration) WHERE event.end#loop FORMAT expand

@@ -2,7 +2,6 @@
 #define APOLLO_H
 
 #include <string>
-#include "Apollo/Region.h"
 
 #ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 1
@@ -38,14 +37,12 @@ class Apollo
         Apollo(const Apollo&) = delete; // disallow copy constructor
         Apollo& operator=(const Apollo&) = delete;
 
-        friend class Apollo::Region;
-
         bool isOnline();
 
     private:
         void *getContextHandle();
         bool  ynConnectedToSOS;
-        PublishUpdates(Apollo::Region *rgn);
+        void PublishUpdates(void *rgn);
 };
 
 #endif

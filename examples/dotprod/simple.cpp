@@ -1,35 +1,22 @@
 // #####
 // ##### Application.h
 
-
-//TODO: This should be in Apollo.h
 RAJA_INLINE
 int getApolloPolicyChoice(Apollo::Region *loop) 
 {
     int choice = 0;
 
-    // Here we refer to a stateful element of the Apollo
-    // runtime that is doing learning strategies or, having
-    // learned the best policy, returning the index.
-
-    // Without further source instrumentation, this
-    // block is effectively a loop.iterate() call.
-
-    // loop == REGION
-    //
-    // NOTE: This region can use one of several models, and
-    //       models can take one more more independent variables
-    //       as features...
-    //
-
-    
-
     if (loop.doneLearning) {
-        // TODO: Test current timers against performance prediction model
-        //       (Standard deviations from observed per-index timers)
-        //       i.e. "Rebalance checker"
         choice = loop.targetPolicyIndex;
     } else {
+        // We're still learning.
+        //
+        // Put per-iteration feature updates here:
+        //
+        loop.note("nodeHealth", getNodeHealth());
+        loop.note("queueDepth", getQueueDepth());
+        loop.sendNotes(); //incl. latest iteration time.
+
         choice = loop.getNextTestPolicy();
     }
 
@@ -37,7 +24,7 @@ int getApolloPolicyChoice(Apollo::Region *loop)
 }
 
 
-// STEP 1 of 3: Set up a list of CONCRETE policies for
+// STEP 1 of 3: Set up a list of concrete policies for
 //              each code region/class with policies that might
 //              differ at runtime.
 using Policy_XYZ_Seq = RAJA::nested::Policy<
@@ -69,8 +56,6 @@ void XYZPolicySwitcher(int choice, BODY body) {
     }
 }
 
-
-
 // STEP 3 of 3: Use that template to wrap your loop
 //              instead of referring to RAJA's classes
 //              directly:
@@ -79,66 +64,32 @@ void XYZPolicySwitcher(int choice, BODY body) {
 
 #include "Apollo.h"
 
-// This object manages state and connection to SOSflow
 Apollo *apollo = new Apollo();
 
 // TODO: Make this a factory for thread-safe reuse
 //       in nested loops:
 Apollo::Region *loop = new Apollo::Region(apollo);
 
-// Region: Describes the FEATURES of that loop
-// Model:  One of several models for this application
-// Flight: Mappings of models to the various regions
-
-
-// This is stuff that is true about this region of code and application
-// "True all the time."
 loop.meta("Description", "Some basic description");
 loop.meta("Type", "RAJA::nested::forall")
 //
-//  IDEA: (maybe)
-//  The set of independent features that will ALWAYS be true for this loop
-//  are the primary key that maps onto the underlying available models.
-//
-loop.feature([concrete, independent], "physicsType", &phys);
-loop.feature([variable, independent], "regionCount", &regions);
-//
-loop.feature([variable, dependent], "powerMeasurement", getPower());
-loop.feature([variable, dependent], "thermalProfile",   getTemp());
-loop.feature([variable, dependent], "systemHealth",     getSystemHealth());
-
-// Three types of features:
-//   independent
-//      1. characteristics of the next loop to be invoked
-//          - things that can't be changed
-//          - useful for post-processing / understanding of codes / removing noise
-//      2. things that RAJA/apollo can tell us / what can be set for the loop
-//          ** This is stuff that we might explore during the BOOTSTRAP phase. **
-//          - length of the loop
-//          - number of cores asso
-//          - what policy to be used
-//          - number of threads
-//   dependent 
-//      - things that are expected to change based on the above variables
-//      - 
-
-
+loop.note("optionA", a);
+loop.note("optionB", b);
+loop.note("systemHealth", getSystemHealth());
 
 // NOTE: See section on lambdas' below!
-
-
-
-
 
 // NOTE: Do we need an "outer loop" wrapper to manage training?
 //       Technically, the XYZPolicySwitcher is this guide...
 //
-
 // loop.guide({
 //      // Grab some per-testing-block updated features:
-//      // i.e.: add optional features
-//      //       switch between bootstrap and normal exec
-// 
+//      // i.e.:
+//      loop.note("currentSystemHealth", getSystemHealth());
+//      loop.note("currentQueueBacklog", getQueueBacklog());
+//      loop.note("currentNodeTemerature", getNodeTemperature());
+//      loop.sendNotes();
+//
 //      // Now run the exact multipolicy as shown below.
 //      loop.enter()
 //      ...
@@ -147,10 +98,6 @@ loop.feature([variable, dependent], "systemHealth",     getSystemHealth());
 // });
 
 
-
-
-
-// NOTE: loop.enter() and the policy chooser are potentially redundant.
 loop.enter();
 Application::XYZPolicySwitcher(
 	Application::getApolloPolicyChoice(loop), 
@@ -170,10 +117,6 @@ Application::XYZPolicySwitcher(
 	}
 );
 loop.leave();
-// Etc.
-loop.loadModel(...);
-loop.resetModel(...);
-loop.exportModel(...);
 
 // -----
 
