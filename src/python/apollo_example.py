@@ -12,13 +12,6 @@ def ApolloExample():
     sos_host = "localhost"
     sos_port = os.environ.get("SOS_CMD_PORT")
 
-    #####
-    #
-    #  Get the list of field names for non-string values.
-    #
-
-    this_frame = 0
-
     sql_string = """
         SELECT * FROM (
             SELECT
