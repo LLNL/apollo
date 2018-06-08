@@ -4,9 +4,9 @@
 #include <iostream>
 
 #include "memoryManager.hpp"
-
-#include "caliper/cali.h"
 #include "RAJA/RAJA.hpp"
+//
+#include "Apollo.h"
 
 #if defined(RAJA_ENABLE_CUDA)
 const int CUDA_BLOCK_SIZE = 256;
@@ -21,11 +21,19 @@ void printResult(int* res, int len);
 
 int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 {
-    CALI_CXX_MARK_FUNCTION;
 
     std::cout << "\n\nRAJA vector addition example...\n";
 
-    CALI_MARK_BEGIN("initialization");
+    Apollo *apollo = new Apollo();
+
+    Apollo::Region *loopAllTests    = new Apollo::Region(apollo, "alltests");
+
+    Apollo::Region *loopCStyle      = new Apollo::Region(apollo, "C:forloop");
+    Apollo::Region *loopSequential  = new Apollo::Region(apollo, "RAJA:sequential");
+    Apollo::Region *loopSIMD        = new Apollo::Region(apollo, "RAJA:simd");
+    Apollo::Region *loopExec        = new Apollo::Region(apollo, "RAJA:loop_exec");
+    Apollo::Region *loopOpenMP      = new Apollo::Region(apollo, "RAJA:openmp");
+    Apollo::Region *loopCUDA        = new Apollo::Region(apollo, "RAJA:cuda");
 
     //
     // Define vector length
@@ -35,7 +43,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // 
     // How many times we want to hit these loops
     //
-    const int iter_max = 100;
+    const int iter_max = 10;
     int       iter_now = 0;
 
     //
@@ -50,78 +58,69 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         b[i] = i;
     }
 
-    CALI_MARK_END("initialization");
-
     printf("\n");
 
-    CALI_CXX_MARK_LOOP_BEGIN(app_iters, "APP:iterations");
-    cali_set_int_byname("vector_size", N);
-    cali_set_int_byname("iter_max", iter_max);
+    loopAllTests->begin();
+    loopAllTests->named_int("vector_size", N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
-        printf(">Iteration %d of %d...\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+        printf(">Iteration %d of %d..."
+                "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
                 (iter_now + 1), iter_max);
         fflush(stdout);
 
-        cali_set_int_byname("iter_now", iter_now);
+        loopAllTests->iteration_start(iter_now);
+        loopAllTests->named_int("iteration", (iter_now + 1));
 
-
-        CALI_CXX_MARK_LOOP_BEGIN(c_forloop, "C:forloop");
+        loopCStyle->begin();
         for (int i = 0; i < N; ++i) {
             c[i] = a[i] + b[i];
         }
-        CALI_CXX_MARK_LOOP_END(c_forloop);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopCStyle->end();
+        
 
-        CALI_CXX_MARK_LOOP_BEGIN(raja_seq, "RAJA:sequential");
+        loopSequential->begin();
         RAJA::forall<RAJA::seq_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
                 c[i] = a[i] + b[i]; 
                 });    
-        CALI_CXX_MARK_LOOP_END(raja_seq);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopSequential->end();
 
-        CALI_CXX_MARK_LOOP_BEGIN(raja_simd, "RAJA:simd");
+
+        loopSIMD->begin();
         RAJA::forall<RAJA::simd_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
                 c[i] = a[i] + b[i]; 
                 });    
-        CALI_CXX_MARK_LOOP_END(raja_simd);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopSIMD->end();
 
-        CALI_CXX_MARK_LOOP_BEGIN(raja_loopexec, "RAJA:loop_exec");
+
+        loopExec->begin();
         RAJA::forall<RAJA::loop_exec>(RAJA::RangeSegment(0, N), [=] (int i) {
                 c[i] = a[i] + b[i];
                 });
-        CALI_CXX_MARK_LOOP_END(raja_loopexec);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopExec->end();
 
 
 #if defined(RAJA_ENABLE_OPENMP)
-        CALI_CXX_MARK_LOOP_BEGIN(raja_openmp, "RAJA:openmp");
+        loopOpenMP->begin();
         RAJA::forall<RAJA::omp_parallel_for_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
                 c[i] = a[i] + b[i]; 
                 });    
-        CALI_CXX_MARK_LOOP_END(raja_openmp);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopOpenMP->end();
 #endif
 
 #if defined(RAJA_ENABLE_CUDA)
-        CALI_CXX_MARK_LOOP_BEGIN(raja_cuda, "RAJA:cuda");
+        loopCUDA->begin();
         RAJA::forall<RAJA::cuda_exec<CUDA_BLOCK_SIZE>>(RAJA::RangeSegment(0, N), 
                 [=] RAJA_DEVICE (int i) { 
                 c[i] = a[i] + b[i]; 
                 });    
-        CALI_CXX_MARK_LOOP_END(raja_cuda);
-        //checkResult(c, N);
-        //printResult(c, N);
+        loopCUDA->end();
 #endif
 
+        loopAllTests->iteration_stop();
     }
-    CALI_CXX_MARK_LOOP_END(app_iters);
+
+    loopAllTests->end();
     printf("\n");
 
     //----------------------------------------------------------------------------//
@@ -130,13 +129,11 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // Clean up.
     //
     
-    CALI_MARK_BEGIN("deallocation");
     
     memoryManager::deallocate(a);
     memoryManager::deallocate(b);
     memoryManager::deallocate(c);
 
-    CALI_MARK_END("deallocation");
 
     std::cout << "\n DONE!...\n";
 

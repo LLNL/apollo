@@ -13,7 +13,7 @@ endif()
 include_directories(${PROJECT_BINARY_DIR})
 
 set(APOLLO_HEADERS
-    Apollo.h)
+    ../include/apollo/Apollo.h)
 
 set(APOLLO_SOURCES
     Apollo.cpp)

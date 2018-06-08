@@ -25,7 +25,7 @@ if(NOT SOS_DIR)
 endif()
 
 if(NOT EXISTS ${SOS_DIR}/tmplib/cmake/sosflow.cmake)
-    MESSAGE(FATAL_ERROR "Could not find SOSflow CMake include file (${SOS_DIR}/lib/cmake/sosflow.cmake)")
+    MESSAGE(FATAL_ERROR "Could not find SOSflow CMake include file (${SOS_DIR}/tmplib/cmake/sosflow.cmake)")
 endif()
 
 ###############################################################################

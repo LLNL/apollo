@@ -16,7 +16,7 @@ set(RAJA_DATA_ALIGN            64  )
 set(RAJA_COHERENCE_BLOCK_SIZE  64  )
 
 add_executable(addvect addvect.cpp)
-
 set_target_properties(addvect PROPERTIES LINKER_LANGUAGE CXX)
-
 target_link_libraries(addvect apollo)
+
+
