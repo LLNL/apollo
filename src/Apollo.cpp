@@ -108,7 +108,7 @@ Apollo::Region::begin(void) {
 }
 
 void
-Apollo::Region::iteration_start(int i) {
+Apollo::Region::iterationStart(int i) {
     if (ynInsideMarkedRegion == true) {
         if (cali_iter_obj != NULL) {
             delete cali_iter_obj;
@@ -123,7 +123,7 @@ Apollo::Region::iteration_start(int i) {
 }
 
 void
-Apollo::Region::iteration_stop(void) {
+Apollo::Region::iterationStop(void) {
     if (cali_iter_obj != NULL) {
         delete cali_iter_obj;
         cali_iter_obj = NULL;
@@ -150,20 +150,14 @@ Apollo::Region::end(void) {
 
 
 void
-Apollo::Region::named_int(const char *name, int value) {
+Apollo::Region::setNamedInt(const char *name, int value) {
     cali_set_int_byname(name, value); 
     return;
 }
 
 void
-Apollo::Region::ind_feature(const char *name, int dataType, void *value) {
-    //TODO
-    return;
-}
-
-void
-Apollo::Region::dep_feature(const char *name, int dataType, void *value) {
-    //TODO
+Apollo::Region::setFeature(const char *name, Apollo::DataType featureType, void *value) {
+    // TODO
     return;
 }
 

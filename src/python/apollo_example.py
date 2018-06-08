@@ -47,13 +47,13 @@ def ApolloExample():
 
     print ""
     print "=========="
-    for col in col_names:
-        print str(col) + " "
-    print "=========="
     for row in results:
         print str(row)
     print "=========="
-    
+    for col in col_names:
+        print str(col) + " "
+    print "=========="
+ 
     ####
 
 

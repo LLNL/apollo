@@ -3,7 +3,7 @@
 #
 export CALI_SERVICES_ENABLE="aggregate:event:timestamp:sos" 
 export CALI_SOS_TRIGGER_ATTR="iteration#alltests"
-export CALI_LOG_VERBOSITY=2
+export CALI_LOG_VERBOSITY=0
 
 #
 # Launch the app:

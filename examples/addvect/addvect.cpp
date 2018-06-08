@@ -22,7 +22,7 @@ void printResult(int* res, int len);
 int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 {
 
-    std::cout << "\n\nRAJA vector addition example...\n";
+    std::cout << "\n\nRAJA vector addition example.\n";
 
     Apollo *apollo = new Apollo();
 
@@ -61,16 +61,16 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     printf("\n");
 
     loopAllTests->begin();
-    loopAllTests->named_int("vector_size", N);
+    loopAllTests->setNamedInt("vector_size", N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
-        printf(">Iteration %d of %d..."
+        printf("> Iteration %d of %d..."
                 "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
                 (iter_now + 1), iter_max);
         fflush(stdout);
 
-        loopAllTests->iteration_start(iter_now);
-        loopAllTests->named_int("iteration", (iter_now + 1));
+        loopAllTests->iterationStart(iter_now);
+        loopAllTests->setNamedInt("iteration", (iter_now + 1));
 
         loopCStyle->begin();
         for (int i = 0; i < N; ++i) {
@@ -117,7 +117,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         loopCUDA->end();
 #endif
 
-        loopAllTests->iteration_stop();
+        loopAllTests->iterationStop();
     }
 
     loopAllTests->end();
@@ -135,7 +135,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     memoryManager::deallocate(c);
 
 
-    std::cout << "\n DONE!...\n";
+    std::cout << "\n DONE.\n";
 
     return 0;
 }
