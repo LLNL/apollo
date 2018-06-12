@@ -7,6 +7,9 @@
 #include "RAJA/RAJA.hpp"
 //
 #include "Apollo.h"
+//
+#include "addvectLoops.h"
+
 
 #if defined(RAJA_ENABLE_CUDA)
 const int CUDA_BLOCK_SIZE = 256;
@@ -26,14 +29,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     Apollo *apollo = new Apollo();
 
-    Apollo::Region *loopAllTests    = new Apollo::Region(apollo, "alltests");
-
-    Apollo::Region *loopCStyle      = new Apollo::Region(apollo, "C:forloop");
-    Apollo::Region *loopSequential  = new Apollo::Region(apollo, "RAJA:sequential");
-    Apollo::Region *loopSIMD        = new Apollo::Region(apollo, "RAJA:simd");
-    Apollo::Region *loopExec        = new Apollo::Region(apollo, "RAJA:loop_exec");
-    Apollo::Region *loopOpenMP      = new Apollo::Region(apollo, "RAJA:openmp");
-    Apollo::Region *loopCUDA        = new Apollo::Region(apollo, "RAJA:cuda");
+    Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment");
+    Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel");
 
     //
     // Define vector length
@@ -60,8 +57,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     printf("\n");
 
-    loopAllTests->begin();
-    loopAllTests->setNamedInt("vector_size", N);
+    experiment->begin();
+    experiment->setNamedInt("vector_size", N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d..."
@@ -69,58 +66,36 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
                 (iter_now + 1), iter_max);
         fflush(stdout);
 
-        loopAllTests->iterationStart(iter_now);
-        loopAllTests->setNamedInt("iteration", (iter_now + 1));
+        experiment->iterationStart(iter_now);
+        experiment->setNamedInt("iteration", (iter_now + 1));
 
-        loopCStyle->begin();
-        for (int i = 0; i < N; ++i) {
-            c[i] = a[i] + b[i];
-        }
-        loopCStyle->end();
-        
+        // NOTE: This is the behavior we're intending to mimic:
+        //
+        //RAJA::forall<RAJA::seq_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
+        //        c[i] = a[i] + b[i]; 
+        //        });
+        //
+        kernel->begin();
+        addvectPolicySwitcher(
+            getApolloPolicyChoice(kernel),
+            [=] (auto exec_policy) {
+                exec_policy,
+                (RAJA::RangeSegment(0, N) ),
+                [=] (int i) {
+                    //Do the work of the kernel here.
+                    c[i] = a[i] + b[i];                        
+                
+                }
+            }
+        );
+        kernel->end();
+        //
+        //
 
-        loopSequential->begin();
-        RAJA::forall<RAJA::seq_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
-                c[i] = a[i] + b[i]; 
-                });    
-        loopSequential->end();
-
-
-        loopSIMD->begin();
-        RAJA::forall<RAJA::simd_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
-                c[i] = a[i] + b[i]; 
-                });    
-        loopSIMD->end();
-
-
-        loopExec->begin();
-        RAJA::forall<RAJA::loop_exec>(RAJA::RangeSegment(0, N), [=] (int i) {
-                c[i] = a[i] + b[i];
-                });
-        loopExec->end();
-
-
-#if defined(RAJA_ENABLE_OPENMP)
-        loopOpenMP->begin();
-        RAJA::forall<RAJA::omp_parallel_for_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
-                c[i] = a[i] + b[i]; 
-                });    
-        loopOpenMP->end();
-#endif
-
-#if defined(RAJA_ENABLE_CUDA)
-        loopCUDA->begin();
-        RAJA::forall<RAJA::cuda_exec<CUDA_BLOCK_SIZE>>(RAJA::RangeSegment(0, N), 
-                [=] RAJA_DEVICE (int i) { 
-                c[i] = a[i] + b[i]; 
-                });    
-        loopCUDA->end();
-#endif
-
-        loopAllTests->iterationStop();
+        experiment->iterationStop();
     }
 
-    loopAllTests->end();
+    experiment->end();
     printf("\n");
 
     //----------------------------------------------------------------------------//
