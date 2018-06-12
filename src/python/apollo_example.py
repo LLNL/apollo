@@ -23,20 +23,25 @@ def ApolloExample():
                                   THEN tblVals.val END) AS "cali_event_end", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "iteration"
                                   THEN tblVals.val END) AS "iteration", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policyIndex"
+                                  THEN tblVals.val END) AS "policyIndex", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "sum#time.inclusive.duration"
-                                  THEN tblVals.val END) AS "sum#time_inclusive_duration", 
+                                  THEN tblVals.val END) AS "sum_time_inclusive_duration", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "event.end#loop"
-                                  THEN tblVals.val END) AS "event_end#loop" 
+                                  THEN tblVals.val END) AS "event_end_loop" 
             FROM   tblPubs 
                   LEFT OUTER JOIN tblData 
                                ON tblPubs.guid = tblData.pub_guid 
                   LEFT OUTER JOIN tblVals 
                                ON tblData.guid = tblVals.guid 
             GROUP  BY tblVals.meta_relation_id
-        ) WHERE cali_event_end IS NOT NULL;
+        ) WHERE event_end_loop LIKE 'Kernel';
     """
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
 
+
+    #    ) WHERE cali_event_end IS NOT NULL;
+    #
 
     print ""
     print "=========="

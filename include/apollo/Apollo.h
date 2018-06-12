@@ -58,6 +58,8 @@ class Apollo
                 Apollo *apollo;
                 char   *model_id;
                 char   *model_pattern;   // TODO: This will evolve.
+                //
+                int     current_policy_index;
         };
 
         class Region {
@@ -121,6 +123,8 @@ int getApolloPolicyChoice(Apollo::Region *loop)
             choice = model->requestPolicyIndex();
         }
     }
+
+    loop->setNamedInt("policyIndex", choice);
 
     return choice;
 }
