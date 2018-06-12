@@ -163,6 +163,11 @@ Apollo::Region::setFeature(const char *name, Apollo::DataType featureType, void 
     return;
 }
 
+Apollo::Model *
+Apollo::Region::getModel(void) {
+    return model;
+}
+
 Apollo::Region::~Region()
 {
     free(name);
@@ -173,11 +178,17 @@ Apollo::Region::~Region()
 Apollo::Model::Model(Apollo *apollo_ptr, const char *id_str) {
     apollo = apollo_ptr;
     model_id = strdup(id_str);
-    //TODO: Map of regionNames to model_id in the Apollo class.
+    // TODO: Map of regionNames to model_id in the Apollo class.
     //
     model_pattern = strdup("TODO: This is were the learned model will go.");
 
     return;
+}
+
+int
+Apollo::Model::requestPolicyIndex(void) {
+    // TODO: Interact with SOS to find out what to do.
+    return 0;
 }
 
 Apollo::Model::~Model() {

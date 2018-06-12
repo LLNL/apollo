@@ -1,6 +1,12 @@
 
 #include "RAJA/RAJA.hpp"
 
+//
+// Define vector length
+//
+const int N = 1000000;
+//
+
 using addvectPolicySeq      = RAJA::seq_exec;
 using addvectPolicySIMD     = RAJA::simd_exec;
 using addvectPolicyLoopExec = RAJA::loop_exec;

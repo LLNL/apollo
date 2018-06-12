@@ -32,11 +32,6 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment");
     Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel");
 
-    //
-    // Define vector length
-    //
-    const int N = 1000000;
-
     // 
     // How many times we want to hit these loops
     //
@@ -79,15 +74,13 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         addvectPolicySwitcher(
             getApolloPolicyChoice(kernel),
             [=] (auto exec_policy) {
-            RAJA::forall<exec_policy>,
-                (RAJA::RangeSegment(0, N) ),
-                [=] (int i) {
-                    //Do the work of the kernel here.
-                    c[i] = a[i] + b[i];                        
+            RAJA::forall(exec_policy, (RAJA::RangeSegment(0, N) ), [=] (int i)
+            {
+                //Do the work of the kernel here.
+                c[i] = a[i] + b[i];
                 
-                };
-            }
-        );
+            });
+        });
         kernel->end();
         //
         //
