@@ -135,6 +135,7 @@ endif(CALIPER_FOUND)
 #
 
 include_directories(./src ./include/apollo ${PROJECT_BINARY_DIR}/include)
+include_directories("${RAJA_DIR}/include")
 
 add_subdirectory(src)
 

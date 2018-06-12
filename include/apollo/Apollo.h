@@ -8,6 +8,8 @@
 
 #include "caliper/cali.h"
 #include "caliper/Annotation.h"
+//
+#include "RAJA/RAJA.hpp"
 
 #ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 1
@@ -53,8 +55,9 @@ class Apollo
                 int  requestPolicyIndex(void);
 
             private:
-                char *model_obj;   // TODO: This will evolve.
-
+                Apollo *apollo;
+                char   *model_id;
+                char   *model_pattern;   // TODO: This will evolve.
         };
 
         class Region {
@@ -78,7 +81,9 @@ class Apollo
                         const char *name,
                         Apollo::DataType featType,
                         void *value);
- 
+
+                Apollo::Model *getModel(void);
+
             private:
                 Apollo        *apollo;
                 char          *name;
@@ -110,9 +115,11 @@ int getApolloPolicyChoice(Apollo::Region *loop)
 {
     int choice = 0;
 
-    if ((loop != NULL)
-     && (loop->model_obj != NULL)) {
-        choice = loop->model_obj->requestPolicyIndex();
+    if (loop != NULL) {
+        Apollo::Model *model = loop->getModel();
+        if (model != NULL) {
+            choice = model->requestPolicyIndex();
+        }
     }
 
     return choice;

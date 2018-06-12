@@ -1,11 +1,14 @@
 
-#include "RAJA/RAJA.h"
+#include "RAJA/RAJA.hpp"
 
-using addvectPolicySeq      = RAJA::forall<seq_exec>;
-using addvectPolicySIMD     = RAJA::forall<simd_exec>;
-using addvectPolicyLoopExec = RAJA::forall<loop_exec>;
-using addvectPolicyOpenMP   = RAJA::forall<omp_parallel_for_exec>;
-using addvectPolicyCUDA     = RAJA::forall<RAJA::cuda_exec<CUDA_BLOCK_SIZE>>;
+using addvectPolicySeq      = RAJA::seq_exec;
+using addvectPolicySIMD     = RAJA::simd_exec;
+using addvectPolicyLoopExec = RAJA::loop_exec;
+using addvectPolicyOpenMP   = RAJA::omp_parallel_for_exec;
+
+#if defined(RAJA_ENABLE_CUDA)
+using addvectPolicyCUDA     = RAJA::cuda_exec<CUDA_BLOCK_SIZE>;
+#endif
 
 template <typename BODY>
 void addvectPolicySwitcher(int choice, BODY body) {
@@ -14,7 +17,9 @@ void addvectPolicySwitcher(int choice, BODY body) {
     case 2: body(addvectPolicySIMD{}); break;
     case 3: body(addvectPolicyLoopExec{}); break;
     case 4: body(addvectPolicyOpenMP{}); break;
+#if defined(RAJA_ENABLE_CUDA)
     case 5: body(addvectPolicyCUDA{}); break;
+#endif
     case 0: 
     default: body(addvectPolicySeq{}); break;
     }

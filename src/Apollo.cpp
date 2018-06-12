@@ -87,6 +87,8 @@ Apollo::Region::Region(Apollo *apollo_ptr, const char *regionName)
     cali_iter_obj = NULL;
     ynInsideMarkedRegion = false;
 
+    model = new Apollo::Model(apollo_ptr, regionName);
+
     return;
 }
 
@@ -167,6 +169,21 @@ Apollo::Region::~Region()
     return;
 }
 
+
+Apollo::Model::Model(Apollo *apollo_ptr, const char *id_str) {
+    apollo = apollo_ptr;
+    model_id = strdup(id_str);
+    //TODO: Map of regionNames to model_id in the Apollo class.
+    //
+    model_pattern = strdup("TODO: This is were the learned model will go.");
+
+    return;
+}
+
+Apollo::Model::~Model() {
+    free(model_id);
+    free(model_pattern);
+}
 
 bool Apollo::isOnline()
 {
