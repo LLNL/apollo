@@ -13,7 +13,11 @@ def ApolloExample():
     sos_port = os.environ.get("SOS_CMD_PORT")
 
     sql_string = """
-        SELECT * FROM (
+        SELECT
+            policyIndex,
+            COUNT(policyIndex) AS iterationCount,
+            AVG(DISTINCT sum_time_inclusive_duration) AS avgTime
+        FROM (
             SELECT
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.attr.level"
                                   THEN tblVals.val END) AS "cali_event_attr_level", 
@@ -34,8 +38,12 @@ def ApolloExample():
                                ON tblPubs.guid = tblData.pub_guid 
                   LEFT OUTER JOIN tblVals 
                                ON tblData.guid = tblVals.guid 
-            GROUP  BY tblVals.meta_relation_id
-        ) WHERE event_end_loop LIKE 'Kernel';
+            GROUP  BY tblVals.meta_relation_id )
+        WHERE
+            event_end_loop LIKE 'Kernel'
+        GROUP BY
+            policyIndex
+        ;
     """
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
 

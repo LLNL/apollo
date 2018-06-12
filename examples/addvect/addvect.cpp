@@ -35,7 +35,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // 
     // How many times we want to hit these loops
     //
-    const int iter_max = 10;
+    const int iter_max = 1000;
     int       iter_now = 0;
 
     //
