@@ -32,6 +32,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment");
     Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel");
 
+
     // 
     // How many times we want to hit these loops
     //
@@ -55,6 +56,9 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     experiment->begin();
     experiment->setNamedInt("vector_size", N);
 
+    experiment->setFeature(
+            "vector_size", 
+
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d..."
                 "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
@@ -62,7 +66,6 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         fflush(stdout);
 
         experiment->iterationStart(iter_now);
-        experiment->setNamedInt("iteration", (iter_now + 1));
 
         // NOTE: This is the behavior we're intending to mimic:
         //
@@ -70,6 +73,14 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         //        c[i] = a[i] + b[i]; 
         //        });
         //
+        static int increasing;
+        increasing++;
+        kernel->setFeature("increasing",
+                Apollo::FeatureType::INDEPENDENT,
+                Apollo::TargetOperation::NONE,
+                Apollo::DataUnit::INTEGER,
+                &increasing);
+
         kernel->begin();
         addvectPolicySwitcher(
             getApolloPolicyChoice(kernel),

@@ -15,7 +15,7 @@ def ApolloExample():
     sql_string = """
         SELECT
             policyIndex,
-            COUNT(policyIndex) AS iterationCount,
+            COUNT(policyIndex) AS iterCount,
             AVG(DISTINCT sum_time_inclusive_duration) AS avgTime
         FROM (
             SELECT
@@ -45,6 +45,9 @@ def ApolloExample():
             policyIndex
         ;
     """
+
+    print sql_string;
+
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
 
 
@@ -53,11 +56,10 @@ def ApolloExample():
 
     print ""
     print "=========="
+    print str(col_names)
+    print "----------"
     for row in results:
         print str(row)
-    print "=========="
-    for col in col_names:
-        print str(col) + " "
     print "=========="
  
     ####
