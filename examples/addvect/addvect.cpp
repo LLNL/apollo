@@ -6,7 +6,8 @@
 #include "memoryManager.hpp"
 #include "RAJA/RAJA.hpp"
 //
-#include "Apollo.h"
+#include "apollo/Apollo.h"
+#include "apollo/PolicyChooser.h"
 //
 #include "addvectLoops.h"
 
@@ -29,9 +30,10 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     Apollo *apollo = new Apollo();
 
-    Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment");
-    Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel");
+    Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment", 0);
+    Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel", 4);
 
+    //apollo->region("name").begin();
 
     // 
     // How many times we want to hit these loops
@@ -54,10 +56,13 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     printf("\n");
 
     experiment->begin();
-    experiment->setNamedInt("vector_size", N);
+    experiment->caliSetInt("vector_size", N);
 
-    experiment->setFeature(
-            "vector_size", 
+    apollo->defineFeature(
+            "vector_size",
+            Apollo::Goal::OBSERVE,
+            Apollo::Unit::INTEGER,
+            (void *) &N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d..."
@@ -74,12 +79,13 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         //        });
         //
         static int increasing;
+
         increasing++;
-        kernel->setFeature("increasing",
-                Apollo::FeatureType::INDEPENDENT,
-                Apollo::TargetOperation::NONE,
-                Apollo::DataUnit::INTEGER,
-                &increasing);
+
+        apollo->defineFeature("increasing",
+                Apollo::Goal::OBSERVE,
+                Apollo::Unit::INTEGER,
+                (void *) &increasing);
 
         kernel->begin();
         addvectPolicySwitcher(

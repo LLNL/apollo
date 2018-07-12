@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Apollo.h"
+#include "apollo/Apollo.h"
 #include "apollo-test.h"
 
 int main()

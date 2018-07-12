@@ -13,10 +13,16 @@ endif()
 include_directories(${PROJECT_BINARY_DIR})
 
 set(APOLLO_HEADERS
-    ../include/apollo/Apollo.h)
+    ../include/apollo/Apollo.h
+    ../include/apollo/Model.h
+    ../include/apollo/Region.h
+    ../include/apollo/Feature.h)
 
 set(APOLLO_SOURCES
-    Apollo.cpp)
+    Apollo.cpp
+    Model.cpp
+    Region.cpp
+    Feature.cpp)
 
 add_library(apollo ${APOLLO_SOURCES})
 
