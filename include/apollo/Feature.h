@@ -20,7 +20,9 @@ class Apollo::Feature {
         int         getGoal(void);
         int         getUnit(void);
         void       *getObjPtr(void);
-    
+
+        void pack(void);
+
     private:
         Apollo        *apollo;
         char          *name;

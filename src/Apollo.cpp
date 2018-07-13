@@ -68,10 +68,10 @@ Apollo::Apollo()
 
     
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
-    snprintf(GLOBAL_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
+    snprintf(APOLLO_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
 
-    baseRegion = new Apollo::Region(this, "APOLLO_rootRegion", 0);
-    baseRegion->caliSetString("APOLLO_BINDING_GUID", GLOBAL_BINDING_GUID);
+    baseRegion = new Apollo::Region(this, "APOLLO_baseRegion", 0);
+    baseRegion->caliSetString("APOLLO_BINDING_GUID", APOLLO_BINDING_GUID);
 
 
     apollo_log(0, "Initialized.\n");
@@ -87,46 +87,21 @@ Apollo::~Apollo()
     }
 }
 
-void
+Apollo::Feature
 Apollo::defineFeature(
         const char    *featureName,
         Apollo::Goal   goal,
         Apollo::Unit   unit,
-        void          *obj_ptr)
+        void          *objPtr)
 {
+    return Apollo::Feature(
+            this,
+            featureName,
+            Apollo::Hint::INDEPENDENT,
+            goal,
+            unit,
+            objPtr);
 
-    SOS_val_type sosType;
-    switch (unit) {
-        case Apollo::Unit::INTEGER: sosType = SOS_VAL_TYPE_INT;    break;
-        case Apollo::Unit::DOUBLE:  sosType = SOS_VAL_TYPE_DOUBLE; break;
-        case Apollo::Unit::CSTRING: sosType = SOS_VAL_TYPE_STRING; break;
-    default:                        sosType = SOS_VAL_TYPE_INT;    break;
-    }
-
-    SOS_guid groupID = SOS_uid_next(sos->uid.my_guid_pool);
-
-	int ft = to_underlying(Apollo::Hint::DEPENDANT);
-	int op = to_underlying(goal);
-	int du = to_underlying(unit);
-
-    // NOTE: This allows data to be correlated between Apollo/SOSflow/Caliper
-    //       sources, without needing to resort to time-windowing or other
-    //       less efficient means.
-    SOS_pack_related(pub, groupID, "GLOBAL_BINDING_GUID",
-            SOS_VAL_TYPE_LONG, GLOBAL_BINDING_GUID);
-    //
-    SOS_pack_related(pub, groupID, "featureName", SOS_VAL_TYPE_STRING, featureName);
-	SOS_pack_related(pub, groupID, "featureType", SOS_VAL_TYPE_INT, &ft);
-	SOS_pack_related(pub, groupID, "targetOperation", SOS_VAL_TYPE_INT, &op);
-	SOS_pack_related(pub, groupID, "dataUnit", SOS_VAL_TYPE_INT, &du);
-	SOS_pack_related(pub, groupID, "featureValue", sosType, obj_ptr);
-
-	// Features are only set from outside of loops,
-	// publishing each time is not a performance hit
-	// in the client.
-	SOS_publish(pub);
-
-    return;
 }
 
 Apollo::Region *
@@ -140,6 +115,12 @@ Apollo::region(const char *regionName)
     }
 
 }
+
+void Apollo::publish()
+{
+    SOS_publish(pub);
+}
+
 
 bool Apollo::isOnline()
 {

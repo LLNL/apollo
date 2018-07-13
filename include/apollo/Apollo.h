@@ -47,7 +47,7 @@ class Apollo
 
         enum class Hint : int {
             INDEPENDENT,
-            DEPENDANT
+            DEPENDENT
         };
 
         enum class Goal : int {
@@ -75,7 +75,7 @@ class Apollo
         std::list<Apollo::Feature *> getFeatures(
                 Apollo::Hint getAllMatchingThisHint);
         //
-        void defineFeature(
+        Apollo::Feature defineFeature(
                 const char *featureName,
                 Apollo::Goal goal,
                 Apollo::Unit unit,
@@ -87,15 +87,16 @@ class Apollo
                 Apollo::Unit unit,
                 void *ptr_to_var); //NOTE: Safe to call multiple times.
         //                                 (re-call will update `ptr_to_var`)
-        bool connect();
         bool isOnline();
+        //
+        void publish();
         //
         void disconnect();
 
     private:
         // NOTE: This will apply to all Caliper data not
         //       generated in the context of an Apollo::Region
-        char GLOBAL_BINDING_GUID[256];
+        char APOLLO_BINDING_GUID[256];
 
         Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;

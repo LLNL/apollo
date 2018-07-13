@@ -8,9 +8,11 @@
 //
 #include "apollo/Apollo.h"
 #include "apollo/PolicyChooser.h"
+#include "apollo/Feature.h"
 //
 #include "addvectLoops.h"
 
+void printProgress(double percentage);
 
 #if defined(RAJA_ENABLE_CUDA)
 const int CUDA_BLOCK_SIZE = 256;
@@ -38,7 +40,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // 
     // How many times we want to hit these loops
     //
-    const int iter_max = 1000;
+    const int iter_max = 400;
     int       iter_now = 0;
 
     //
@@ -58,7 +60,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     experiment->begin();
     experiment->caliSetInt("vector_size", N);
 
-    apollo->defineFeature(
+    auto vecSize =
+        apollo->defineFeature(
             "vector_size",
             Apollo::Goal::OBSERVE,
             Apollo::Unit::INTEGER,
@@ -82,7 +85,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
         increasing++;
 
-        apollo->defineFeature("increasing",
+        auto increase = apollo->defineFeature("increasing",
                 Apollo::Goal::OBSERVE,
                 Apollo::Unit::INTEGER,
                 (void *) &increasing);
@@ -124,6 +127,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     return 0;
 }
+
+
 
 //
 // Function to check result and report P/F.

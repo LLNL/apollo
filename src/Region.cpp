@@ -6,6 +6,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 #include "apollo/Region.h"
+#include "apollo/Feature.h"
 
 extern SOS_runtime *sos;
 extern SOS_runtime *pub;
@@ -40,8 +41,8 @@ Apollo::Region::handleCommonBeginTasks(void)
         
     }
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
-    snprintf(apollo->GLOBAL_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
-    caliSetString("GLOBAL_BINDING_GUID", apollo->GLOBAL_BINDING_GUID);
+    snprintf(apollo->APOLLO_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
+    caliSetString("APOLLO_BINDING_GUID", apollo->APOLLO_BINDING_GUID);
     //
     cali_obj = new cali::Loop(name);
 
@@ -63,7 +64,7 @@ Apollo::Region::handleCommonEndTasks(void)
     delete cali_obj;
     cali_obj = NULL;
 
-    caliSetString("GLOBAL_BINDING_GUID", apollo->GLOBAL_BINDING_GUID);
+    caliSetString("APOLLO_BINDING_GUID", apollo->APOLLO_BINDING_GUID);
 
     return;
 }
@@ -72,10 +73,13 @@ Apollo::Region::handleCommonEndTasks(void)
 void
 Apollo::Region::begin(void) {
     handleCommonBeginTasks();
-    //
-    // Log things here:
     
-    //
+    for(Apollo::Feature *feat : apollo->features) {
+        //if (feat->getHint() != to_underlying(Apollo::Hint::DEPENDENT)) {
+            feat->pack();
+        //}
+    }
+    apollo->publish();
     return;
 }
 
@@ -113,7 +117,6 @@ Apollo::Region::iterationStop(void) {
     }
     return;
 }
-
 
 
 void

@@ -32,7 +32,6 @@ class Apollo::Region {
     private:
         void handleCommonBeginTasks(void);
         void handleCommonEndTasks(void);
-        void packFeature(Apollo::Feature *feature);
         //
         Apollo        *apollo;
         char          *name;
