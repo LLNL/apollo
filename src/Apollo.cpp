@@ -85,6 +85,7 @@ Apollo::~Apollo()
         SOS_finalize(sos);
         sos = NULL;
     }
+    delete baseRegion;
 }
 
 Apollo::Feature

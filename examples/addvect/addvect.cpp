@@ -40,7 +40,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // 
     // How many times we want to hit these loops
     //
-    const int iter_max = 400;
+    const int iter_max = 8;
     int       iter_now = 0;
 
     //
@@ -128,34 +128,5 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     return 0;
 }
 
-
-
-//
-// Function to check result and report P/F.
-//
-void checkResult(int* res, int len) 
-{
-    bool correct = true;
-    for (int i = 0; i < len; i++) {
-        if ( res[i] != 0 ) { correct = false; }
-    }
-    if ( correct ) {
-        std::cout << "\n\t result -- PASS\n";
-    } else {
-        std::cout << "\n\t result -- FAIL\n";
-    }
-}
-
-//
-// Function to print result.
-//
-void printResult(int* res, int len)
-{
-    std::cout << std::endl;
-    for (int i = 0; i < len; i++) {
-        std::cout << "result[" << i << "] = " << res[i] << std::endl;
-    }
-    std::cout << std::endl;
-}
 
 
