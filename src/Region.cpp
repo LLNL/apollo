@@ -4,7 +4,7 @@
 #include "sos_types.h"
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
+#include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
 #include "apollo/Feature.h"
 
@@ -23,7 +23,7 @@ Apollo::Region::Region(
     cali_iter_obj = NULL;
     ynInsideMarkedRegion = false;
 
-    model = new Apollo::Model(apollo_ptr, regionName);
+    model = new Apollo::ModelWrapper(apollo_ptr, regionName);
 
     return;
 }
@@ -132,7 +132,7 @@ Apollo::Region::caliSetString(const char *name, const char *value) {
 }
 
 
-Apollo::Model *
+Apollo::ModelWrapper *
 Apollo::Region::getModel(void) {
     return model;
 }

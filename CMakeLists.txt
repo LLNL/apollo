@@ -147,6 +147,7 @@ include_directories(./src ./include ${PROJECT_BINARY_DIR}/include)
 include_directories("${RAJA_DIR}/include")
 
 add_subdirectory(src)
+add_subdirectory(src/models)
 
 if(APOLLO_ENABLE_EXAMPLES)
     add_subdirectory(examples)

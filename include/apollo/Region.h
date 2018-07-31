@@ -3,7 +3,7 @@
 #define APOLLO_REGION_H
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
+#include "apollo/ModelWrapper.h"
 
 #include "caliper/cali.h"
 #include "caliper/Annotation.h"
@@ -15,7 +15,10 @@ class Apollo::Region {
                 int           numAvailablePolicies);
         ~Region();
 
+        // Forward declarations...
         class Feature;
+
+
 
         void begin(void); //Default begin(): f.hint != Feature::Hint.DEPENDANT
         //
@@ -24,7 +27,7 @@ class Apollo::Region {
         //
         void end(void);   //Default end(): f.hint == Feature::Hint.DEPENDANT
         //
-        Apollo::Model *getModel(void);
+        Apollo::ModelWrapper *getModel(void);
         //
         void caliSetInt(const char *name, int value);
         void caliSetString(const char *name, const char *value);
@@ -35,11 +38,11 @@ class Apollo::Region {
         //
         Apollo        *apollo;
         char          *name;
-        Apollo::Model *model;
         uint64_t       id;
         uint64_t       parent_id;
         bool           ynInsideMarkedRegion;
         char           CURRENT_BINDING_GUID[256];
+        Apollo::ModelWrapper  *model;
         cali::Loop            *cali_obj;
         cali::Loop::Iteration *cali_iter_obj;
 }; //end: Apollo::Region

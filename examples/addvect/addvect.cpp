@@ -40,7 +40,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     // 
     // How many times we want to hit these loops
     //
-    const int iter_max = 8;
+    const int iter_max = 1000;
     int       iter_now = 0;
 
     //
@@ -68,8 +68,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
             (void *) &N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
-        printf("> Iteration %d of %d..."
-                "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+        printf("> Iteration %d of %d...\r",
                 (iter_now + 1), iter_max);
         fflush(stdout);
 

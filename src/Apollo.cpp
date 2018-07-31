@@ -6,7 +6,7 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
-#include "apollo/Model.h"
+#include "apollo/ModelWrapper.h"
 #include "apollo/Feature.h"
 //
 #include "caliper/cali.h"

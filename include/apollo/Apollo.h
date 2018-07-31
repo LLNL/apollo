@@ -65,6 +65,7 @@ class Apollo
 
         // Forward declarations:
         class Model;
+        class ModelWrapper;
         class Region;
         class Feature;
         //...
