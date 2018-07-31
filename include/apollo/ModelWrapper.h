@@ -8,7 +8,11 @@
 
 class Apollo::ModelWrapper {
     public:
-        ModelWrapper(Apollo *apollo, const char *id);
+        ModelWrapper(
+                Apollo      *apollo,
+                const char  *path,
+                int          numPolicies);
+        
         ~ModelWrapper();
 
         bool loadModel(const char *path);

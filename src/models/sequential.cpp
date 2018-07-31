@@ -17,6 +17,8 @@
 int
 Apollo::Model::getIndex(void)
 {
+    iterCount++;
+
     static int choice = -1;
 
     // Return a sequential index, 0..N:
@@ -36,9 +38,10 @@ Apollo::Model::getIndex(void)
 //
 
 void
-Apollo::Model::configure(Apollo *apollo_ptr)
+Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies)
 {
     apollo = apollo_ptr;
+    policyCount = numPolicies;
     return;
 }
 

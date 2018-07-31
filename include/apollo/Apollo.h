@@ -70,7 +70,7 @@ class Apollo
         class Feature;
         //...
 
-        Apollo::Region *region(const char *regionName); 
+        Apollo::Region *region(const char *regionName);
 
         std::list<Apollo::Feature *> getFeatures(void);
         std::list<Apollo::Feature *> getFeatures(
@@ -101,6 +101,7 @@ class Apollo
 
         Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;
+        std::list<Apollo::ModelWrapper *> models;
         std::list<Apollo::Feature *> features;
         
         void *getContextHandle();

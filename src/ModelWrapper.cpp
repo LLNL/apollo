@@ -40,33 +40,29 @@ Apollo::ModelWrapper::loadModel(const char *path) {
                 " shared model object %s.\n");
         return false;
     }
-
-    model->configure(apollo); 
-    
     return true;
 }
 
 
-
-Apollo::ModelWrapper::ModelWrapper(Apollo *apollo_ptr, const char *path) {
+Apollo::ModelWrapper::ModelWrapper(
+        Apollo      *apollo_ptr,
+        const char  *path,
+        int          numPolicies)
+{
     apollo    = apollo_ptr;
-    modelPath = strdup("TODO: This is were the learned model will go.");
+    if (loadModel(path) == false) {
+        fprintf(stderr, "Unable to load model.\n");
+        exit(1);
+    }
+    model->configure(apollo, numPolicies);
     currentPolicyIndex = 0;
     return;
 }
 
 int
 Apollo::ModelWrapper::requestPolicyIndex(void) {
-    // TODO: Interact with SOS to find out what to do.
-
-    int choice = currentPolicyIndex;
-
-    currentPolicyIndex++;
-    if (currentPolicyIndex > 5) {
-        currentPolicyIndex = 0;
-    }
-
-    return choice;
+    currentPolicyIndex = model->getIndex();
+    return currentPolicyIndex;
 }
 
 Apollo::ModelWrapper::~ModelWrapper() {

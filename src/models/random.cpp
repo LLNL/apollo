@@ -1,4 +1,5 @@
 
+#include <random>
 
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
@@ -17,10 +18,19 @@
 int
 Apollo::Model::getIndex(void)
 {
+    iterCount++;
+
     int choice = 0;
 
-    // Return a random index, 0..N:
-
+    if (policyCount > 1) {
+        // Return a random index, 0..N:
+        std::random_device rd; 
+        std::mt19937 gen(rd()); 
+        std::uniform_int_distribution<> dis(0, (policyCount - 1));
+        choice = dis(gen);
+    } else {
+        choice = 0;
+    }
 
     return choice;
 }
@@ -33,9 +43,10 @@ Apollo::Model::getIndex(void)
 //
 
 void
-Apollo::Model::configure(Apollo *apollo_ptr)
+Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies)
 {
     apollo = apollo_ptr;
+    policyCount = numPolicies;
     return;
 }
 
