@@ -23,7 +23,7 @@ Apollo::Region::Region(
     cali_iter_obj = NULL;
     ynInsideMarkedRegion = false;
 
-    model = new Apollo::ModelWrapper(apollo_ptr, regionName);
+    model = new Apollo::ModelWrapper(apollo_ptr, regionName, numAvailablePolicies);
 
     return;
 }
