@@ -25,6 +25,7 @@ set(APOLLO_SOURCES
     Feature.cpp)
 
 add_library(apollo ${APOLLO_SOURCES})
+target_link_libraries(apollo dl)
 
 foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
     target_link_libraries(apollo ${_extlib})

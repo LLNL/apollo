@@ -11,7 +11,7 @@
 class Apollo::Model {
     public:
         Model();
-        ~Model();
+        virtual ~Model();
 
         virtual void configure(Apollo *apollo_ptr);
         virtual int  getIndex(void);

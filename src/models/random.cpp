@@ -21,7 +21,6 @@ Apollo::Model::getIndex(void)
 
     // Return a random index, 0..N:
 
-    // https://stackoverflow.com/questions/496664/c-dynamic-shared-library-on-linux#
 
     return choice;
 }
