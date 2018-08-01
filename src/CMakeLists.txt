@@ -1,7 +1,7 @@
 if (${CMAKE_CXX_COMPILER_ID} MATCHES Intel)
   # CMake does not have proper compiler feature support for Intel compilers :-/
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ldl")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ldl")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ldl -fPIC")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -std=c99   -ldl -fPIC")
 else()
   set(CMAKE_C_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_STANDARD_REQUIRED ON) 
@@ -24,7 +24,7 @@ set(APOLLO_SOURCES
     Region.cpp
     Feature.cpp)
 
-add_library(apollo ${APOLLO_SOURCES})
+add_library(apollo SHARED ${APOLLO_SOURCES})
 target_link_libraries(apollo dl)
 
 foreach(_extlib ${APOLLO_EXTERNAL_LIBS})

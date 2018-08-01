@@ -11,7 +11,7 @@ Apollo::ModelWrapper::loadModel(const char *path) {
     dlerror();
     
     // Load the shared object:
-    void *handle = dlopen(path, RTLD_LAZY);
+    void *handle = dlopen(path, (RTLD_LAZY | RTLD_GLOBAL));
 
     if ((error_msg = dlerror()) != NULL) {
         fprintf(stderr, "APOLLO: dlopen(%s, ...): %s\n", path, error_msg);

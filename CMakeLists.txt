@@ -12,8 +12,9 @@ set(CMAKE_CXX_STANDARD 14)
 # Options
 #
 
-set(APOLLO_ENABLE_TESTS ON CACHE Bool "")
+set(APOLLO_ENABLE_TESTS    ON CACHE Bool "")
 set(APOLLO_ENABLE_EXAMPLES ON CACHE Bool "")
+set(APOLLO_RPATH_OVERRIDES ON CACHE Bool "")
 
 #
 #####
@@ -24,13 +25,35 @@ set(APOLLO_MINOR_VERSION 0)
 set(APOLLO_PATCH_VERSION 0)
 set(APOLLO_VERSION "${APOLLO_MAJOR_VERSION}.${APOLLO_MINOR_VERSION}.${APOLLO_PATCH_VERSION}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable -fPIC")
 
 set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 include(PreventInSourceBuilds)
+
+if (APOLLO_RPATH_OVERRIDES)
+	# use, i.e. don't skip the full RPATH for the build tree
+	set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+    # when building, don't use the install RPATH already
+    # (but later on when installing)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+    # add the automatically determined parts of the RPATH
+    # which point to directories outside the build tree to the install RPATH
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
+	# the RPATH to be used when installing, but only if it's not a system directory
+	list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+	if("${isSystemDir}" STREQUAL "-1")
+   		set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+	endif("${isSystemDir}" STREQUAL "-1")
+endif(APOLLO_RPATH_OVERRIDES)
 
 
 
