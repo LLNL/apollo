@@ -25,7 +25,7 @@ Apollo::Region::Region(
 
     model = new Apollo::ModelWrapper(
             apollo_ptr,
-            "./install/lib/models/sequentialModel.so",
+            "./install/lib/models/randomModel.so",
             numAvailablePolicies);
 
     return;

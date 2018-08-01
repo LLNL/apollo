@@ -55,6 +55,11 @@ Apollo::Model::Model()
     iterCount = 0;
 }
 
+Apollo::Model::~Model()
+{
+    return;
+}
+
 extern "C" Apollo::Model* create_instance(void)
 {
     return new Apollo::Model;
