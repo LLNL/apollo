@@ -17,7 +17,6 @@ foreach(_model ${BUILTIN_MODELS})
         LINKER_LANGUAGE CXX
         PREFIX "")
     target_link_libraries("${_model}Model" apollo )
-    #target_link_libraries("${_model}Model" -Wl,--whole-archive apollo -Wl,--no-whole-archive)
     #
     install(TARGETS "${_model}Model"
         EXPORT "${_model}Model"

@@ -13,20 +13,17 @@ def ApolloExample():
     sos_port = os.environ.get("SOS_CMD_PORT")
 
     sql_string = """
-        SELECT
-            policyIndex,
-            COUNT(policyIndex) AS iterCount,
-            AVG(DISTINCT sum_time_inclusive_duration) AS avgTime
-        FROM (
+        SELECT * FROM (
             SELECT
+                  tblVals.frame,
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.attr.level"
                                   THEN tblVals.val END) AS "cali_event_attr_level", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "vector_size"
                                   THEN tblVals.val END) AS "vector_size", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.end"
                                   THEN tblVals.val END) AS "cali_event_end", 
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "iteration"
-                                  THEN tblVals.val END) AS "iteration", 
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
+                                  THEN tblVals.val END) AS "loop", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policyIndex"
                                   THEN tblVals.val END) AS "policyIndex", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "sum#time.inclusive.duration"
@@ -38,15 +35,10 @@ def ApolloExample():
                                ON tblPubs.guid = tblData.pub_guid 
                   LEFT OUTER JOIN tblVals 
                                ON tblData.guid = tblVals.guid 
-            GROUP  BY tblVals.meta_relation_id )
-        WHERE
-            event_end_loop LIKE 'Kernel'
-        GROUP BY
-            policyIndex
+            GROUP  BY tblVals.meta_relation_id 
+        )   WHERE  cali_event_end IS NOT NULL
         ;
     """
-
-    print sql_string;
 
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
 
@@ -54,14 +46,15 @@ def ApolloExample():
     #    ) WHERE cali_event_end IS NOT NULL;
     #
 
-    print ""
     print "=========="
-    print str(col_names)
+    # Print out the results in a pretty column-aligned way:
+    widths = [max(map(len, col)) for col in zip(*results)]
+    for row in results: 
+        print "  ".join((val.ljust(width) for val, width in zip(row, widths)))
     print "----------"
-    for row in results:
-        print str(row)
+    print str(col_names)
     print "=========="
- 
+  
     ####
 
 

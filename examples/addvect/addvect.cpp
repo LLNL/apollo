@@ -32,8 +32,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     Apollo *apollo = new Apollo();
 
-    Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment", 0);
-    Apollo::Region *kernel      = new Apollo::Region(apollo, "Kernel", 4);
+    //Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment", 0);
+    Apollo::Region *kernel      = new Apollo::Region(apollo, "RAJA_kernel", 5);
 
     //apollo->region("name").begin();
 
@@ -57,22 +57,24 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     printf("\n");
 
-    experiment->begin();
-    experiment->caliSetInt("vector_size", N);
+    //experiment->begin();
+    kernel->caliSetInt("vector_size", N);
 
-    auto vecSize =
+/*
+ * auto vecSize =
         apollo->defineFeature(
             "vector_size",
             Apollo::Goal::OBSERVE,
             Apollo::Unit::INTEGER,
             (void *) &N);
+ */
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d...\r",
                 (iter_now + 1), iter_max);
         fflush(stdout);
 
-        experiment->iterationStart(iter_now);
+        //experiment->iterationStart(iter_now);
 
         // NOTE: This is the behavior we're intending to mimic:
         //
@@ -90,6 +92,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
                 (void *) &increasing);
 
         kernel->begin();
+        kernel->iterationStart(increasing);
         addvectPolicySwitcher(
             getApolloPolicyChoice(kernel),
             [=] (auto exec_policy) {
@@ -100,14 +103,15 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
                 
             });
         });
+        kernel->iterationStop();
         kernel->end();
         //
         //
 
-        experiment->iterationStop();
+        //experiment->iterationStop();
     }
 
-    experiment->end();
+    //experiment->end();
     printf("\n");
 
     //----------------------------------------------------------------------------//
