@@ -44,8 +44,6 @@ Apollo::Region::handleCommonBeginTasks(void)
         
     }
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
-    snprintf(apollo->APOLLO_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
-    caliSetString("APOLLO_BINDING_GUID", apollo->APOLLO_BINDING_GUID);
     //
     cali_obj = new cali::Loop(name);
 
@@ -67,8 +65,6 @@ Apollo::Region::handleCommonEndTasks(void)
     delete cali_obj;
     cali_obj = NULL;
 
-    caliSetString("APOLLO_BINDING_GUID", apollo->APOLLO_BINDING_GUID);
-
     return;
 }
 
@@ -76,7 +72,9 @@ Apollo::Region::handleCommonEndTasks(void)
 void
 Apollo::Region::begin(void) {
     handleCommonBeginTasks();
-    
+   
+    // NOTE: This is deprecated, features come directly through
+    //       the Caliper SOS service.
     for(Apollo::Feature *feat : apollo->features) {
         //if (feat->getHint() != to_underlying(Apollo::Hint::DEPENDENT)) {
             feat->pack();

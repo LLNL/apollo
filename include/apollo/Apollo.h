@@ -95,10 +95,6 @@ class Apollo
         void disconnect();
 
     private:
-        // NOTE: This will apply to all Caliper data not
-        //       generated in the context of an Apollo::Region
-        char APOLLO_BINDING_GUID[256];
-
         Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;

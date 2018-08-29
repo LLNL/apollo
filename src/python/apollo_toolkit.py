@@ -3,6 +3,7 @@ import os
 import numpy  as np
 import pandas as pd    
 import sklearn as skl
+import cStringIO
 from sklearn.preprocessing   import StandardScaler   
 from sklearn.tree            import DecisionTreeClassifier
 from sklearn.pipeline        import Pipeline
@@ -26,8 +27,6 @@ def main():
     # Remove the redundant stuff from Caliper:
     data = data[data.event_end_loop != "NULL"]
 
-    print(data)
-    
     # Process an example ML pipeline w/hardcoded field names:
     learningExample(data)
 
@@ -82,7 +81,9 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     results, col_names = sos.query(sql_string, sos_host, sos_port)
     data = pd.DataFrame.from_records(results, columns=col_names)
-    
+   
+    print str(data["sum_time_inclusive_duration"].values)
+
     return data
 
 
@@ -105,12 +106,20 @@ def learningExample(data):
 
     # Target
     # NOTE: Here binned into every 10% for DecisionTreeClassifier 
-    
-    y = (data["sum_time_inclusive_duration"].values/10).astype(int)
+
+    print ">>>>> Extracting dependent variable for Y-axis..."
+    y = (data["sum_time_inclusive_duration"].values.astype(float).astype(int)/5).astype(int)
     y = y.squeeze()
 
-    # Features
-    x = data.drop("sum_time_inclusive_duration", axis="columns").values
+    # Extract relevant independent features:
+    x = data.drop([
+            "cali_event_attr_level",
+            "cali_event_end",
+            "sum_time_inclusive_duration",
+            "loop",
+            "event_end_loop",
+            "frame"
+        ], axis="columns").values
 
     print ">>>>> Initializing pipelines..."
     basic_pipe = [('estimator',   DecisionTreeClassifier(max_depth=5))]
@@ -123,12 +132,11 @@ def learningExample(data):
     pipe = basic_pipe
     print pipe
 
-
     print ">>>>> Initializing model..."
     model = Pipeline(pipe)
 
-    print ">>>>> Cross-validation... (10-fold)"
-    scores = cross_val_score(model, x, y, cv=10)
+    print ">>>>> Cross-validation... (5-fold)"
+    scores = cross_val_score(model, x, y, cv=5)
     print("\n".join([("    " + str(score)) for score in scores]))
     print "    score.mean == " + str(np.mean(scores))
 
@@ -136,12 +144,12 @@ def learningExample(data):
     model.fit(x, y)
 
     trained_model = model.named_steps["estimator"]
-    print trained_model
-
 
     print ">>>>> Rules learned:"
-    # NOTE: Works specifically for decision tree.
-    tree_to_code(trained_model, data.columns[:-1])
+    rules = tree_to_string(trained_model, ["vector_size", "policyIndex"])
+    # tree_to_code(trained_model, ["vector_size", "policyIndex"])
+
+    print rules
 
     return
 
@@ -150,6 +158,38 @@ def learningExample(data):
 #########
 
 from sklearn.tree import _tree
+
+def tree_to_string(tree, feature_names):
+    result = cStringIO.StringIO()
+    tree_ = tree.tree_
+    feature_name = [
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        for i in tree_.feature
+    ]
+    result.write("{}\n".format(str(len(feature_names))))
+    for feature in feature_names:
+        result.write("{}\n".format(feature))
+   
+    print "Recursing..."
+    def recurseSTR(result_str, node, depth):
+        # NOTE: Useful for debugging trees:
+        #       offset = "  " * depth
+        #
+        offset = ""
+        if tree_.feature[node] != _tree.TREE_UNDEFINED:
+            name = feature_name[node]
+            threshold = tree_.threshold[node]
+            result_str.write("{} : {}{} <= {}\n".format(depth, offset, name, threshold))
+            recurseSTR(result_str, tree_.children_left[node], depth + 1)
+            result_str.write("{} : {}{} > {}\n".format(depth, offset, name, threshold))
+            recurseSTR(result_str, tree_.children_right[node], depth + 1)
+        else:
+            #result_str.write("INDEX EQ {}\n".format(tree_.value[node]))
+            result_str.write("{} : {}policyIndex = 99.99\n".format(depth, offset))
+    
+    recurseSTR(result, 0, 1)
+    return result.getvalue()
+
 
 def tree_to_code(tree, feature_names):
     tree_ = tree.tree_

@@ -65,14 +65,10 @@ Apollo::Apollo()
     }
 
     ynConnectedToSOS = true; 
-
     
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
-    snprintf(APOLLO_BINDING_GUID, 256, "%" SOS_GUID_FMT, guid);
 
-    baseRegion = new Apollo::Region(this, "APOLLO_baseRegion", 0);
-    baseRegion->caliSetString("APOLLO_BINDING_GUID", APOLLO_BINDING_GUID);
-
+    baseRegion = new Apollo::Region(this, "APOLLO", 0);
 
     apollo_log(0, "Initialized.\n");
 

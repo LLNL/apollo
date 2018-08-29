@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy  as np
 import pandas as pd    
+import cStringIO
 from sklearn.preprocessing   import StandardScaler   
 from sklearn.tree            import DecisionTreeClassifier
 from sklearn.pipeline        import Pipeline
@@ -55,14 +56,44 @@ def main():
 
 
     print ">>>>> Rules learned:"
-    # NOTE: Works specifically for decision tree.
-    tree_to_code(trained_model, data.columns[:-1])
+    rules = tree_to_string(trained_model, data.columns[:-1])
 
+    print rules
 
 
 #########
 
 from sklearn.tree import _tree
+
+def tree_to_string(tree, feature_names):
+    result = cStringIO.StringIO()
+    tree_ = tree.tree_
+    feature_name = [
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        for i in tree_.feature
+    ]
+    result.write("{}\n".format(str(len(feature_names))))
+    for feature in feature_names:
+        result.write("{}\n".format(feature))
+   
+    print "Recursing..."
+    def recurseSTR(result_str, node, depth):
+        offset = "  " * depth
+        if tree_.feature[node] != _tree.TREE_UNDEFINED:
+            name = feature_name[node]
+            threshold = tree_.threshold[node]
+            result_str.write("{} : {}{} <= {}\n".format(depth, offset, name, threshold))
+            recurseSTR(result_str, tree_.children_left[node], depth + 1)
+            result_str.write("{} : {}{} > {}\n".format(depth, offset, name, threshold))
+            recurseSTR(result_str, tree_.children_right[node], depth + 1)
+        else:
+            #result_str.write("INDEX EQ {}\n".format(tree_.value[node]))
+            result_str.write("{} : {}return = {}\n".format(depth, offset, tree_.value[node]))
+    
+    recurseSTR(result, 0, 1)
+    return result.getvalue()
+
+
 
 def tree_to_code(tree, feature_names):
     tree_ = tree.tree_

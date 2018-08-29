@@ -10,6 +10,16 @@
 extern SOS_runtime     *sos;
 extern SOS_pub         *pub;
 
+/* EXAMPLE:    (deprecated, use Caliper directly)
+ *
+ * auto vecSize =
+        apollo->defineFeature(
+            "vector_size",
+            Apollo::Goal::OBSERVE,
+            Apollo::Unit::INTEGER,
+            (void *) &N);
+ */
+
 Apollo::Feature::Feature(
         Apollo *apolloContext,
         const char *featureName,
@@ -58,19 +68,7 @@ Apollo::Feature::pack(void)
 	int ft = to_underlying(Apollo::Hint::DEPENDENT);
 	int op = to_underlying(goal);
 	int du = to_underlying(unit);
-
-    
-    // TODO: APOLLO_BINDING_GUID is not working as anticipated.
-    //       We need to get into a place where we're re-using the same
-    //       ID for the same loop.  Perhaps this should just be a hash of
-    //       srcfile name and line number?  That way we can group/sum/avg
-    //       on the performance of some specific loop and make a time
-    //       series of it.
-    //
-    
-    SOS_pack_related(pub, groupID, "APOLLO_BINDING_GUID",
-            SOS_VAL_TYPE_LONG, apollo->APOLLO_BINDING_GUID);
-    //
+   
     SOS_pack_related(pub, groupID, "featureName", SOS_VAL_TYPE_STRING, name);
 	SOS_pack_related(pub, groupID, "featureHint", SOS_VAL_TYPE_INT, &ft);
 	SOS_pack_related(pub, groupID, "featureGoal", SOS_VAL_TYPE_INT, &op);
@@ -80,7 +78,7 @@ Apollo::Feature::pack(void)
 	// Features are only set from outside of loops,
 	// publishing each time is not a performance hit
 	// in the client.
-	SOS_publish(pub);
+	// SOS_publish(pub);
 
     return;
 }

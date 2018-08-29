@@ -30,12 +30,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     std::cout << "\n\nRAJA vector addition example.\n";
 
-    Apollo *apollo = new Apollo();
-
-    //Apollo::Region *experiment  = new Apollo::Region(apollo, "Experiment", 0);
-    Apollo::Region *kernel      = new Apollo::Region(apollo, "RAJA_kernel", 5);
-
-    //apollo->region("name").begin();
+    Apollo         *apollo = new Apollo();
+    Apollo::Region *kernel = new Apollo::Region(apollo, "RAJA_kernel", 5);
 
     // 
     // How many times we want to hit these loops
@@ -57,39 +53,15 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     printf("\n");
 
-    //experiment->begin();
     kernel->caliSetInt("vector_size", N);
-
-/*
- * auto vecSize =
-        apollo->defineFeature(
-            "vector_size",
-            Apollo::Goal::OBSERVE,
-            Apollo::Unit::INTEGER,
-            (void *) &N);
- */
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d...\r",
                 (iter_now + 1), iter_max);
         fflush(stdout);
 
-        //experiment->iterationStart(iter_now);
-
-        // NOTE: This is the behavior we're intending to mimic:
-        //
-        //RAJA::forall<RAJA::seq_exec>(RAJA::RangeSegment(0, N), [=] (int i) { 
-        //        c[i] = a[i] + b[i]; 
-        //        });
-        //
-        static int increasing;
-
+        static int increasing = 0;
         increasing++;
-
-        auto increase = apollo->defineFeature("increasing",
-                Apollo::Goal::OBSERVE,
-                Apollo::Unit::INTEGER,
-                (void *) &increasing);
 
         kernel->begin();
         kernel->iterationStart(increasing);
@@ -105,10 +77,6 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         });
         kernel->iterationStop();
         kernel->end();
-        //
-        //
-
-        //experiment->iterationStop();
     }
 
     //experiment->end();
