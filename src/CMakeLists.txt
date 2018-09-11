@@ -16,13 +16,17 @@ set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
     ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
-    ../include/apollo/Feature.h)
+    ../include/apollo/Feature.h
+    ../include/apollo/common/DecisionNode.h
+    )
 
 set(APOLLO_SOURCES
     Apollo.cpp
     ModelWrapper.cpp
     Region.cpp
-    Feature.cpp)
+    Feature.cpp
+    common/DecisionNode.cpp
+    )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
 target_link_libraries(apollo dl)

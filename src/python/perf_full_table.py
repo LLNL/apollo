@@ -16,6 +16,8 @@ def ApolloExample():
         SELECT * FROM (
             SELECT
                   tblVals.frame,
+                  tblData.name,
+                  tblData.val_type,
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali.event.attr.level"
                                   THEN tblVals.val END) AS "cali_event_attr_level", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "vector_size"
@@ -35,17 +37,15 @@ def ApolloExample():
                                ON tblPubs.guid = tblData.pub_guid 
                   LEFT OUTER JOIN tblVals 
                                ON tblData.guid = tblVals.guid 
-            GROUP  BY tblVals.meta_relation_id 
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblVals.guid
         )   WHERE  cali_event_end IS NOT NULL
         ;
     """
 
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
-
-
-    #    ) WHERE cali_event_end IS NOT NULL;
-    #
-
+    
     print "=========="
     # Print out the results in a pretty column-aligned way:
     widths = [max(map(len, col)) for col in zip(*results)]

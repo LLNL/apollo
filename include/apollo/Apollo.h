@@ -13,7 +13,7 @@
 #include "RAJA/RAJA.hpp"
 
 #ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE 1
+#define APOLLO_VERBOSE 0
 #endif
 
 #if (APOLLO_VERBOSE < 1)
@@ -29,11 +29,15 @@
 #endif
 
 extern "C" {
-    // SOS will delivery triggers and query results here:
+    // SOS will deliver triggers and query results here:
     void  
-    handleFeedback(int msg_type,
+    handleFeedback(void *sos_context,
+                   int msg_type,
                    int msg_size,
                    void *data);
+
+    // Used to call Apollo functions from the C code:
+    void call_Apollo_attachModel(void *apollo, const char *def);
 }
 
 class Apollo
@@ -88,6 +92,9 @@ class Apollo
                 Apollo::Unit unit,
                 void *ptr_to_var); //NOTE: Safe to call multiple times.
         //                                 (re-call will update `ptr_to_var`)
+        //
+        void attachModel(const char *modelEncoding);
+        // 
         bool isOnline();
         //
         void publish();
@@ -99,7 +106,7 @@ class Apollo
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
         std::list<Apollo::Feature *> features;
-        
+        //
         void *getContextHandle();
         bool  ynConnectedToSOS;
 

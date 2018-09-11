@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <sstream>
 #include <cstdint>
 #include <cstring>
 #include <typeinfo>
@@ -19,8 +20,12 @@ SOS_runtime *sos;
 SOS_pub     *pub;
 
 void 
-handleFeedback(int msg_type, int msg_size, void *data)
+handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
+    SOS_msg_header header;
+    int   offset = 0;
+    char *tree;
+    struct ApolloDec;
 
     switch (msg_type) {
         //
@@ -28,17 +33,63 @@ handleFeedback(int msg_type, int msg_size, void *data)
             apollo_log(1, "Query results received."
                     "  (msg_size == %d)\n", msg_size);
             break;
+        case SOS_FEEDBACK_TYPE_CACHE:
+            apollo_log(1, "Cache results received."
+                    "  (msg_size == %d)\n", msg_size);
+            break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
             apollo_log(1, "Trigger payload received."
                     "  (msg_size == %d, data == %s\n",
                     msg_size, (char *) data);
+
+            void *apollo_ref = SOS_reference_get(
+                    (SOS_runtime *)sos_context,
+                    "APOLLO_CONTEXT");
+            call_Apollo_attachModel((struct ApolloDec *)apollo_ref, (char *) data);
             break;
     }
 
 
     return;
 }
+
+extern "C" void
+call_Apollo_attachModel(void *apollo_ref, const char *def)
+{
+    Apollo *apollo = (Apollo *) apollo_ref;
+    apollo->attachModel(def);
+    return;
+}
+
+void
+Apollo::attachModel(const char *def)
+{
+    int i;
+
+    if (def == NULL) {
+        apollo_log(0, "ERROR: apollo->attachModel() called with a"
+                    " NULL model definition. Doing nothing.");
+        return;
+    }
+
+    if (strlen(def) < 1) {
+        apollo_log(0, "ERROR: apollo->attachModel() called with an"
+                    " empty model definition. Doing nothing.");
+        return;
+    }
+    std::istringstream model_definition(def);
+    std::string line;
+    
+    //NOTE: Assume a decision tree for this version.
+    while (std::getline(model_definition, line)) {
+        std::cout << line << "\n";
+    }
+
+    return;
+}
+
+
 
 Apollo::Apollo()
 {
@@ -49,7 +100,7 @@ Apollo::Apollo()
 
     SOS_init(&sos, SOS_ROLE_CLIENT,
             SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
-
+    
     if (sos == NULL) {
         fprintf(stderr, "APOLLO: Unable to communicate with the SOS daemon.\n");
         return;
@@ -63,6 +114,11 @@ Apollo::Apollo()
         sos = NULL;
         return;
     }
+
+    // NOTE: The assumption here is that there is 1:1 ratio of Apollo
+    //       instances per process.
+    SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this); 
+    SOS_sense_register(sos, "APOLLO_MODELS"); 
 
     ynConnectedToSOS = true; 
     

@@ -63,6 +63,70 @@ class SSOS:
             return
         lib.SSOS_pack(entry_name, entry_type, entry_addr)
 
+    def request_pub_manifest(self, pub_title_filter, target_host, target_port):
+        res_manifest          = ffi.new("SSOS_query_results*");
+        res_max_frame_overall = ffi.new("int*");
+        res_pub_title_filter  = ffi.new("char[]", pub_title_filter);
+        res_target_host       = ffi.new("char[]", target_host);
+        res_target_port       = ffi.new("int*", int(target_port));
+
+        lib.SSOS_request_pub_manifest(res_manifest, res_max_frame_overall, \
+                res_pub_title_filter, res_target_host, res_target_port[0])
+
+        results = []
+        for row in range(res_manifest.row_count):
+            thisrow = []
+            for col in range(res_manifest.col_count):
+                thisrow.append(ffi.string(res_manifest.data[row][col]))
+            #print "results[{}] = {}".format(row, thisrow)
+            results.append(thisrow)
+
+        # Generate the column name list:
+        col_names = []
+        for col in range(0, res_manifest.col_count):
+            col_names.append(ffi.string(res_manifest.col_names[col]))
+
+        lib.SSOS_result_destroy(res_manifest);
+
+        max_frame = int(res_max_frame_overall[0])
+
+        return (max_frame, results, col_names)
+
+
+
+    def cache_grab(self, pub_filter, val_filter,    \
+            frame_start, frame_depth,               \
+            sos_host, sos_port):
+        res_pub_filter = ffi.new("char[]", pub_filter)
+        res_val_filter = ffi.new("char[]", val_filter)
+        res_frame_start = ffi.new("int*", int(frame_start))
+        res_frame_depth = ffi.new("int*", int(frame_depth))
+        res_host = ffi.new("char[]", sos_host)
+        res_port = ffi.new("int*", int(sos_port))
+        # Send out the cache grab...
+        lib.SSOS_cache_grab(res_pub_filter, res_val_filter,            \
+                            res_frame_start[0], res_frame_depth[0],    \
+                            res_host, res_port[0])
+
+        res_obj = ffi.new("SSOS_query_results*")
+        lib.SSOS_result_claim(res_obj);
+        results = []
+        for row in range(res_obj.row_count):
+            thisrow = []
+            for col in range(res_obj.col_count):
+                thisrow.append(ffi.string(res_obj.data[row][col]))
+            #print "results[{}] = {}".format(row, thisrow)
+            results.append(thisrow)
+
+        # Generate the column name list:
+        col_names = []
+        for col in range(0, res_obj.col_count):
+           col_names.append(ffi.string(res_obj.col_names[col]))
+
+        lib.SSOS_result_destroy(res_obj)
+        return (results, col_names)
+
+
     def query(self, sql, host, port):
         res_sql = ffi.new("char[]", sql)
         res_obj = ffi.new("SSOS_query_results*")
@@ -80,6 +144,10 @@ class SSOS:
         #print "Claiming the results..."
         lib.SSOS_result_claim(res_obj);
 
+        #print "Results received!"
+        #print "   row_count = " + str(res_obj.row_count)
+        #print "   col_count = " + str(res_obj.col_count)
+
         results = []
         for row in range(res_obj.row_count):
             thisrow = []
@@ -91,7 +159,7 @@ class SSOS:
         # Generate the column name list:
         col_names = []
         for col in range(0, res_obj.col_count):
-           col_names.append(ffi.string(res_obj.col_names[col]))
+            col_names.append(ffi.string(res_obj.col_names[col]))
 
         lib.SSOS_result_destroy(res_obj)
         return (results, col_names)
