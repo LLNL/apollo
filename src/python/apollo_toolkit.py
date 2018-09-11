@@ -195,13 +195,14 @@ def tree_to_string(tree, feature_names):
         if tree_.feature[node] != _tree.TREE_UNDEFINED:
             name = feature_name[node]
             threshold = tree_.threshold[node]
-            result_str.write("{} : {}{} <= {}\n".format(depth, offset, name, threshold))
+            result_str.write("{} {}{} <= {}\n".format(depth, offset, name, threshold))
             recurseSTR(result_str, tree_.children_left[node], depth + 1)
-            result_str.write("{} : {}{} > {}\n".format(depth, offset, name, threshold))
+            result_str.write("{} {}{} > {}\n".format(depth, offset, name, threshold))
             recurseSTR(result_str, tree_.children_right[node], depth + 1)
         else:
             #result_str.write("INDEX EQ {}\n".format(tree_.value[node]))
-            result_str.write("{} : {}policyIndex = 99.99\n".format(depth, offset))
+            result_val = tree_.value[node]
+            result_str.write("{} {}result = {}\n".format(depth, offset, result_val))
     
     recurseSTR(result, 0, 1)
     return result.getvalue()

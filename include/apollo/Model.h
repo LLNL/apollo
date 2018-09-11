@@ -13,15 +13,21 @@ class Apollo::Model {
         Model();
         virtual ~Model();
 
-        virtual void configure(Apollo *apollo_ptr, int numPolicies);
+        virtual void configure(
+                Apollo     *apollo_ptr,
+                int         numPolicies,
+                const char *model_definition);
         virtual int  getIndex(void);
 
     private:
         Apollo    *apollo;
-        uint64_t   id;
-        int        policyCount;
-        int        iterCount;
-        
+        //
+        bool       configured = false;
+        //
+        uint64_t     id;
+        int          policyCount;
+        std::string *model_def;
+        int          iterCount;
 
 }; //end: Apollo::Model (class)
 

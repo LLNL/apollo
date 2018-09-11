@@ -54,7 +54,7 @@ Apollo::ModelWrapper::ModelWrapper(
         fprintf(stderr, "Unable to load model.\n");
         exit(1);
     }
-    model->configure(apollo, numPolicies);
+    model->configure(apollo, numPolicies, "TODO");
     currentPolicyIndex = 0;
     return;
 }

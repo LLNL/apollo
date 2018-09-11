@@ -25,7 +25,6 @@ set(APOLLO_SOURCES
     ModelWrapper.cpp
     Region.cpp
     Feature.cpp
-    common/DecisionNode.cpp
     )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})

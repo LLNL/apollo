@@ -36,10 +36,15 @@ Apollo::Model::getIndex(void)
 //
 
 void
-Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies)
+Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_conf_def)
 {
     apollo = apollo_ptr;
     policyCount = numPolicies;
+    if (model_conf_def != NULL) {
+        model_def = new std::string(model_conf_def);
+    } else {
+        model_def = new std::string();
+    }
     return;
 }
 
