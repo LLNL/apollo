@@ -3,30 +3,33 @@
 
 #include "apollo/Apollo.h"
 
-// NOTE: This header is used to define actual models that
-//       can be built and "plugged in" to Apollo at runtime.
-//       These concrete models are managed through an interface
-//       provided by the Apollo::ModelWrapper class.
-
+// Forward declaration of the group of models, each of which will be
+// inheriting from ModelClass (below)...
 class Apollo::Model {
-    public:
-        Model();
-        virtual ~Model();
+    class Random;
+    class Sequential;
+    class DecisionTree;
+    class Python;
+};
 
+class Apollo::ModelClass {
+    public:
+        // pure virtual function (establishes this as abstract class)
         virtual void configure(
                 Apollo     *apollo_ptr,
-                int         numPolicies,
-                const char *model_definition);
-        virtual int  getIndex(void);
-
-    private:
-        Apollo    *apollo;
+                int         num_policies,
+                const char *model_definition) = 0;
         //
-        bool       configured = false;
+        virtual int  getIndex(void) = 0;
+
+    protected:
+        Apollo      *apollo;
+        //
+        bool         configured = false;
         //
         uint64_t     id;
         int          policyCount;
-        std::string *model_def;
+        std::string  model_def;
         int          iterCount;
 
 }; //end: Apollo::Model (class)

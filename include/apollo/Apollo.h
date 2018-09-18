@@ -12,6 +12,12 @@
 //
 #include "RAJA/RAJA.hpp"
 
+ 
+#define APOLLO_DEFAULT_MODEL_OBJECT_PATH          \
+        "./install/lib/models/RandomModel.so"
+#define APOLLO_DEFAULT_MODEL_DEFINITION           \
+        "N/A (RandomModel.so)"
+
 #ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 0
 #endif
@@ -68,10 +74,11 @@ class Apollo
 
 
         // Forward declarations:
-        class Model;
-        class ModelWrapper;
         class Region;
         class Feature;
+        class Model;
+        class ModelClass;
+        class ModelWrapper;
         //...
 
         Apollo::Region *region(const char *regionName);

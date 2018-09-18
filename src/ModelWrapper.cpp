@@ -5,7 +5,19 @@
 #include "apollo/ModelWrapper.h"
 
 bool
-Apollo::ModelWrapper::loadModel(const char *path) {
+Apollo::ModelWrapper::loadModel(const char *path, const char *definition) {
+    // Grab the object lock so if we're changing models
+    // in the middle of a run, the client wont segfault
+    // attempting to region->requestPolicyIndex() at the
+    // head of a loop.
+    std::lock_guard<std::mutex> lock(object_lock);
+
+    if (object_loaded) {
+        // TODO: Clean up after prior model.
+    }
+   
+    object_loaded = false;
+
     // Clear any prior errors.
     char *error_msg = NULL;
     dlerror();
@@ -40,35 +52,62 @@ Apollo::ModelWrapper::loadModel(const char *path) {
                 " shared model object %s.\n");
         return false;
     }
-    return true;
+
+    model->configure(apollo, num_policies, definition);
+
+    object_loaded = true;
+    return object_loaded;
 }
 
 
 Apollo::ModelWrapper::ModelWrapper(
         Apollo      *apollo_ptr,
-        const char  *path,
         int          numPolicies)
 {
-    apollo    = apollo_ptr;
-    if (loadModel(path) == false) {
-        fprintf(stderr, "Unable to load model.\n");
-        exit(1);
+    apollo = apollo_ptr;
+    num_policies = numPolicies;
+
+    const char  *path       = APOLLO_DEFAULT_MODEL_OBJECT_PATH;
+    const char  *definition = APOLLO_DEFAULT_MODEL_DEFINITION;
+
+    loadModel(path, definition);
+
+    if (object_loaded == false) {
+        fprintf(stderr, "ERROR: Unable to load model.  (%s)\n", path);
     }
-    model->configure(apollo, numPolicies, "TODO");
-    currentPolicyIndex = 0;
+
     return;
 }
 
 int
 Apollo::ModelWrapper::requestPolicyIndex(void) {
-    currentPolicyIndex = model->getIndex();
-    return currentPolicyIndex;
+    // Grab the object lock to prevent segfaults if Apollo
+    // is changing the model behind the scenes as we're coming
+    // into a new RAJA loop and requesting a policy index.
+    std::lock_guard<std::mutex> lock(object_lock);
+
+    static int err_count = 0;
+    if (object_loaded == false) {
+        err_count++;
+        if (err_count < 10) {
+            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+                    " has been loaded. Returning index 0 (default).\n");
+            return 0;
+        } else if (err_count == 10) {
+            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+                    " has been loaded. Returning index 0 (default) and suppressing"
+                    " additional identical error messages.\n");
+            return 0;
+        }
+        return 0;
+    }
+    // Actually call the model now:
+    return model->getIndex();
 }
 
 Apollo::ModelWrapper::~ModelWrapper() {
-    free(modelID);
-
-    destroy( model );
+    id = "";
+    destroy(model);
 }
 
 

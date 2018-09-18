@@ -1,4 +1,5 @@
 
+#include <mutex>
 
 #include "sos.h"
 #include "sos_types.h"
@@ -25,7 +26,6 @@ Apollo::Region::Region(
 
     model = new Apollo::ModelWrapper(
             apollo_ptr,
-            "./install/lib/models/randomModel.so",
             numAvailablePolicies);
 
     return;

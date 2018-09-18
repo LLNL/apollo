@@ -3,42 +3,29 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <mutex>
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
+#include "apollo/models/DecisionTree.h"
 
-#include "apollo/common/DecisionNode.h"
-
-
-// 
-// ----------
-//
-// MODEL: This is where any INDEPENDENT variables get checked
-//        and a policy decision is made.
-//
-
-#define modelName "sequential"
+#define modelName "decisiontree"
 #define modelFile __FILE__
 
-Apollo::DecisionNode<double, int>                             *tree_head;
-std::map<int, Apollo::DecisionNode<double, int> *>             tree_nodes;
-std::map<int, Apollo::DecisionNode<double, int> *>::iterator   tree_find;
-std::list<std::string>                                         tree_features;
-
 int
-Apollo::Model::getIndex(void)
+Apollo::Model::DecisionTree::getIndex(void)
 {
+    std::lock_guard<std::mutex> lock(modelMutex);
     static int choice = -1;
     //
     iterCount++;
     
     if (configured == false) {
         if (iterCount < 10) {
-            fprintf(stderr, "ERROR: Model::getIndex() called prior to"
+            fprintf(stderr, "ERROR: DecisionTree::getIndex() called prior to"
                 " model configuration. Defaulting to index 0.\n");
             fflush(stderr);
         } else if (iterCount == 10) {
-            fprintf(stderr, "ERROR: Model::getIndex() has still not been"
+            fprintf(stderr, "ERROR: DecisionTree::getIndex() has still not been"
                     " configured. Continuing default behavior without further"
                     " error messages.\n");
         }
@@ -66,11 +53,14 @@ Apollo::Model::getIndex(void)
 // a functioning decision tree model for use with getIndex.
 
 void
-Apollo::Model::configure(
+Apollo::Model::DecisionTree::configure(
         Apollo      *apollo_ptr,
         int          numPolicies,
         const char  *model_definition)
 {
+    //NOTE: Make sure to grab the lock from the calling code:
+    //          std::lock_guard<std::mutex> lock(model->modelMutex);
+
     apollo      = apollo_ptr;
     policyCount = numPolicies;
 
@@ -78,36 +68,38 @@ Apollo::Model::configure(
         // TODO: This is a RE-configuration. Remove previous configuration.
         // ...
         // ...
+        configured = false;
         tree_features.clear();
         tree_nodes.clear();
         tree_head = nullptr;
-        delete model_def;
+        model_def = "";
     }
 
     // Construct a decisiontree for this model_definition.
     if (model_definition == NULL) {
         fprintf(stderr, "WARNING: Cannot successfully configure"
                 " with a NULL or empty model definition.\n");
-        model_def = new std::string("");
+        model_def = "";
         configured = false;
-        return false;
+        return;
     }
 
-    model_def = new std::string(model_definition);
+    model_def = model_definition;
 
     std::istringstream model(model_def);
-    std::string line;
+    typedef std::stringstream  unpack_str;
+    std::string        line;
 
     int num_features = 0;
-    
+
     // Find out how many features are named:
     std::getline(model, line);
-    sscanf(line.c_str(), "%d", &num_features);
+    unpack_str(line) >> num_features;
 
     // Load in the feature names:   (values are fetched by getIndex())
     for (int i = 0; i < num_features; i++) {
         std::getline(model, line);
-        tree_features.push_back(new std::string(line));
+        tree_features.push_back(std::string(line));
     }
 
     // Load in the rules:
@@ -116,35 +108,47 @@ Apollo::Model::configure(
     std::string line_op   = NULL;
     double      line_val  = 0;
 
-    Apollo::DecisionNode<double, int> *new_node = nullptr;
+    Node *node = nullptr;
 
     while (std::getline(model, line)) {
-        std::stringstream unpack_line(line);
-        unpack_line >> node_id >> node_feat
-             >> node_op >> node_val;
+        unpack_str(line) >> line_id >> line_feat >> line_op >> line_val;
 
-        tree_find = tree_nodes.find(node_id);
+        auto tree_find = tree_nodes.find(line_id);
         //
+        // Either we are adding to an existing node, or a new one, either way
+        // make 'node' point to the correct object instance.
         if (tree_find == tree_nodes.end()) { 
-                node = new Apollo::DecisionNode<double, int>(
-                            apollo, node_id, node_feat);
-                tree_nodes.emplace(node_id, node);
+                node = new Node(apollo, line_id, line_feat.c_str());
+                tree_nodes.emplace(line_id, node);
         } else {
-                node = tree_find.first();
+                node = tree_find->second;
         }
 
         // Set the components of this node, give the content of this line.
+        // NOTE: apollo, node_id, and node_feat have already been set.
+        if (line_op == "<=") {
+            break;
+        } else if (line_op == ">") {
+            break;
+        } else if (line_op == "=") {
+            break;
+        } else {
+            fprintf(stderr, "ERROR: Unable to process decision"
+                    " tree model definition (bad operator"
+                    " encountered).\n");
+            configured = false;
+            return; 
+        } // end: if(node_op...)
 
-        // TODO: Traverse the nodes and assemble them together into a
-        //       binary tree. This should be doable given the linear indexing
-        //       of the nodes.
-
+        //...
     }
-     
 
+    // TODO: Traverse the nodes and assemble them together into a
+    //       binary tree. This should be doable given the linear indexing
+    //       of the nodes.
 
     configured = true;
-    return configured;
+    return;
 }
 //
 // ----------
@@ -153,25 +157,28 @@ Apollo::Model::configure(
 //
 
 
-Apollo::Model::Model()
+Apollo::Model::DecisionTree::DecisionTree()
 {
     iterCount = 0;
 }
 
-Apollo::Model::~Model()
+Apollo::Model::DecisionTree::~DecisionTree()
 {
     return;
 }
 
-extern "C" Apollo::Model* create_instance(void)
+extern "C" Apollo::Model::DecisionTree*
+APOLLO_model_create_decisiontree(void)
 {
-    return new Apollo::Model;
+    return new Apollo::DecisionTree;
 }
 
 
-extern "C" void destroy_instance(Apollo::Model *model_ref)
+extern "C" void
+APOLLO_model_destroy_decisiontree(
+        Apollo::Model::DecisionTree *tree_ref)
 {
-    delete model_ref;
+    delete tree_ref;
     return;
 }
 

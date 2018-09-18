@@ -78,14 +78,32 @@ Apollo::attachModel(const char *def)
                     " empty model definition. Doing nothing.");
         return;
     }
+    
+    //NOTE: We're hardcoding a decision tree for this version.
+    
+    // Debug output:
+    std::cout << "CLIENT received the following model definition:\n";
     std::istringstream model_definition(def);
     std::string line;
-    
-    //NOTE: Assume a decision tree for this version.
     while (std::getline(model_definition, line)) {
         std::cout << line << "\n";
     }
+    std::cout << "\n";
 
+    std::cout << "Attempting to load into DecisionTreeModel.so...\n\n";
+    //(working) ...path to Decision Tree model:
+    //    /home/cdw/src/apollo/install/lib/models/DecisionTreeModel.so 
+    
+    std::for_each(this->regions.begin(), this->regions.end(),
+            [](const Apollo::Region & region)
+        {
+            std::cout << region.name << "...\n";
+            region.getModel()->loadModel(
+                "./install/lib/models/DecisionTreeModel.so",
+                def);
+    });
+
+    std::cout << "Done attempting to load new model.\n";
     return;
 }
 

@@ -31,19 +31,20 @@ Apollo::Model::getIndex(void)
     return choice;
 }
 
+void
+Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_def)
+{
+    apollo = apollo_ptr;
+    policyCount = numPolicies;
+    return;
+}
+
 //
 // ----------
 //
 // BELOW: Boilerplate code to manage instances of this model:
 //
 
-void
-Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies)
-{
-    apollo = apollo_ptr;
-    policyCount = numPolicies;
-    return;
-}
 
 Apollo::Model::Model()
 {
