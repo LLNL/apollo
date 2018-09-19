@@ -98,9 +98,14 @@ Apollo::attachModel(const char *def)
             [](const Apollo::Region & region)
         {
             std::cout << region.name << "...\n";
-            region.getModel()->loadModel(
-                "./install/lib/models/DecisionTreeModel.so",
-                def);
+
+            /// ---
+            // HERE IS WHERE WE USE THE NEW MODEL MANGEMENT CODE...
+            // TODO:
+            Apollo::ModelWrapper *model = region.getModel();
+            model->setDefinition(def);
+
+            /// ---
     });
 
     std::cout << "Done attempting to load new model.\n";

@@ -4,21 +4,13 @@
 #include "Python.h"
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
-
-
-// 
-// ----------
-//
-// MODEL: This is where any INDEPENDENT variables get checked
-//        and a policy decision is made.
-//
+#include "apollo/models/Python.h"
 
 #define modelName "python"
 #define modelFile __FILE__
 
 int
-Apollo::Model::getIndex(void)
+Apollo::Model::Python::getIndex(void)
 {
     std::lock_guard<std::mutex> lock(modelMutex);
     static int choice = -1;
@@ -39,7 +31,7 @@ Apollo::Model::getIndex(void)
 //
 
 void
-Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_conf_def)
+Apollo::Model::Python::configure(Apollo *apollo_ptr, int numPolicies, const char *model_conf_def)
 {
     //NOTE: Make sure to grab the lock from the calling code:
     //          std::lock_guard<std::mutex> lock(model->modelMutex);
@@ -54,23 +46,25 @@ Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_
     return;
 }
 
-Apollo::Model::Model()
+Apollo::Model::Python::Python()
 {
     iterCount = 0;
 }
 
-Apollo::Model::~Model()
+Apollo::Model::Python::~Python()
 {
     return;
 }
 
-extern "C" Apollo::Model* create_instance(void)
+extern "C" Apollo::Model::Python*
+APOLLO_model_create_python(void)
 {
-    return new Apollo::Model;
+    return new Apollo::Model::Python;
 }
 
 
-extern "C" void destroy_instance(Apollo::Model *model_ref)
+extern "C" void
+APOLLO_model_destroy_python(Apollo::Model *model_ref)
 {
     delete model_ref;
     return;

@@ -16,7 +16,7 @@ class Apollo::ModelWrapper {
         
         ~ModelWrapper();
 
-        bool loadModel(const char *path, const char *definition);
+        bool setDefinition(const char *definition);
 
     private:
         Apollo *apollo;

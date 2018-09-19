@@ -17,14 +17,22 @@ set(APOLLO_HEADERS
     ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
     ../include/apollo/Feature.h
-    ../include/apollo/common/DecisionNode.h
+    ../include/apollo/Model.h
+    ../include/apollo/models/Random.h
+    ../include/apollo/models/Sequential.h
+    ../include/apollo/models/Python.h
+    ../include/apollo/models/DecisionTree.h
     )
 
 set(APOLLO_SOURCES
     Apollo.cpp
-    ModelWrapper.cpp
     Region.cpp
     Feature.cpp
+    ModelWrapper.cpp
+    models/Random.cpp
+    models/Sequential.cpp
+    models/Python.cpp
+    models/DecisionTree.cpp
     )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})

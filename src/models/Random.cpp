@@ -2,21 +2,14 @@
 #include <random>
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
+#include "apollo/models/Random.h"
 
-
-// 
-// ----------
-//
-// MODEL: This is where any INDEPENDENT variables get checked
-//        and a policy decision is made.
-//
 
 #define modelName "random"
 #define modelFile __FILE__
 
 int
-Apollo::Model::getIndex(void)
+Apollo::Model::Random::getIndex(void)
 {
     iterCount++;
 
@@ -36,7 +29,10 @@ Apollo::Model::getIndex(void)
 }
 
 void
-Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_def)
+Apollo::Model::Random::configure(
+        Apollo *apollo_ptr,
+        int numPolicies,
+        const char *model_def)
 {
     apollo = apollo_ptr;
     policyCount = numPolicies;
@@ -50,23 +46,25 @@ Apollo::Model::configure(Apollo *apollo_ptr, int numPolicies, const char *model_
 //
 
 
-Apollo::Model::Model()
+Apollo::Model::Random::Random()
 {
     iterCount = 0;
 }
 
-Apollo::Model::~Model()
+Apollo::Model::Random::~Random()
 {
     return;
 }
 
-extern "C" Apollo::Model* create_instance(void)
+extern "C" Apollo::Model::Random*
+APOLLO_model_create_random(void)
 {
-    return new Apollo::Model;
+    return new Apollo::Model::Random;
 }
 
 
-extern "C" void destroy_instance(Apollo::Model *model_ref)
+extern "C" void
+APOLLO_model_destroy_random(Apollo::Model::Random *model_ref)
 {
     delete model_ref;
     return;
