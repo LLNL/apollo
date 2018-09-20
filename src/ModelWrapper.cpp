@@ -1,12 +1,111 @@
-#include <dlfcn.h>
-#include <string.h>
+
+#include <memory>
+#include <mutex>
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
+//
+#include "apollo/models/Random.h"
+#include "apollo/models/Sequential.h"
+#include "apollo/models/DecisionTree.h"
+#include "apollo/models/Python.h"
+
+bool
+Apollo::ModelWrapper::configure(
+        int                   model_type,
+        const char           *model_def)
+{
+    Apollo::Model::Type MT;
+
+    if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
+    std::shared_ptr<Apollo::ModelObject> nm = nullptr;
+
+    switch (model_type) {
+        //
+        case MT.Random:       nm = std::make_shared<Apollo::Model::Random>();       break;
+        case MT.Sequential:   nm = std::make_shared<Apollo::Model::Sequential>();   break;
+        case MT.DecisionTree: nm = std::make_shared<Apollo::Model::DecisionTree>(); break;
+        case MT.Python:       nm = std::make_shared<Apollo::Model::Python>();       break;
+        //
+        default:
+             fprintf(stderr, "WARNING: Unsupported Apollo::Model::Type"
+                     " specified to Apollo::ModelWrapper::configure."
+                     " Doing nothing.\n");
+             return false;
+    }
+
+    Apollo::ModelObject *lnm = nm.get();
+    lnm->configure(apollo, num_policies, model_def);
+
+    model_sptr.reset(); // Release ownership of the prior model's shared ptr
+    model_sptr = nm;    // Make this new model available for use.
+
+    return true;
+}
+
+
+Apollo::ModelWrapper::ModelWrapper(
+        Apollo      *apollo_ptr,
+        int          numPolicies)
+{
+    apollo = apollo_ptr;
+    num_policies = numPolicies;
+
+    model_sptr = nullptr;
+
+    return;
+}
+
+// NOTE: This is the method that RAJA loops call, they don't
+//       directly call the model's getIndex() method.
+int
+Apollo::ModelWrapper::requestPolicyIndex(void) {
+    // Claim shared ownership of the current model object.
+    // NOTE: This is useful in case Apollo replaces the model with
+    //       something else while we're in this [model's] method. The model
+    //       we're picking up here will not be destroyed until
+    //       this (and all other co-owners) are done with it,
+    //       though Apollo is not prevented from setting up
+    //       a new model that other threads will be getting, all
+    //       without global mutex synchronization.
+    std::shared_ptr<Apollo::ModelObject> lm_sptr = model_sptr;
+    Apollo::ModelObject *model = lm_sptr.get();
+
+    static int err_count = 0;
+    if (model == nullptr) {
+        err_count++;
+        lm_sptr.reset();
+        if (err_count < 10) {
+            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+                    " has been loaded. Returning index 0 (default).\n");
+            return 0;
+        } else if (err_count == 10) {
+            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+                    " has been loaded. Returning index 0 (default) and suppressing"
+                    " additional identical error messages.\n");
+            return 0;
+        }
+        return 0;
+    }
+
+    // Actually call the model now:
+    int choice = model->getIndex();
+
+    return choice;
+}
+
+Apollo::ModelWrapper::~ModelWrapper() {
+    id = "";
+    model_sptr.reset(); // Release access to the shared object.
+}
 
 
 // // NOTE: This is deprecated in favor of "model processing engines"
 // //       that are built into the libapollo.so
+//
+// #include <dlfcn.h>
+// #include <string.h>
+//
 // bool
 // Apollo::ModelWrapper::loadModel(const char *path, const char *definition) {
 //     // Grab the object lock so if we're changing models
@@ -62,95 +161,5 @@
 //     return object_loaded;
 // }
 // 
-
-void
-Apollo::ModelWrapper::configure(
-        Apollo::Model::Type   model_type,
-        const char           *model_def)
-{
-    using Apollo::Model::Type as MT;
-
-    if (model_type == MT::Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
-    std::shared_ptr<Apollo::ModelObject> nm = nullptr;
-
-    switch (model_type) {
-        //
-        case MT::Random:
-            nm = std::make_shared<Apollo::Model::Random>();
-            break;
-        //
-        case MT::Sequential:
-            nm = std::make_shared<Apollo::Model::Sequential>();
-            break;
-        //
-        case MT::DecisionTree:
-            nm = std::make_shared<Apollo::Model::DecisionTree>();
-            break;
-        //
-        case MT::Python:
-            nm = std::make_shared<Apollo::Model::Python>();
-            break;
-        //
-        default:
-             fprintf(stderr, "WARNING: Unsupported Apollo::Model::Type"
-                     " specified to Apollo::ModelWrapper::configure."
-                     " Doing nothing.\n");
-             return;
-    }
-
-    Apollo::ModelObject *lnm = nm.get();
-    lnm->configure(apollo_ptr, num_policies, model_def);
-
-    model_ptr.reset(); // Release ownership of the prior model's shared ptr.
-    model_ptr = nm;    // Make this new model object available for use.
-
-    return;
-}
-
-
-Apollo::ModelWrapper::ModelWrapper(
-        Apollo      *apollo_ptr,
-        int          numPolicies)
-{
-    apollo = apollo_ptr;
-    num_policies = numPolicies;
-
-    model_ptr = nullptr;
-
-    return;
-}
-
-// NOTE: This is the method that RAJA loops call, they don't
-//       directly call the model's getIndex() method.
-int
-Apollo::ModelWrapper::requestPolicyIndex(void) {
-
-    Apollo::ModelObject *model = model_ptr.get();
-
-    static int err_count = 0;
-    if (model == nullptr) {
-        err_count++;
-        if (err_count < 10) {
-            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
-                    " has been loaded. Returning index 0 (default).\n");
-            return 0;
-        } else if (err_count == 10) {
-            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
-                    " has been loaded. Returning index 0 (default) and suppressing"
-                    " additional identical error messages.\n");
-            return 0;
-        }
-        return 0;
-    }
-
-    // Actually call the model now:
-    return model->getIndex();
-
-}
-
-Apollo::ModelWrapper::~ModelWrapper() {
-    id = "";
-    destroy(model);
-}
 
 

@@ -9,5 +9,3 @@ cmake -DCMAKE_INSTALL_PREFIX=../install \
         -DCALIPER_DIR=/home/cdw/src/caliper/build \
         ..
 make && make install && cd .. && tree install
-
-

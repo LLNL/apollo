@@ -79,34 +79,26 @@ Apollo::attachModel(const char *def)
         return;
     }
     
-    //NOTE: We're hardcoding a decision tree for this version.
-    
-    // Debug output:
+    typedef std::stringstream unpack_str;
+    std::istringstream model_def_sstream(def);
+    std::string        line;
+
+    int model_type = 0;
+    std::getline(model_def_sstream, line);
+    unpack_str(line) >> model_type;
+
     std::cout << "CLIENT received the following model definition:\n";
-    std::istringstream model_definition(def);
-    std::string line;
-    while (std::getline(model_definition, line)) {
-        std::cout << line << "\n";
-    }
-    std::cout << "\n";
-
-    std::cout << "Attempting to load into DecisionTreeModel.so...\n\n";
-    //(working) ...path to Decision Tree model:
-    //    /home/cdw/src/apollo/install/lib/models/DecisionTreeModel.so 
+    std::cout << def;
     
-    std::for_each(this->regions.begin(), this->regions.end(),
-            [](const Apollo::Region & region)
-        {
-            std::cout << region.name << "...\n";
+    for (auto it : regions) {
+        Apollo::Region *region = it.second; 
+        std::cout << region->name << "...\n";
 
-            /// ---
-            // HERE IS WHERE WE USE THE NEW MODEL MANGEMENT CODE...
-            // TODO:
-            Apollo::ModelWrapper *model = region.getModel();
-            model->setDefinition(def);
+        Apollo::ModelWrapper *model = region->getModel();
+        model->configure(model_type, def);
 
-            /// ---
-    });
+        /// ---
+    };
 
     std::cout << "Done attempting to load new model.\n";
     return;

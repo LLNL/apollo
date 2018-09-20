@@ -75,7 +75,7 @@ class Apollo
         class Region;
         class Feature;
         class Model;
-        class ModelClass;
+        class ModelObject;
         class ModelWrapper;
         //...
 

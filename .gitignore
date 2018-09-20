@@ -3,3 +3,4 @@ install
 *.pyc
 sosd.*.db
 sosd.*.key
+*.swp

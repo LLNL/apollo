@@ -6,20 +6,21 @@
 #define APOLLO_DEFAULT_MODEL_TYPE   Apollo::Model::Type::Random
 
 class Apollo::Model {
-    // Forward declarations of modely types.
-    class Random;
-    class Sequential;
-    class DecisionTree;
-    class Python;
+    public:
+        // Forward declarations of model types.
+        class Random       ; // : public ModelObject;
+        class Sequential   ; // : public ModelObject;
+        class DecisionTree ; // : public ModelObject;
+        class Python       ; // : public ModelObject;
 
-    // This is ugly, but *something* is needed to coordinate w/Python
-    enum class Type : int {
-        Default      = 0,
-        Random       = 1,
-        Sequential   = 2,
-        DecisionTree = 3,
-        Python       = 4
-    };
+        class Type {
+            public:
+                static constexpr int Default      = 0;
+                static constexpr int Random       = 1;
+                static constexpr int Sequential   = 2;
+                static constexpr int DecisionTree = 3;
+                static constexpr int Python       = 4;
+        };
 };
 
 // Abstract

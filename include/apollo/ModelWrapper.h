@@ -2,7 +2,6 @@
 #ifndef APOLLO_MODELWRAPPER_H
 #define APOLLO_MODELWRAPPER_H
 
-#include <mutex>
 #include <memory>
 
 #include "apollo/Apollo.h"
@@ -16,7 +15,7 @@ class Apollo::ModelWrapper {
                 int          numPolicies);
         ~ModelWrapper();
 
-        bool configure(Apollo::ModelCategory model_cat, const char *model_def);
+        bool configure(int model_type, const char *model_def);
 
     private:
         Apollo *apollo;
@@ -26,7 +25,7 @@ class Apollo::ModelWrapper {
         std::string     id;
         int             num_policies;
         // 
-        std::shared_ptr<Apollo::ModelObject> model_ptr;
+        std::shared_ptr<Apollo::ModelObject> model_sptr;
 
         // ----------
         // NOTE: Deprecated because we're not dlopen'ing models
