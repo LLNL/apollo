@@ -8,14 +8,14 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
 
     public:
         DecisionTree();
-        virtual ~DecisionTreeModel();
+        ~DecisionTree();
 
-        virtual void configure(
+        void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
                 const char *model_definition);
         //
-        virtual int  getIndex(void);
+        int  getIndex(void);
 
     private:
         class Node {

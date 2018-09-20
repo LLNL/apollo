@@ -3,7 +3,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <mutex>
 
 #include "apollo/Apollo.h"
 #include "apollo/models/DecisionTree.h"
@@ -14,7 +13,6 @@
 int
 Apollo::Model::DecisionTree::getIndex(void)
 {
-    std::lock_guard<std::mutex> lock(modelMutex);
     static int choice = -1;
     //
     iterCount++;
@@ -170,7 +168,7 @@ Apollo::Model::DecisionTree::~DecisionTree()
 extern "C" Apollo::Model::DecisionTree*
 APOLLO_model_create_decisiontree(void)
 {
-    return new Apollo::DecisionTree;
+    return new Apollo::Model::DecisionTree();
 }
 
 

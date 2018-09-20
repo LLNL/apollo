@@ -1,6 +1,4 @@
 
-#include <mutex> 
-
 #include "Python.h"
 
 #include "apollo/Apollo.h"
@@ -12,7 +10,6 @@
 int
 Apollo::Model::Python::getIndex(void)
 {
-    std::lock_guard<std::mutex> lock(modelMutex);
     static int choice = -1;
 
     // TODO: Grab the python string.
@@ -33,9 +30,6 @@ Apollo::Model::Python::getIndex(void)
 void
 Apollo::Model::Python::configure(Apollo *apollo_ptr, int numPolicies, const char *model_conf_def)
 {
-    //NOTE: Make sure to grab the lock from the calling code:
-    //          std::lock_guard<std::mutex> lock(model->modelMutex);
-
     apollo = apollo_ptr;
     policyCount = numPolicies;
     if (model_conf_def != NULL) {

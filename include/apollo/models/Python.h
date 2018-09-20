@@ -6,15 +6,15 @@
 
 class Apollo::Model::Python : public Apollo::ModelObject {
     public:
-        PythonModel();
-        virtual ~PythonModel();
+        Python();
+        ~Python();
 
-        virtual void configure(
+        void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
                 const char *model_definition);
         //
-        virtual int  getIndex(void);
+        int  getIndex(void);
 
     private:
 

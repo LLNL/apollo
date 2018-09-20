@@ -17,6 +17,10 @@ class Apollo::ModelWrapper {
 
         bool configure(int model_type, const char *model_def);
 
+        // NOTE: This is what RAJA loops use, not the model's
+        //       direct model->getIndex() method.
+        int  requestPolicyIndex(void);
+
     private:
         Apollo *apollo;
         //
