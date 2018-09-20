@@ -13,10 +13,8 @@
 #include "RAJA/RAJA.hpp"
 
  
-#define APOLLO_DEFAULT_MODEL_OBJECT_PATH          \
-        "./install/lib/models/RandomModel.so"
-#define APOLLO_DEFAULT_MODEL_DEFINITION           \
-        "N/A (RandomModel.so)"
+#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
+#define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
 
 #ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 0

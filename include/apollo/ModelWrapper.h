@@ -3,6 +3,7 @@
 #define APOLLO_MODELWRAPPER_H
 
 #include <mutex>
+#include <memory>
 
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
@@ -13,10 +14,9 @@ class Apollo::ModelWrapper {
         ModelWrapper(
                 Apollo      *apollo,
                 int          numPolicies);
-        
         ~ModelWrapper();
 
-        bool setDefinition(const char *definition);
+        bool configure(Apollo::ModelCategory model_cat, const char *model_def);
 
     private:
         Apollo *apollo;
@@ -25,15 +25,17 @@ class Apollo::ModelWrapper {
         //
         std::string     id;
         int             num_policies;
-        //
-        std::string     object_path;
-        std::mutex      object_lock;
-        bool            object_loaded = false;
-        //
-        Apollo::Model   *model;
-        Apollo::Model* (*create)();
-        void           (*destroy)(Apollo::Model*);
-        //
+        // 
+        std::shared_ptr<Apollo::ModelObject> model_ptr;
+
+        // ----------
+        // NOTE: Deprecated because we're not dlopen'ing models
+        //       as external shared objects.
+        //       Keeping this as function signature reference.
+        //Apollo::ModelObject* (*create)();
+        // NOTE: Destruction is handled by std::shared_ptr now.
+        //void (*destroy)(Apollo::ModelObject*);
+
 }; //end: Apollo::Model
 
 

@@ -1,4 +1,5 @@
 
+#include <mutex>
 
 #include "apollo/Apollo.h"
 #include "apollo/models/Sequential.h"
@@ -9,6 +10,7 @@
 int
 Apollo::Model::Sequential::getIndex(void)
 {
+    std::lock_guard<std::mutex> lock(modelMutex);
     iterCount++;
 
     static int choice = -1;
@@ -48,6 +50,7 @@ Apollo::Model::Sequential::Sequential()
 
 Apollo::Model::Sequential::~Sequential()
 {
+    // NOTE: Make sure to grab the ModelWrapper.object_lock first... 
     return;
 }
 

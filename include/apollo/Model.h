@@ -3,16 +3,27 @@
 
 #include "apollo/Apollo.h"
 
-// Forward declaration of the group of models, each of which will be
-// inheriting from ModelClass (below)...
+#define APOLLO_DEFAULT_MODEL_TYPE   Apollo::Model::Type::Random
+
 class Apollo::Model {
+    // Forward declarations of modely types.
     class Random;
     class Sequential;
     class DecisionTree;
     class Python;
+
+    // This is ugly, but *something* is needed to coordinate w/Python
+    enum class Type : int {
+        Default      = 0,
+        Random       = 1,
+        Sequential   = 2,
+        DecisionTree = 3,
+        Python       = 4
+    };
 };
 
-class Apollo::ModelClass {
+// Abstract
+class Apollo::ModelObject {
     public:
         // pure virtual function (establishes this as abstract class)
         virtual void configure(
@@ -32,7 +43,7 @@ class Apollo::ModelClass {
         std::string  model_def;
         int          iterCount;
 
-}; //end: Apollo::Model (class)
+}; //end: Apollo::ModelObject (abstract class)
 
 
 #endif

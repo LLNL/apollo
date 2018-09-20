@@ -1,5 +1,6 @@
 
 #include <random>
+#include <mutex>
 
 #include "apollo/Apollo.h"
 #include "apollo/models/Random.h"
