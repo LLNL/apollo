@@ -88,6 +88,7 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
         return 0;
     }
 
+
     // Actually call the model now:
     int choice = model->getIndex();
 

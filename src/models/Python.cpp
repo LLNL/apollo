@@ -7,6 +7,12 @@
 #define modelName "python"
 #define modelFile __FILE__
 
+// PURPOSE:
+//     This is a stub at the moment, but eventually this is
+//     is intended to be a "general utility" model that executers
+//     arbitrary Python code supplied by the controller.
+
+
 int
 Apollo::Model::Python::getIndex(void)
 {
@@ -37,6 +43,7 @@ Apollo::Model::Python::configure(Apollo *apollo_ptr, int numPolicies, const char
     } else {
         model_def = "";
     }
+    configured = true;
     return;
 }
 

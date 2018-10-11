@@ -17,6 +17,7 @@ Apollo::Model::Random::getIndex(void)
     int choice = 0;
 
     if (policyCount > 1) {
+        //TODO: Move this up into the constructor for efficiency.
         // Return a random index, 0..N:
         std::random_device rd; 
         std::mt19937 gen(rd()); 
@@ -37,6 +38,7 @@ Apollo::Model::Random::configure(
 {
     apollo = apollo_ptr;
     policyCount = numPolicies;
+    configured = true;
     return;
 }
 

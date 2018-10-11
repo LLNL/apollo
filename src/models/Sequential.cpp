@@ -32,6 +32,7 @@ Apollo::Model::Sequential::configure(
 {
     apollo = apollo_ptr;
     policyCount = numPolicies;
+    configured = true;
     return;
 }
 
@@ -44,6 +45,7 @@ Apollo::Model::Sequential::configure(
 
 Apollo::Model::Sequential::Sequential()
 {
+
     iterCount = 0;
 }
 

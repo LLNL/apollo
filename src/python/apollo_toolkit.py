@@ -155,18 +155,17 @@ def learningExample(data):
     model = Pipeline(pipe)
 
     ##print ">>>>> Cross-validation... (5-fold)"
-    #scores = cross_val_score(model, x, y, cv=5)
-    #print("\n".join([("    " + str(score)) for score in scores]))
-    #print "    score.mean == " + str(np.mean(scores))
+    scores = cross_val_score(model, x, y, cv=5)
+    print("\n".join([("    " + str(score)) for score in scores]))
+    print "    score.mean == " + str(np.mean(scores))
 
     print ">>>>> Training model..."
     model.fit(x, y)
 
     trained_model = model.named_steps["estimator"]
 
-    print ">>>>> Encoding rules..."
+    print ">>>>> Encoding rules..."  #See below, also:   tree_to_code(...)
     rules = tree_to_string(trained_model, ["vector_size", "policyIndex"])
-    # tree_to_code(trained_model, ["vector_size", "policyIndex"])
 
     return rules
 
@@ -183,10 +182,16 @@ def tree_to_string(tree, feature_names):
         feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
         for i in tree_.feature
     ]
+
+    # Specify this is a representation of a "DecisionTree"
+    result.write("3\n")
+    # How many feature names are listed below...
     result.write("{}\n".format(str(len(feature_names))))
+    #   ...now list the names
     for feature in feature_names:
         result.write("{}\n".format(feature))
    
+    #Begin recursively encoding the decision tree:
     def recurseSTR(result_str, node, depth):
         # NOTE: Useful for debugging trees:
         #       offset = "  " * depth

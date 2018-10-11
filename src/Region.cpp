@@ -27,6 +27,9 @@ Apollo::Region::Region(
     model = new Apollo::ModelWrapper(
             apollo_ptr,
             numAvailablePolicies);
+    
+    Apollo::Model::Type MT;
+    model->configure(MT.Default, "");
 
     return;
 }
