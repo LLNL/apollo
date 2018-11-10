@@ -4,3 +4,4 @@ install
 sosd.*.db
 sosd.*.key
 *.swp
+examples/caliper-examples

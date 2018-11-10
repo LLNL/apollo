@@ -4,6 +4,9 @@
 #include <sstream>
 #include <iostream>
 
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
+
 #include "apollo/Apollo.h"
 #include "apollo/models/DecisionTree.h"
 

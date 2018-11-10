@@ -22,6 +22,7 @@ set(APOLLO_HEADERS
     ../include/apollo/models/Sequential.h
     ../include/apollo/models/Python.h
     ../include/apollo/models/DecisionTree.h
+    ../include/external/nlohmann/json.hpp
     )
 
 set(APOLLO_SOURCES
@@ -36,6 +37,7 @@ set(APOLLO_SOURCES
     )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
+
 target_link_libraries(apollo dl)
 
 foreach(_extlib ${APOLLO_EXTERNAL_LIBS})

@@ -8,7 +8,7 @@
 # This file allows Apollo to be automatically detected by other libraries
 # using CMake.  To build with Apollo, you can do one of two things:
 #
-#   1. Set the apollo_DIR environment variable to the root of the Caliper
+#   1. Set the apollo_DIR environment variable to the root of the Apollo 
 #      installation.  If you loaded apollo through a dotkit, this may already
 #      be set, and apollo will be autodetected by CMake.
 #

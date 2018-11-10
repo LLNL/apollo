@@ -87,20 +87,20 @@ Apollo::attachModel(const char *def)
     std::getline(model_def_sstream, line);
     unpack_str(line) >> model_type;
 
-    std::cout << "CLIENT received the following model definition:\n";
-    std::cout << def;
+    //std::cout << "CLIENT received the following model definition:\n";
+    //std::cout << def;
     
     for (auto it : regions) {
         Apollo::Region *region = it.second; 
         std::cout << region->name << "...\n";
 
         Apollo::ModelWrapper *model = region->getModel();
-        model->configure(model_type, def);
+        model->configure(def);
 
         /// ---
     };
 
-    std::cout << "Done attempting to load new model.\n";
+    //std::cout << "Done attempting to load new model.\n";
     return;
 }
 

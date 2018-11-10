@@ -134,7 +134,6 @@ class SSOS:
         res_port = ffi.new("int*", int(port))
 
         # Send out the query...
-        #print "Sending the query..."
         lib.SSOS_query_exec(res_sql, res_host, res_port[0])
         # Grab the next available result.
         # NOTE: For queries submitted in a thread pool, this may not
@@ -169,7 +168,7 @@ class SSOS:
     def trigger(self, handle, payload_size, payload_data):
         c_handle = ffi.new("char[]", handle)
         c_payload_size = ffi.new("int*", payload_size)
-        c_payload_data = ffi.new("unsigned char[]", payload_data)
+        c_payload_data = ffi.new("char[]", payload_data)
         lib.SSOS_sense_trigger(c_handle, c_payload_size[0], c_payload_data)
 
     def announce(self):

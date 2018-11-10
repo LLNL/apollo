@@ -1,6 +1,14 @@
 
 #include <memory>
 #include <mutex>
+#include <map>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iostream>
+
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
@@ -10,22 +18,130 @@
 #include "apollo/models/DecisionTree.h"
 #include "apollo/models/Python.h"
 
+using namespace std;
+
 bool
 Apollo::ModelWrapper::configure(
-        int                   model_type,
         const char           *model_def)
 {
-    Apollo::Model::Type MT;
+    Apollo::Model::Type MT, model_type;
+
+    if (model_def == NULL) {
+        model_type = MT.Default;
+        apollo_log(2, "Using the default model for initialization.\n");
+    } else {
+        // Extract the various common elements from the model definition
+        // and provide them to the configure method, independent of whatever
+        // further definitions are unique to that model.
+        json j = model_def;
+
+        int            m_type_idx;
+        string         m_type_name;
+        vector<string> m_loop_names;
+        int            m_feat_count;
+        vector<string> m_feat_names;
+        string         m_drv_format;
+        string         m_drv_rules;
+
+        // Validate and extract model components:
+        int model_errors = 0;
+        if (j.find("type") == j.end()) {
+            apollo_log(1, "Invalid model_def: missing [type]\n");
+            model_errors++;
+        } else {
+            if (j["type"].find("index") == j["type"].end()) {
+                apollo_log(1, "Invalid model_def: missing [type][index]\n");
+                model_errors++;
+            } else {
+                m_type_idx = j["type"]["index"].get<int>();
+            }
+            if (j["type"].find("name") == j["type"].end()) {
+                apollo_log(1, "Invalid model_def: missing [type][name]\n");
+                model_errors++;
+            } else {
+                m_type_name = j["type"]["name"].get<string>();
+            }
+        }
+        if (j.find("loop_names") == j.end()) {
+            apollo_log(1, "Invalid model_def: missing [loop_names]\n");
+            model_errors++;
+        } else {
+            m_loop_names = j["loop_names"].get<vector<string>>();
+        }
+        if (j.find("features") == j.end()) {
+            apollo_log(1, "Invalid model_def: missing [features]\n");
+            model_errors++;
+        } else {
+            if (j["features"].find("count") == j["features"].end()) {
+                apollo_log(1, "Invalid model_def: missing [features][count]\n");
+                model_errors++;
+            } else {
+                m_feat_count = j["features"]["count"].get<int>();
+            }
+            if (j["features"].find("names") == j["features"].end()) {
+                apollo_log(1, "Invalid model_def: missing [features][names]\n");
+                model_errors++;
+            } else {
+                m_feat_names = j["features"]["names"].get<vector<string>>();
+            }
+        }
+        if (j.find("driver") == j.end()) {
+            apollo_log(1, "Invalid model_def: missing [driver]\n");
+            model_errors++;
+        } else {
+            if (j["driver"].find("format") == j["driver"].end()) {
+                apollo_log(1, "Invalid model_def: missing [driver][format]\n");
+                model_errors++;
+            } else {
+                m_drv_format = j["driver"]["format"].get<string>();
+            }
+            if (j["driver"].find("rules") == j["driver"].end()) {
+                apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
+                model_errors++;
+            } else {
+                m_drv_rules = j["driver"]["rules"].get<string>();
+            }
+        }
+
+        if (model_errors > 0) {
+            fprintf(stderr, "ERROR: There were %d errors parsing"
+                    " the supplied model definition.\n", model_errors);
+            exit(1);
+        }
+
+        // TODO: Use the new variables above.
+        cout << "m_type_idx     == " << m_type_idx << endl;
+        cout << "m_type_name    == " << m_type_name << endl;
+        cout << "m_loop_names   == ";
+        for (auto i : m_loop_names) {
+            cout << "                 " << i << endl;
+        };
+        cout << "m_feat_count   == " << m_feat_count << endl;
+        cout << "m_feat_names   == ";
+        for (auto i : m_feat_names) {
+            cout << "                 " << i << endl; };
+        cout << "m_drv_format   == " << m_drv_format << endl;
+        cout << "m_drv_rules    == " << m_drv_rules << endl;
+
+    }
 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
-    std::shared_ptr<Apollo::ModelObject> nm = nullptr;
+    shared_ptr<Apollo::ModelObject> nm = nullptr;
 
     switch (model_type) {
         //
-        case MT.Random:       nm = std::make_shared<Apollo::Model::Random>();       break;
-        case MT.Sequential:   nm = std::make_shared<Apollo::Model::Sequential>();   break;
-        case MT.DecisionTree: nm = std::make_shared<Apollo::Model::DecisionTree>(); break;
-        case MT.Python:       nm = std::make_shared<Apollo::Model::Python>();       break;
+        case MT.Random:
+            nm = make_shared<Apollo::Model::Random>();
+            break;
+        case MT.Sequential:
+            nm = make_shared<Apollo::Model::Sequential>();
+            break;
+        case MT.DecisionTree:
+            nm = make_shared<Apollo::Model::DecisionTree>();
+            break;
+        case MT.Python:
+            nm = make_shared<Apollo::Model::Python>();
+            break;
         //
         default:
              fprintf(stderr, "WARNING: Unsupported Apollo::Model::Type"
@@ -35,6 +151,8 @@ Apollo::ModelWrapper::configure(
     }
 
     Apollo::ModelObject *lnm = nm.get();
+
+
     lnm->configure(apollo, num_policies, model_def);
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
@@ -68,7 +186,7 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
     //       though Apollo is not prevented from setting up
     //       a new model that other threads will be getting, all
     //       without global mutex synchronization.
-    std::shared_ptr<Apollo::ModelObject> lm_sptr = model_sptr;
+    shared_ptr<Apollo::ModelObject> lm_sptr = model_sptr;
     Apollo::ModelObject *model = lm_sptr.get();
 
     static int err_count = 0;
@@ -101,8 +219,8 @@ Apollo::ModelWrapper::~ModelWrapper() {
 }
 
 
-// // NOTE: This is deprecated in favor of "model processing engines"
-// //       that are built into the libapollo.so
+// // NOTE: This is deprecated in favor all "model processing engines"
+// //       being built directly into the libapollo.so
 //
 // #include <dlfcn.h>
 // #include <string.h>
@@ -113,7 +231,7 @@ Apollo::ModelWrapper::~ModelWrapper() {
 //     // in the middle of a run, the client wont segfault
 //     // attempting to region->requestPolicyIndex() at the
 //     // head of a loop.
-//     std::lock_guard<std::mutex> lock(object_lock);
+//     lock_guard<mutex> lock(object_lock);
 // 
 //     if (object_loaded) {
 //         // TODO: Clean up after prior model.

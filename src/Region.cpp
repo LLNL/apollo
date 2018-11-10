@@ -28,8 +28,7 @@ Apollo::Region::Region(
             apollo_ptr,
             numAvailablePolicies);
     
-    Apollo::Model::Type MT;
-    model->configure(MT.Default, "");
+    model->configure("");
 
     return;
 }

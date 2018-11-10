@@ -9,4 +9,4 @@ export CALI_LOG_VERBOSITY=0
 # Launch the app:
 #
 ./build/examples/addvect/addvect &
-sleep 2 && ./src/python/apollo_toolkit.py
+sleep 3 && ./src/python/apollo_toolkit.py

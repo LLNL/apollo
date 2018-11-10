@@ -176,7 +176,10 @@ else()
     message(STATUS "---- OPENMP:  Not found.")
 endif()
 
-#
+# JSON parser (nlohmann-json)
+include_directories(./include/nlohmann)
+message(STATUS "---- JSON:  Found!")
+
 #####
 #
 # Define build targets for Apollo

@@ -15,7 +15,7 @@ class Apollo::ModelWrapper {
                 int          numPolicies);
         ~ModelWrapper();
 
-        bool configure(int model_type, const char *model_def);
+        bool configure(const char *model_def);
 
         // NOTE: This is what RAJA loops use, not the model's
         //       direct model->getIndex() method.
