@@ -24,105 +24,112 @@ bool
 Apollo::ModelWrapper::configure(
         const char           *model_def)
 {
-    Apollo::Model::Type MT, model_type;
+    Apollo::Model::Type MT;
+    int model_type = -1;
 
     if (model_def == NULL) {
         model_type = MT.Default;
+    } else if (strlen(model_def) < 1) {
+        model_type = MT.Default;
+    }
+
+    if (model_type == MT.Default) {
+        model_def  = MT.DefaultConfigJSON;
         apollo_log(2, "Using the default model for initialization.\n");
+    }
+
+    apollo_log(10, "Model definition:\n%s", model_def);
+
+    // Extract the various common elements from the model definition
+    // and provide them to the configure method, independent of whatever
+    // further definitions are unique to that model.
+    json j = json::parse(model_def);
+
+    int            m_type_idx;
+    string         m_type_name;
+    vector<string> m_region_names;
+    int            m_feat_count;
+    vector<string> m_feat_names;
+    string         m_drv_format;
+    string         m_drv_rules;
+
+    // Validate and extract model components:
+    int model_errors = 0;
+    if (j.find("type") == j.end()) {
+        apollo_log(1, "Invalid model_def: missing [type]\n");
+        model_errors++;
     } else {
-        // Extract the various common elements from the model definition
-        // and provide them to the configure method, independent of whatever
-        // further definitions are unique to that model.
-        json j = model_def;
-
-        int            m_type_idx;
-        string         m_type_name;
-        vector<string> m_loop_names;
-        int            m_feat_count;
-        vector<string> m_feat_names;
-        string         m_drv_format;
-        string         m_drv_rules;
-
-        // Validate and extract model components:
-        int model_errors = 0;
-        if (j.find("type") == j.end()) {
-            apollo_log(1, "Invalid model_def: missing [type]\n");
+        if (j["type"].find("index") == j["type"].end()) {
+            apollo_log(1, "Invalid model_def: missing [type][index]\n");
             model_errors++;
         } else {
-            if (j["type"].find("index") == j["type"].end()) {
-                apollo_log(1, "Invalid model_def: missing [type][index]\n");
-                model_errors++;
-            } else {
-                m_type_idx = j["type"]["index"].get<int>();
-            }
-            if (j["type"].find("name") == j["type"].end()) {
-                apollo_log(1, "Invalid model_def: missing [type][name]\n");
-                model_errors++;
-            } else {
-                m_type_name = j["type"]["name"].get<string>();
-            }
+            m_type_idx = j["type"]["index"].get<int>();
+            apollo_log(10, "m_type_idx == %d\n", m_type_idx);
         }
-        if (j.find("loop_names") == j.end()) {
-            apollo_log(1, "Invalid model_def: missing [loop_names]\n");
+        if (j["type"].find("name") == j["type"].end()) {
+            apollo_log(1, "Invalid model_def: missing [type][name]\n");
             model_errors++;
         } else {
-            m_loop_names = j["loop_names"].get<vector<string>>();
+            m_type_name = j["type"]["name"].get<string>();
+            apollo_log(10, "m_type_name == %s\n", m_type_name.c_str());
         }
-        if (j.find("features") == j.end()) {
-            apollo_log(1, "Invalid model_def: missing [features]\n");
+    }
+    if (j.find("region_names") == j.end()) {
+        apollo_log(1, "Invalid model_def: missing [region_names]\n");
+        model_errors++;
+    } else {
+        m_region_names = j["region_names"].get<vector<string>>();
+        apollo_log(10, "m_region_names:\n");
+        for (string n : m_region_names) {
+            apollo_log(10, "    %s\n", n.c_str());
+        }
+    }
+    if (j.find("features") == j.end()) {
+        apollo_log(1, "Invalid model_def: missing [features]\n");
+        model_errors++;
+    } else {
+        if (j["features"].find("count") == j["features"].end()) {
+            apollo_log(1, "Invalid model_def: missing [features][count]\n");
             model_errors++;
         } else {
-            if (j["features"].find("count") == j["features"].end()) {
-                apollo_log(1, "Invalid model_def: missing [features][count]\n");
-                model_errors++;
-            } else {
-                m_feat_count = j["features"]["count"].get<int>();
-            }
-            if (j["features"].find("names") == j["features"].end()) {
-                apollo_log(1, "Invalid model_def: missing [features][names]\n");
-                model_errors++;
-            } else {
-                m_feat_names = j["features"]["names"].get<vector<string>>();
-            }
+            m_feat_count = j["features"]["count"].get<int>();
+            apollo_log(10, "m_feat_count == %d\n", m_feat_count);
         }
-        if (j.find("driver") == j.end()) {
-            apollo_log(1, "Invalid model_def: missing [driver]\n");
+        if (j["features"].find("names") == j["features"].end()) {
+            apollo_log(1, "Invalid model_def: missing [features][names]\n");
             model_errors++;
         } else {
-            if (j["driver"].find("format") == j["driver"].end()) {
-                apollo_log(1, "Invalid model_def: missing [driver][format]\n");
-                model_errors++;
-            } else {
-                m_drv_format = j["driver"]["format"].get<string>();
-            }
-            if (j["driver"].find("rules") == j["driver"].end()) {
-                apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
-                model_errors++;
-            } else {
-                m_drv_rules = j["driver"]["rules"].get<string>();
+            m_feat_names = j["features"]["names"].get<vector<string>>();
+            apollo_log(10, "m_feat_names:\n");
+            for (string f : m_feat_names) {
+                apollo_log(10, "    %s\n", f.c_str());
             }
         }
-
-        if (model_errors > 0) {
-            fprintf(stderr, "ERROR: There were %d errors parsing"
-                    " the supplied model definition.\n", model_errors);
-            exit(1);
+    }
+    if (j.find("driver") == j.end()) {
+        apollo_log(1, "Invalid model_def: missing [driver]\n");
+        model_errors++;
+    } else {
+        if (j["driver"].find("format") == j["driver"].end()) {
+            apollo_log(1, "Invalid model_def: missing [driver][format]\n");
+            model_errors++;
+        } else {
+            m_drv_format = j["driver"]["format"].get<string>();
+            apollo_log(10, "m_drv_format == %s\n", m_drv_format.c_str());
         }
+        if (j["driver"].find("rules") == j["driver"].end()) {
+            apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
+            model_errors++;
+        } else {
+            m_drv_rules = j["driver"]["rules"].get<string>();
+            apollo_log(10, "m_drv_rules == %s\n", m_drv_rules.c_str());
+        }
+    }
 
-        // TODO: Use the new variables above.
-        cout << "m_type_idx     == " << m_type_idx << endl;
-        cout << "m_type_name    == " << m_type_name << endl;
-        cout << "m_loop_names   == ";
-        for (auto i : m_loop_names) {
-            cout << "                 " << i << endl;
-        };
-        cout << "m_feat_count   == " << m_feat_count << endl;
-        cout << "m_feat_names   == ";
-        for (auto i : m_feat_names) {
-            cout << "                 " << i << endl; };
-        cout << "m_drv_format   == " << m_drv_format << endl;
-        cout << "m_drv_rules    == " << m_drv_rules << endl;
-
+    if (model_errors > 0) {
+        fprintf(stderr, "ERROR: There were %d errors parsing"
+                " the supplied model definition.\n", model_errors);
+        exit(1);
     }
 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
@@ -152,7 +159,6 @@ Apollo::ModelWrapper::configure(
 
     Apollo::ModelObject *lnm = nm.get();
 
-
     lnm->configure(apollo, num_policies, model_def);
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
@@ -173,6 +179,8 @@ Apollo::ModelWrapper::ModelWrapper(
 
     return;
 }
+
+
 
 // NOTE: This is the method that RAJA loops call, they don't
 //       directly call the model's getIndex() method.

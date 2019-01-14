@@ -7,7 +7,7 @@
 
 class Apollo::Model {
     public:
-        // Forward declarations of model types.
+        // Forward declarations of model types:
         class Random       ; // : public ModelObject;
         class Sequential   ; // : public ModelObject;
         class DecisionTree ; // : public ModelObject;
@@ -20,8 +20,31 @@ class Apollo::Model {
                 static constexpr int Sequential   = 2;
                 static constexpr int DecisionTree = 3;
                 static constexpr int Python       = 4;
-        };
-};
+
+                // Default configuration JSON:
+                const char *DefaultConfigJSON =  "\n"                                    \
+                                                 "{\n"                                   \
+                                                 "    \"driver\": {\n"                   \
+                                                 "        \"format\": \"json\",\n"       \
+                                                 "        \"rules\": \"\"\n"             \
+                                                 "    },\n"                              \
+                                                 "    \"type\": {\n"                     \
+                                                 "        \"index\": 3,\n"               \
+                                                 "        \"name\": \"DecisionTree\"\n"  \
+                                                 "    },\n"                              \
+                                                 "    \"region_names\": [\n"             \
+                                                 "         \"none\"\n"                   \
+                                                 "    ],\n"                              \
+                                                 "    \"features\": {\n"                 \
+                                                 "        \"count\": 0,\n"               \
+                                                 "        \"names\": [\n"                \
+                                                 "            \"none\"\n"                \
+                                                 "        ]\n"                           \
+                                                 "    }\n"                               \
+                                                 "}\n";
+        }; //end: class Model::Type
+
+}; //end: class Model
 
 // Abstract
 class Apollo::ModelObject {

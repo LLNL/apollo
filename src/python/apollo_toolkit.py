@@ -32,7 +32,7 @@ def main():
     # INSERT HERE: Loop to check that "enough" data has come in.
 
     # Submit the query to SOS, return results as a DataFrame:
-    data, loop_names = getTrainingData(sos_host, sos_port, row_limit=0);
+    data, region_names = getTrainingData(sos_host, sos_port, row_limit=0);
     
     # Remove the redundant stuff from Caliper:
     data = data[data.event_end_loop != "NULL"]
@@ -42,7 +42,7 @@ def main():
     model_len = 0
 
     try:
-        model_def = learningExample(data, loop_names)
+        model_def = learningExample(data, region_names)
         model_len = len(model_def)
     except ValueError:
         print ">>>>> EXCEPTION: (ValueError)"
@@ -51,9 +51,6 @@ def main():
 
     if model_len > 0:
         print ">>>>> Sending model to SOS runtime for distribution to Apollo..."
-        print "      ----------"
-        print model_def
-        print "      ----------"
         sos.trigger("APOLLO_MODELS", model_len, model_def)
     else:
         print ">>>>> NOTICE: Model was not generated, nothing to send."
@@ -96,9 +93,9 @@ def getTrainingData(sos_host, sos_port, row_limit):
     """
 
     print ">>>>> Retrieving list of unique loops being measured."
-    loop_names, col_names = sos.query(sql_string, sos_host, sos_port) 
+    region_names, col_names = sos.query(sql_string, sos_host, sos_port) 
     print ">>>>> Loop name list received:"
-    tablePrint(loop_names)
+    tablePrint(region_names)
     
 
     sql_string = """
@@ -150,10 +147,10 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     print ">>>>> Received training data from SOS..."
 
-    return data, loop_names
+    return data, region_names
 
 
-def learningExample(data, loop_names): 
+def learningExample(data, region_names): 
     #print "numpy.__version__   == " + str(np.__version__)
     #print "pandas.__version__  == " + str(pd.__version__)
     #print "sklearn.__version__ == " + str(skl.__version__)
@@ -230,15 +227,11 @@ def learningExample(data, loop_names):
     #rules = tree_to_string(trained_model, ["kernel","ltimes", "lplustimes","population", "scattering", "source", "sweep"])
     rules = tree_to_json(trained_model, feature_names)
 
-    print "-----"
-    print rules
-    print "-----"
-
     model_def = {} 
     model_def['type'] = {}
     model_def['type']['index'] = 3
     model_def['type']['name'] = "DecisionTree"
-    model_def['loop_names'] = loop_names
+    model_def['region_names'] = region_names
     model_def['features'] = {}
     model_def['features']['count'] = len(feature_names)
     model_def['features']['names'] = []
@@ -249,9 +242,11 @@ def learningExample(data, loop_names):
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
 
+    print model_def
+
     return model_as_json
 
-
+ 
 
 #########
 

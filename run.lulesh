@@ -1,0 +1,11 @@
+#
+#  Set up caliper to use SOS:
+#
+export CALI_SERVICES_ENABLE="aggregate:event:timestamp:report" 
+#export CALI_SOS_TRIGGER_ATTR="iteration#RAJA_kernel"
+export CALI_LOG_VERBOSITY=1
+
+#
+# Launch the app:
+#
+/home/cdw/src/apollo/examples/caliper-examples/apps/LULESH/build/lulesh2.0 -i 2
