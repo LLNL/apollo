@@ -21,6 +21,7 @@ class RunSettings {
         template <typename Arg, typename... Args>
         void log(Arg&& arg, Args&&... args)
         {
+            if (verbose == false) return;
             std::cout << "== SYNBEN: ";
             std::cout << std::forward<Arg>(arg);
             using expander = int[];
@@ -50,13 +51,14 @@ RunSettings parse(int argc, char **argv) {
                 "Display this message")
             ("v,verbose",
                 "Display verbose status messages",
-                cxxopts::value<bool>()->default_value("false"))
+                cxxopts::value<bool>()
+                    ->default_value("false"))
             ;
 
         options
-            .add_options("Settings")
+            .add_options("Experiment")
             ("i,iter-limit",
-                "Limited # of times to enter the Apollo region",
+                "Limit to the # of times Apollo region is iterated",
                 cxxopts::value<int>()->default_value("-1"))
             ("d,delay-usec",
                 "Unmeasured delay between Apollo region iterations",
@@ -66,7 +68,7 @@ RunSettings parse(int argc, char **argv) {
         auto result = options.parse(argc, argv);
    
         if (result.count("help")) {
-            std::cout << options.help({"", "Settings"}) << std::endl;
+            std::cout << options.help({"", "Experiment"}) << std::endl;
             exit(0);
         }
 
@@ -78,7 +80,8 @@ RunSettings parse(int argc, char **argv) {
 
 
     } catch (const cxxopts::OptionException &e) {
-        std::cout << "== SYNBEN: Error parsing options: " << e.what() << std::endl;
+        std::cout << "== SYNBEN: [ERROR] Could not parse command line options.\n\n\t" << e.what() << "\n" << std::endl;
+        std::cout << "== SYNBEN: Run again with -h or --help for more information." << std::endl;
         exit(1);
     }
 
