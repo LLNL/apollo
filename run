@@ -8,4 +8,5 @@ export CALI_LOG_VERBOSITY=0
 #
 # Launch the app:
 #
-./build/examples/addvect/addvect
+#./build/examples/addvect/addvect
+./build/examples/synben/synben

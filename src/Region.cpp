@@ -33,6 +33,15 @@ Apollo::Region::Region(
     return;
 }
 
+Apollo::Region::~Region()
+{
+    if (name != NULL) {
+        free(name);
+    }
+    return;
+}
+
+
 void
 Apollo::Region::handleCommonBeginTasks(void)
 {
@@ -142,12 +151,6 @@ Apollo::Region::caliSetString(const char *name, const char *value) {
 Apollo::ModelWrapper *
 Apollo::Region::getModel(void) {
     return model;
-}
-
-Apollo::Region::~Region()
-{
-    free(name);
-    return;
 }
 
 

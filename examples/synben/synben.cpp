@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 #include "external/cxxopts/cxxopts.hpp"
 
@@ -9,96 +10,102 @@
 #include "apollo/PolicyChooser.h"
 #include "apollo/Feature.h"
 
-void syntheticRegion(int kernel_index, int op_count, in noise_factor);
-void experimentLoop(void);
+void syntheticRegion(int kernel_index, int op_count, int noise_factor);
+void experimentLoop(Apollo *apollo, auto run);
 
-bool VERBOSE;
-#define LOG(x) { if (VERBOSE) {                            \
-    std::cout << "== SYNBEN: " << x << std::endl;          \
-    } }
-
-class sbExperimentSettings {
+class RunSettings {
     public:
-        sbExperimentSettings(); 
-        ~sbExperimentSettings();
+        RunSettings() {}; 
+        ~RunSettings() {};
+
+        template <typename Arg, typename... Args>
+        void log(Arg&& arg, Args&&... args)
+        {
+            std::cout << "== SYNBEN: ";
+            std::cout << std::forward<Arg>(arg);
+            using expander = int[];
+            (void)expander{0, (void(std::cout << std::forward<Args>(args)), 0)...};
+            std::cout << std::endl;
+        };
+
         // NOTE: See the command line parsing section
         //       below for descriptions.
+        bool verbose = false;
         int iter_limit = -1;
         int delay_usec = 0;
 };
 
-cxxopts::ParseResults parse(int argc, char **argv) {
-    try {
-        cxxopts::Options options(argv[0],
-                " - Synthetic benchmark client for Apollo");
-        options
-            .positional_help("[optional args]")
-            .show_positional_help();
-        
-        bool verbose = false;
-        
+RunSettings parse(int argc, char **argv) {
 
+    RunSettings run;
+
+    try {
+        cxxopts::Options options(argv[0], "");
+        options.positional_help("[optional args]");
+        options.show_positional_help();
+        
         options
-            .allow_unrecognized_options()
             .add_options()
-            ("i,iter-limit",
-                "How many times does the application enter the Apollo "
-                "region?  (-1 unlimited)",
-                cxxopts::value<int>()->default_value(-1))
-            ("d,delay-usec",
-                "Introduce an arbitrary delay outside of the Apollo "
-                "region, for testing near the scaling boundary",
-                cxxopts::value<int>()->default_value(0))
+            ("h,help",
+                "Display this message")
             ("v,verbose",
                 "Display verbose status messages",
                 cxxopts::value<bool>()->default_value("false"))
-            ("h,help",
-                "Print help")
             ;
 
-        options.add_options("Group")
-            ("c,compile", "compile")
-            ("d,drop", "drop", cxxopts::value<std::vector<std::string>>());
+        options
+            .add_options("Settings")
+            ("i,iter-limit",
+                "Limited # of times to enter the Apollo region",
+                cxxopts::value<int>()->default_value("-1"))
+            ("d,delay-usec",
+                "Unmeasured delay between Apollo region iterations",
+                cxxopts::value<int>()->default_value("0"))
+            ;
 
         auto result = options.parse(argc, argv);
    
         if (result.count("help")) {
-            std::cout << options.help({"", "Group"}) << std::endl;
+            std::cout << options.help({"", "Settings"}) << std::endl;
             exit(0);
         }
 
-        return result; 
+        result.count("verbose");
+
+        run.verbose = result["verbose"].as<bool>();
+        run.iter_limit = result["iter-limit"].as<int>();
+        run.delay_usec = result["delay-usec"].as<int>();
+
 
     } catch (const cxxopts::OptionException &e) {
-        std::cout << "error parsing options: " << e.what() << std::endl;
+        std::cout << "== SYNBEN: Error parsing options: " << e.what() << std::endl;
         exit(1);
     }
+
+    return run;
 }
 
 int main(int argc, char **argv)
 {
     // Parse command line parameters:
-    auto result = parse(argc, argv);
-    // Load the parsed params into variables:
-    VERBOSE = result["verbose"].as<bool>();
-    int  iter_limit = result["iter_limit"].as<int>();
-    int  delay_usec = result["delay_usec"].as<int>();
+    auto run = parse(argc, argv);
+    
     // Display any particular output:
-    LOG("Saw " << result.arguments().size() << " arguments");
-    LOG("    iter_limit = " << iter_limit);
-    LOG("    delay_usec = " << delay_usec);
+    run.log("Run settings:");
+    run.log("    iter_limit = ", run.iter_limit);
+    run.log("    delay_usec = ", run.delay_usec);
 
     // Activate the Apollo framework:
-    Apollo         *apollo = new Apollo();
+    Apollo *apollo = new Apollo();
     
     // Run the experiment:
-    experimentLoop(apollo, settings);
+    experimentLoop(apollo, run);
 
     return 0;   
 }
 
 
-void experimentLoop(void) {
+void experimentLoop(Apollo *apollo, auto run) {
     //Apollo::Region *kernel = new Apollo::Region(apollo, "sb", 2);
 
     // Example: kernel->caliSetInt("vector_size", N);
@@ -118,7 +125,7 @@ void experimentLoop(void) {
 }
 
 
-void syntheticRegion(int kernel_index, int op_count, in noise_factor)
+void syntheticRegion(int kernel_index, int op_count, int noise_factor)
 {
     // TODO
     return;
