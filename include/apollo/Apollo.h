@@ -17,16 +17,16 @@
 #define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
 
 #ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE 10 
+#define APOLLO_VERBOSE 0 
 #endif
 
-#if (APOLLO_VERBOSE < 1)
+#if (APOLLO_VERBOSE < 0)
     // Nullify the variadic macro for production runs.
     #define apollo_log(level, ...)
 #else
     #define apollo_log(level, ...)                                      \
     {   if (level <= APOLLO_VERBOSE) {                                  \
-            fprintf(stdout, "APOLLO: ");                                \
+            fprintf(stdout, "== APOLLO: ");                             \
             fprintf(stdout, __VA_ARGS__);                               \
             fflush(stdout);                                             \
     }   };

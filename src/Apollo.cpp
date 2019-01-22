@@ -117,22 +117,28 @@ Apollo::Apollo()
             SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
     
     if (sos == NULL) {
-        fprintf(stderr, "APOLLO: Unable to communicate with the SOS daemon.\n");
+        fprintf(stderr, "== APOLLO: [WARNING] Unable to communicate"
+                " with the SOS daemon.\n");
         return;
     }
 
     SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
 
     if (pub == NULL) {
-        fprintf(stderr, "APOLLO: Unable to create publication handle.\n");
-        SOS_finalize(sos);
+        fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
+                " publication handle.\n");
+        if (sos != NULL) {
+            SOS_finalize(sos);
+        }
         sos = NULL;
         return;
     }
 
+    // At this point we have a valid SOS runtime and pub handle.
     // NOTE: The assumption here is that there is 1:1 ratio of Apollo
     //       instances per process.
     SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this); 
+    SOS_sense_register(sos, "APOLLO_COMMANDS");
     SOS_sense_register(sos, "APOLLO_MODELS"); 
 
     ynConnectedToSOS = true; 
@@ -141,7 +147,7 @@ Apollo::Apollo()
 
     baseRegion = new Apollo::Region(this, "APOLLO", 0);
 
-    apollo_log(0, "Initialized.\n");
+    apollo_log(1, "Initialized.\n");
 
     return;
 }
@@ -186,7 +192,9 @@ Apollo::region(const char *regionName)
 
 void Apollo::publish()
 {
-    SOS_publish(pub);
+    if (isOnline()) {
+        SOS_publish(pub);
+    }
 }
 
 

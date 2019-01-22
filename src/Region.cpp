@@ -45,7 +45,11 @@ Apollo::Region::handleCommonBeginTasks(void)
         delete cali_obj;
         
     }
-    SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
+
+    SOS_guid guid = 0;
+    if (apollo->isOnline()) {
+        guid = SOS_uid_next(sos->uid.my_guid_pool);
+    }
     //
     cali_obj = new cali::Loop(name);
 

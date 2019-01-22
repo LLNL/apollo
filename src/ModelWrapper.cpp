@@ -38,7 +38,7 @@ Apollo::ModelWrapper::configure(
         apollo_log(2, "Using the default model for initialization.\n");
     }
 
-    apollo_log(10, "Model definition:\n%s", model_def);
+    apollo_log(4, "Model definition:\n%s", model_def);
 
     // Extract the various common elements from the model definition
     // and provide them to the configure method, independent of whatever
@@ -64,14 +64,14 @@ Apollo::ModelWrapper::configure(
             model_errors++;
         } else {
             m_type_idx = j["type"]["index"].get<int>();
-            apollo_log(10, "m_type_idx == %d\n", m_type_idx);
+            apollo_log(3, "m_type_idx == %d\n", m_type_idx);
         }
         if (j["type"].find("name") == j["type"].end()) {
             apollo_log(1, "Invalid model_def: missing [type][name]\n");
             model_errors++;
         } else {
             m_type_name = j["type"]["name"].get<string>();
-            apollo_log(10, "m_type_name == %s\n", m_type_name.c_str());
+            apollo_log(3, "m_type_name == %s\n", m_type_name.c_str());
         }
     }
     if (j.find("region_names") == j.end()) {
@@ -79,9 +79,9 @@ Apollo::ModelWrapper::configure(
         model_errors++;
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
-        apollo_log(10, "m_region_names:\n");
+        apollo_log(3, "m_region_names:\n");
         for (string n : m_region_names) {
-            apollo_log(10, "    %s\n", n.c_str());
+            apollo_log(3, "    %s\n", n.c_str());
         }
     }
     if (j.find("features") == j.end()) {
@@ -93,16 +93,16 @@ Apollo::ModelWrapper::configure(
             model_errors++;
         } else {
             m_feat_count = j["features"]["count"].get<int>();
-            apollo_log(10, "m_feat_count == %d\n", m_feat_count);
+            apollo_log(3, "m_feat_count == %d\n", m_feat_count);
         }
         if (j["features"].find("names") == j["features"].end()) {
             apollo_log(1, "Invalid model_def: missing [features][names]\n");
             model_errors++;
         } else {
             m_feat_names = j["features"]["names"].get<vector<string>>();
-            apollo_log(10, "m_feat_names:\n");
+            apollo_log(3, "m_feat_names:\n");
             for (string f : m_feat_names) {
-                apollo_log(10, "    %s\n", f.c_str());
+                apollo_log(3, "    %s\n", f.c_str());
             }
         }
     }
@@ -115,19 +115,19 @@ Apollo::ModelWrapper::configure(
             model_errors++;
         } else {
             m_drv_format = j["driver"]["format"].get<string>();
-            apollo_log(10, "m_drv_format == %s\n", m_drv_format.c_str());
+            apollo_log(3, "m_drv_format == %s\n", m_drv_format.c_str());
         }
         if (j["driver"].find("rules") == j["driver"].end()) {
             apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
             model_errors++;
         } else {
             m_drv_rules = j["driver"]["rules"].get<string>();
-            apollo_log(10, "m_drv_rules == %s\n", m_drv_rules.c_str());
+            apollo_log(3, "m_drv_rules == %s\n", m_drv_rules.c_str());
         }
     }
 
     if (model_errors > 0) {
-        fprintf(stderr, "ERROR: There were %d errors parsing"
+        fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"
                 " the supplied model definition.\n", model_errors);
         exit(1);
     }
@@ -151,7 +151,7 @@ Apollo::ModelWrapper::configure(
             break;
         //
         default:
-             fprintf(stderr, "WARNING: Unsupported Apollo::Model::Type"
+             fprintf(stderr, "== APOLLO: [WARNING] Unsupported Apollo::Model::Type"
                      " specified to Apollo::ModelWrapper::configure."
                      " Doing nothing.\n");
              return false;
@@ -202,18 +202,19 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
         err_count++;
         lm_sptr.reset();
         if (err_count < 10) {
-            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+            apollo_log(0, "[WARNING] requestPolicyIndex() called before model"
                     " has been loaded. Returning index 0 (default).\n");
             return 0;
         } else if (err_count == 10) {
-            fprintf(stderr, "WARNING: requestPolicyIndex() called before model"
+            apollo_log(0, "[WARNING] requestPolicyIndex() called before model"
                     " has been loaded. Returning index 0 (default) and suppressing"
                     " additional identical error messages.\n");
             return 0;
         }
         return 0;
+    } else {
+        err_count = 0;
     }
-
 
     // Actually call the model now:
     int choice = model->getIndex();

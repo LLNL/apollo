@@ -28,7 +28,7 @@ void printResult(int* res, int len);
 int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 {
 
-    std::cout << "\n\nRAJA vector addition example.\n";
+    std::cout << "\nExample application using RAJA for vector addition.\n";
 
     Apollo         *apollo = new Apollo();
     Apollo::Region *kernel = new Apollo::Region(apollo, "RAJA_kernel", 5);
@@ -50,8 +50,6 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         a[i] = -i;
         b[i] = i;
     }
-
-    printf("\n");
 
     kernel->caliSetInt("vector_size", N);
 
