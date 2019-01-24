@@ -138,7 +138,6 @@ Apollo::Apollo()
     // NOTE: The assumption here is that there is 1:1 ratio of Apollo
     //       instances per process.
     SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this); 
-    SOS_sense_register(sos, "APOLLO_COMMANDS");
     SOS_sense_register(sos, "APOLLO_MODELS"); 
 
     ynConnectedToSOS = true; 

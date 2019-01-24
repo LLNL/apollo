@@ -5,14 +5,14 @@
 #include "apollo/Region.h"
  
 RAJA_INLINE
-int getApolloPolicyChoice(Apollo::Region *loop) 
+int getApolloPolicyChoice(Apollo::Region *reg) 
 {
-    assert (loop != NULL); 
-    Apollo::ModelWrapper *model = loop->getModel();
+    assert (reg != NULL); 
+    Apollo::ModelWrapper *model = reg->getModel();
     assert (model != NULL);
 
     int choice = model->requestPolicyIndex();
-    loop->caliSetInt("policyIndex", choice);
+    reg->caliSetInt("policyIndex", choice);
 
     return choice;
 }

@@ -118,6 +118,7 @@ Apollo::Region::iterationStart(int i) {
         }
         cali_iter_obj = new cali::Loop::Iteration(
                 cali_obj->iteration(static_cast<int>(i))  );
+        caliSetInt("iteration", i);
     } else {
         // Do nothing.  (There is nothing to iterate on.)
     } 

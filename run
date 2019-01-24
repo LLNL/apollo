@@ -2,11 +2,11 @@
 #  Set up caliper to use SOS:
 #
 export CALI_SERVICES_ENABLE="aggregate:event:timestamp:sos" 
-export CALI_SOS_TRIGGER_ATTR="iteration#RAJA_kernel"
+export CALI_SOS_TRIGGER_ATTR="iteration#synben"
 export CALI_LOG_VERBOSITY=0
 
 #
 # Launch the app:
 #
 #./build/examples/addvect/addvect
-./build/examples/synben/synben
+./build/examples/synben/synben -v -s -d 10000 -n 0 -r -o 2000 
