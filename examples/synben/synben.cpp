@@ -17,22 +17,22 @@
 #include "apollo/Feature.h"
 
 void configureKernels(void);
-int  syntheticRegion(auto& run, auto& kernel, int t_noise);
+int  syntheticRegion(auto& run, auto& kernel_variant, int t_op_weight);
 void experimentLoop(Apollo *apollo, auto& run);
 
 
-class Kernel {
+class KernelVariant {
     public:
-        Kernel() {};
-        Kernel(int set_t_fixed, int set_t_op) {
+        KernelVariant() {};
+        KernelVariant(int set_t_fixed, int set_t_op) {
             t_fixed = set_t_fixed;
             t_op    = set_t_op;
         };
-        ~Kernel() {};
+        ~KernelVariant() {};
 
         int t_fixed       = 0;
         int t_op          = 1;
-        int noise_factor  = 0;
+        int t_op_weight  = 0;
 
         std::string toString(void) const {
             std::ostringstream oss;
@@ -41,7 +41,7 @@ class Kernel {
             oss << "t_op:" << t_op << ")";
             return oss.str();
         };
-        friend std::ostream& operator << (std::ostream &strm, const Kernel &k) {
+        friend std::ostream& operator << (std::ostream &strm, const KernelVariant &k) {
             strm << k.toString();
             return strm;
         };
@@ -68,11 +68,11 @@ class RunSettings {
         bool sim_sleep      = false;
         bool random_ops     = false;
         int  op_count_max   = 0;
+        int  op_weight_max  = 0;
         int  iter_max       = -1;
-        int  noise_usec_max = 0;
         int  delay_usec     = 0;
 
-        std::vector<Kernel> kernels;
+        std::vector<KernelVariant> kernel_variants;
 
         std::mt19937 rng;
 
@@ -85,8 +85,8 @@ class RunSettings {
             oss << "sim_sleep:" << sim_sleep << ",";
             oss << "random_ops:" << random_ops << ",";
             oss << "op_count_max:" << op_count_max << ",";
+            oss << "op_weight_max:" << noise_usec_max << ",";
             oss << "iter_max:" << iter_max << ",";
-            oss << "noise_usec_max:" << noise_usec_max << ",";
             oss << "delay_usec:" << delay_usec << ")";
             return oss.str();
         };
@@ -131,8 +131,9 @@ RunSettings parse(int argc, char **argv) {
             ("i,iter-max",
                 "Limit to the # of times Apollo region is iterated",
                 cxxopts::value<int>()->default_value("-1"))
-            ("n,noise-usec-max",
-                "Random usec between 0 and noise-max per iteration",
+            ("n,op-weight-max",
+                "Operation cost units (usec) between 0 and op-weight-max per"
+                " operation, randomized between iterations",
                 cxxopts::value<int>()->default_value("0"))
             ("d,delay-usec",
                 "Unmeasured delay between Apollo region iterations",
@@ -152,8 +153,8 @@ RunSettings parse(int argc, char **argv) {
         run.sim_sleep      = result["sim-sleep"].as<bool>();
         run.random_ops     = result["random-ops"].as<bool>();
         run.op_count_max   = result["op-count-max"].as<int>();
+        run.op_weight_max  = result["op-weight-max"].as<int>();
         run.iter_max       = result["iter-max"].as<int>();
-        run.noise_usec_max = result["noise-usec-max"].as<int>();
         run.delay_usec     = result["delay-usec"].as<int>();
 
     } catch (const cxxopts::OptionException &e) {
@@ -172,9 +173,9 @@ RunSettings parse(int argc, char **argv) {
 }
 
 void configureKernels(auto& run) {
-    run.kernels.push_back(Kernel(1000, 5));
-    run.kernels.push_back(Kernel(2000, 1));
-    if (run.verbose) { for (const auto& k : run.kernels) { run.log(k); }}
+    run.kernel_variants.push_back(KernelVariant(1000, 5));
+    run.kernel_variants.push_back(KernelVariant(5000, 2));
+    if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
 }
 
 
@@ -196,37 +197,44 @@ void experimentLoop(Apollo *apollo, auto& run) {
         ops(1, std::max((int)run.op_count_max, (int)2));
 
     Apollo::Region *reg =
-        new Apollo::Region(apollo, "synben", run.kernels.size());
+        new Apollo::Region(apollo, "synben", run.kernel_variants.size());
     reg->begin();
 
     int pol_idx = 0;
     int t_total = 0;
     int t_noise = 0;
     int op_count = 1;
+    int group_id = 0;
 
     int i = 1;
     while (true) {
-        pol_idx = getApolloPolicyChoice(reg);
-        auto kernel = run.kernels.at(pol_idx);
-        t_noise = std::min((int)noise(run.rng), (int)run.noise_usec_max);
+
         if (run.random_ops) {
             op_count = ops(run.rng);
         } else {
             op_count = run.op_count_max;
         }
+        t_noise = std::min((int)noise(run.rng), (int)run.noise_usec_max);
+        
+        // Express our configuration to Caliper:
+        reg->caliSetInt("group_id", group_id);
+        reg->caliSetInt("t_noise", t_noise);
+        reg->caliSetInt("op_count", op_count);
+        // ...now Apollo can use those "features" when traversing a DT:
+        pol_idx = getApolloPolicyChoice(reg);
+        auto kernel = run.kernel_variants.at(pol_idx);
         // -----
         reg->iterationStart(i);
             t_total = syntheticRegion(run, kernel, op_count, t_noise);
             reg->caliSetInt("t_total", t_total);
-            reg->caliSetInt("t_noise", t_noise);
-            reg->caliSetInt("op_count", op_count);
         reg->iterationStop();
         // -----
         run.log("Iteration ", i, " of ", run.iter_max,
-                ": kernel ", pol_idx, " took ", t_total,
+                ": kernel variant ", pol_idx, " took ", t_total,
                 " usec to process ", op_count, " ops");
         //
         i++; if ((run.iter_max > 0) && (i > run.iter_max)) { break; }
+        if (not (i % 100)) { group_id++; };
         std::this_thread::sleep_for(std::chrono::microseconds(run.delay_usec));
     }
     reg->end();

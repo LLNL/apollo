@@ -16,57 +16,118 @@ from ssos import SSOS
 
 VERBOSE = False
 FRAME_INTERVAL = 200
-
 sos = SSOS() 
 
-# class ControllerState:
-#     START      = 'start'
-#     WAIT       = 'wait'
-#     PROC       = 'proc'
-#     TEST       = 'test'
-#     ML         = 'ml'
-#     RATE       = 'rate'
-#     CLIENT_ADD = 'client_add'
-#     CLIENT_REM = 'client_rem'
-#     END        = 'end'
-#     #
-#     STATES = frozenset([START, WAIT, PROC, TEST, ML, RATE, CLIENT_ADD, CLIENT_REM, END])
-#     at = String(choices=STATES)
-#     
-#     def __init__(self):
-#         self.at = self.START
-#     #
-#     ### end: class ControllerState
+def learningExample(data, region_names): 
+    #print "numpy.__version__   == " + str(np.__version__)
+    #print "pandas.__version__  == " + str(pd.__version__)
+    #print "sklearn.__version__ == " + str(skl.__version__)
 
-def main():
+    # TODO: Label the data (mark the winning KernelVariant as 1, else 0)
+    #
+    # If (iteration % 10) is some "GroupID" then we find the fastest variant
+    # for that group. Maybe make the operation weight a function of iteration
+    # within that GroupId. This lets us pretend different iteration groupings 
+    # have different behavior.
+
+    #sort by t_op_avg
+    #group by group_id
+    #drop slowest ones (or take first from each group, Pandas-style)
+
+    # NOTE: The rows that are dropped should be identical to the rows
+    # that are kept EXCEPT for the time and the variant.
+
+
+    #y = target value
+    #x = features
+
+    if (VERBOSE):
+        print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
+
+    y = data["kernel_variant"].astype(int)
+    x = 
+
+    # For every row in the set, identify which kernel variant is the fastest
+    # for a given input.
+    # Deduplicated the rows, leaving only the identity with the fastest variant
+    # 
+
+    # From among: frame, loop, policyIndex, op_count, t_total, t_noise
+    if (VERBOSE):
+        print "== CONTROLLER:  Exclude columns we don't want to use for learning..."
+    x = data.drop([
+            "frame",
+            "loop",
+            "t_total",
+            "t_op_avg",
+            "policyIndex"
+        ], axis="columns").values.astype(float)
+
+    
+
+
+    if (VERBOSE): print "== CONTROLLER:  Initializing pipelines..."
+    #####
+    pipe = [('estimator',   DecisionTreeClassifier(
+                 class_weight=None, criterion='gini', max_depth=2,
+                 max_features=1, max_leaf_nodes=None,
+                 min_impurity_split=1e-07, min_samples_leaf=1,
+                 min_samples_split=2, min_weight_fraction_leaf=0.0,
+                 presort=False, random_state=None, splitter='best'))]
+    #####
+
+
+    if (VERBOSE):
+        print "== CONTROLLER:  Initializing model..."
+    model = Pipeline(pipe)
+
+    #if (VERBOSE): print "== CONTROLLER:  Cross-validation... (10-fold)"
+    #scores = cross_val_score(model, x, y, cv=10)
+    #print("\n".join([("    " + str(score)) for score in scores]))
+    #print "    score.mean == " + str(np.mean(scores))
+
+    if (VERBOSE):
+        print "== CONTROLLER:  Training model..."
+    model.fit(x, y)
+
+    trained_model = model.named_steps['estimator']
+
+    if (VERBOSE):
+        print "== CONTROLLER:  Encoding rules..."
+    #
+    feature_names = ["op_count", "t_noise"]
+    #
+    rules_json = tree_to_json(trained_model, feature_names)
+    rules_code = tree_to_code(trained_model, feature_names)
+    #rules_code = tree_to_string(trained_model, feature_names)
+
+    model_def = {} 
+    model_def['type'] = {}
+    model_def['type']['index'] = 3
+    model_def['type']['name'] = "DecisionTree"
+    model_def['region_names'] = region_names
+    model_def['features'] = {}
+    model_def['features']['count'] = len(feature_names)
+    model_def['features']['names'] = []
+    model_def['features']['names'] = feature_names
+    model_def['driver'] = {}
+    model_def['driver']['format'] = "json"
+    model_def['driver']['rules'] = rules_json 
+
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+
+    return model_as_json, rules_code
+
+
+
+##########
+
+ def main():
 
 
     sos.init()
     sos_host = "localhost"
     sos_port = os.environ.get("SOS_CMD_PORT")
-
-    # state = ControllerState()
-    # while state.at != state.END:
-    # ########## main loop ##########
-
-    #     if state.at == state.START:
-    #         #
-    #     elif state.at == state.WAIT:
-    #         #
-    #     elif state.at == state.PROC:
-    #         #
-    #     elif state.at == state.TEST:
-    #         #
-    #     elif state.at == state.ML:
-    #         #
-    #     elif state.at == state.RATE:
-    #         #
-    #     elif state.at == state.CLIENT_ADD:
-    #         #
-    #     elif state.at == state.CLIENT_REM:
-    #         #
-    #     else
-    #         #
 
     step = 0
     prior_frame_max = 0
@@ -172,20 +233,22 @@ def getTrainingData(sos_host, sos_port, row_limit):
             print "    " + str(row[0])
 
     sql_string = """
-        SELECT frame, loop, policyIndex, op_count, t_total, t_noise, (t_total / op_count) AS t_op_avg FROM (
+        SELECT frame, loop, policyIndex as kernel_variant, group_id, op_count, t_total, t_op_weight, (t_total / op_count) AS t_op_avg FROM (
             SELECT
                   tblVals.frame AS frame,
                   tblData.guid AS guid,
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
                                   THEN tblVals.val END) AS "loop", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policyIndex"
-                                  THEN tblVals.val END) AS "policyIndex", 
+                                  THEN tblVals.val END) AS "policyIndex",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "group_id"
+                                  THEN tblVals.val END) AS "group_id",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "op_count"
                                   THEN tblVals.val END) AS "op_count",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_total"
                                   THEN tblVals.val END) AS "t_total", 
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_noise"
-                                  THEN tblVals.val END) AS "t_noise",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_op_weight"
+                                  THEN tblVals.val END) AS "t_op_weight",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "sum#time.inclusive.duration"
                                   THEN tblVals.val END) AS "sum_time_inclusive_duration",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali_event_end"
@@ -224,93 +287,6 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     return data, region_names
 
-
-def learningExample(data, region_names): 
-    #print "numpy.__version__   == " + str(np.__version__)
-    #print "pandas.__version__  == " + str(pd.__version__)
-    #print "sklearn.__version__ == " + str(skl.__version__)
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
-    #y = (data["t_op_avg"].values.astype(float)/5).astype(int)
-    y = data["t_op_avg"].astype(int)
-    y = y.squeeze()
-
-    # From among: frame, loop, policyIndex, op_count, t_total, t_noise
-    if (VERBOSE):
-        print "== CONTROLLER:  Exclude columns we don't want to use for learning..."
-    x = data.drop([
-            "frame",
-            "loop",
-            "t_total",
-            "t_op_avg",
-            "policyIndex"
-        ], axis="columns").values.astype(float)
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Initializing pipelines..."
-    basic_pipe = [('estimator',   DecisionTreeClassifier(max_depth=2))]
-    #dtree_pipe = [('standardize', StandardScaler()),\
-    dtree_pipe = [\
-                  ('estimator',   DecisionTreeClassifier(
-                      class_weight=None, criterion='gini', max_depth=2,
-                      max_features=1, max_leaf_nodes=None,
-                      min_impurity_split=1e-07, min_samples_leaf=1,
-                      min_samples_split=2, min_weight_fraction_leaf=0.0,
-                      presort=False, random_state=None, splitter='best'))]
-    rtree_pipe = [('estimator',   DecisionTreeRegressor(max_depth=2))]
-    svc_pipe =   [('standardize', StandardScaler()),\
-                 ('estimator',    SVC())]
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Selecting pipe..."
-    #pipe = basic_pipe
-    #pipe = rtree_pipe
-    pipe = dtree_pipe
-    #pipe = svc_pipe
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Initializing model..."
-    model = Pipeline(pipe)
-
-    #if (VERBOSE): print "== CONTROLLER:  Cross-validation... (10-fold)"
-    #scores = cross_val_score(model, x, y, cv=10)
-    #print("\n".join([("    " + str(score)) for score in scores]))
-    #print "    score.mean == " + str(np.mean(scores))
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Training model..."
-    model.fit(x, y)
-
-    trained_model = model.named_steps['estimator']
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Encoding rules..."
-    #
-    feature_names = ["op_count", "t_noise"]
-    #
-    rules_json = tree_to_json(trained_model, feature_names)
-    rules_code = tree_to_code(trained_model, feature_names)
-    #rules_code = tree_to_string(trained_model, feature_names)
-
-    model_def = {} 
-    model_def['type'] = {}
-    model_def['type']['index'] = 3
-    model_def['type']['name'] = "DecisionTree"
-    model_def['region_names'] = region_names
-    model_def['features'] = {}
-    model_def['features']['count'] = len(feature_names)
-    model_def['features']['names'] = []
-    model_def['features']['names'] = feature_names
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "json"
-    model_def['driver']['rules'] = rules_json 
-
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
-
-    return model_as_json, rules_code
-
- 
 
 #########
 
