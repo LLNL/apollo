@@ -1,5 +1,8 @@
 build
 install
+go
+go.hard
+run
 *.pyc
 sosd.*.db
 sosd.*.key
