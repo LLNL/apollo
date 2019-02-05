@@ -20,6 +20,7 @@ set(APOLLO_HEADERS
     ../include/apollo/Model.h
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
+    ../include/apollo/models/Static.h
     ../include/apollo/models/Python.h
     ../include/apollo/models/DecisionTree.h
     ../include/external/nlohmann/json.hpp
@@ -32,6 +33,7 @@ set(APOLLO_SOURCES
     ModelWrapper.cpp
     models/Random.cpp
     models/Sequential.cpp
+    models/Static.cpp
     models/Python.cpp
     models/DecisionTree.cpp
     )

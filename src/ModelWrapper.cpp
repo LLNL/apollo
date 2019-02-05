@@ -15,6 +15,7 @@ using json = nlohmann::json;
 //
 #include "apollo/models/Random.h"
 #include "apollo/models/Sequential.h"
+#include "apollo/models/Static.h"
 #include "apollo/models/DecisionTree.h"
 #include "apollo/models/Python.h"
 
@@ -38,7 +39,7 @@ Apollo::ModelWrapper::configure(
         apollo_log(2, "Using the default model for initialization.\n");
     }
 
-    apollo_log(4, "Model definition:\n%s", model_def);
+    apollo_log(4, "Model definition:\n%s\n", model_def);
 
     // Extract the various common elements from the model definition
     // and provide them to the configure method, independent of whatever
@@ -53,76 +54,75 @@ Apollo::ModelWrapper::configure(
     string         m_drv_format;
     string         m_drv_rules;
 
+    apollo_log(3, "Attempting to parse model definition...\n");
+    
     // Validate and extract model components:
     int model_errors = 0;
+    apollo_log(3, "\t[type]\n");
     if (j.find("type") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [type]\n");
         model_errors++;
     } else {
+        apollo_log(3, "\t[type][index]\n");
         if (j["type"].find("index") == j["type"].end()) {
             apollo_log(1, "Invalid model_def: missing [type][index]\n");
             model_errors++;
         } else {
             m_type_idx = j["type"]["index"].get<int>();
-            apollo_log(3, "m_type_idx == %d\n", m_type_idx);
         }
+        apollo_log(3, "\t[type][name]\n");
         if (j["type"].find("name") == j["type"].end()) {
             apollo_log(1, "Invalid model_def: missing [type][name]\n");
             model_errors++;
         } else {
             m_type_name = j["type"]["name"].get<string>();
-            apollo_log(3, "m_type_name == %s\n", m_type_name.c_str());
         }
     }
+    apollo_log(3, "\t[region_names]\n");
     if (j.find("region_names") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [region_names]\n");
         model_errors++;
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
-        apollo_log(3, "m_region_names:\n");
-        for (string n : m_region_names) {
-            apollo_log(3, "    %s\n", n.c_str());
-        }
     }
+    apollo_log(3, "\t[features]\n");
     if (j.find("features") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [features]\n");
         model_errors++;
     } else {
+        apollo_log(3, "[features][count]\n");
         if (j["features"].find("count") == j["features"].end()) {
             apollo_log(1, "Invalid model_def: missing [features][count]\n");
             model_errors++;
         } else {
             m_feat_count = j["features"]["count"].get<int>();
-            apollo_log(3, "m_feat_count == %d\n", m_feat_count);
         }
+        apollo_log(3, "\t[features][names]\n");
         if (j["features"].find("names") == j["features"].end()) {
             apollo_log(1, "Invalid model_def: missing [features][names]\n");
             model_errors++;
         } else {
             m_feat_names = j["features"]["names"].get<vector<string>>();
-            apollo_log(3, "m_feat_names:\n");
-            for (string f : m_feat_names) {
-                apollo_log(3, "    %s\n", f.c_str());
-            }
         }
     }
+    apollo_log(3, "\t[driver]\n");
     if (j.find("driver") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [driver]\n");
         model_errors++;
     } else {
+        apollo_log(3, "\t[driver][format]\n");
         if (j["driver"].find("format") == j["driver"].end()) {
             apollo_log(1, "Invalid model_def: missing [driver][format]\n");
             model_errors++;
         } else {
             m_drv_format = j["driver"]["format"].get<string>();
-            apollo_log(3, "m_drv_format == %s\n", m_drv_format.c_str());
         }
+        apollo_log(3, "\t[driver][rules]\n");
         if (j["driver"].find("rules") == j["driver"].end()) {
             apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
             model_errors++;
         } else {
             m_drv_rules = j["driver"]["rules"].get<string>();
-            apollo_log(3, "m_drv_rules == %s\n", m_drv_rules.c_str());
         }
     }
 
@@ -132,9 +132,17 @@ Apollo::ModelWrapper::configure(
         exit(1);
     }
 
+    if      (m_type_name == "Random")     { model_type = MT.Random; }
+    else if (m_type_name == "Sequential") { model_type = MT.Sequential; }
+    else if (m_type_name == "Static")     { model_type = MT.Static; }
+    else if (m_type_name == "Python")     { model_type = MT.Python; }
+    else                                  { model_type = MT.Default; }
+
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
     shared_ptr<Apollo::ModelObject> nm = nullptr;
 
+    std::cout << "m_type_name == " << m_type_name << std::endl;
+   
     switch (model_type) {
         //
         case MT.Random:
@@ -142,6 +150,9 @@ Apollo::ModelWrapper::configure(
             break;
         case MT.Sequential:
             nm = make_shared<Apollo::Model::Sequential>();
+            break;
+        case MT.Static:
+            nm = make_shared<Apollo::Model::Static>();
             break;
         case MT.DecisionTree:
             nm = make_shared<Apollo::Model::DecisionTree>();
@@ -160,6 +171,9 @@ Apollo::ModelWrapper::configure(
     Apollo::ModelObject *lnm = nm.get();
 
     lnm->configure(apollo, num_policies, model_def);
+
+    std::cout << "model_sptr == " << model_sptr << std::endl;
+    std::cout << "nm         == " << nm << std::endl;
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
     model_sptr = nm;    // Make this new model available for use.

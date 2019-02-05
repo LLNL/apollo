@@ -10,6 +10,7 @@ class Apollo::Model {
         // Forward declarations of model types:
         class Random       ; // : public ModelObject;
         class Sequential   ; // : public ModelObject;
+        class Static       ; // : public ModelObject;
         class DecisionTree ; // : public ModelObject;
         class Python       ; // : public ModelObject;
 
@@ -18,19 +19,20 @@ class Apollo::Model {
                 static constexpr int Default      = 0;
                 static constexpr int Random       = 1;
                 static constexpr int Sequential   = 2;
-                static constexpr int DecisionTree = 3;
-                static constexpr int Python       = 4;
+                static constexpr int Static       = 3;
+                static constexpr int DecisionTree = 4;
+                static constexpr int Python       = 5;
 
                 // Default configuration JSON:
                 const char *DefaultConfigJSON =  "\n"                                    \
                                                  "{\n"                                   \
                                                  "    \"driver\": {\n"                   \
-                                                 "        \"format\": \"json\",\n"       \
-                                                 "        \"rules\": \"\"\n"             \
+                                                 "        \"format\": \"int\",\n"        \
+                                                 "        \"rules\": \"0\"\n"            \
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
                                                  "        \"index\": 3,\n"               \
-                                                 "        \"name\": \"DecisionTree\"\n"  \
+                                                 "        \"name\": \"Static\"\n"        \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \

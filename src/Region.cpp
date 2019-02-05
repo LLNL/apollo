@@ -20,6 +20,8 @@ Apollo::Region::Region(
     apollo = apollo_ptr;
     name = strdup(regionName);
 
+    apollo->regions.insert({name, this});
+
     cali_obj = NULL;
     cali_iter_obj = NULL;
     ynInsideMarkedRegion = false;

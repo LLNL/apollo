@@ -39,9 +39,9 @@ handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
             break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
-            apollo_log(1, "Trigger payload received."
-                    "  (msg_size == %d, data == %s\n",
-                    msg_size, (char *) data);
+            //apollo_log(1, "Trigger payload received."
+            //        "  (msg_size == %d, data == %s\n",
+            //        msg_size, (char *) data);
 
             void *apollo_ref = SOS_reference_get(
                     (SOS_runtime *)sos_context,
@@ -87,9 +87,6 @@ Apollo::attachModel(const char *def)
     std::getline(model_def_sstream, line);
     unpack_str(line) >> model_type;
 
-    //std::cout << "CLIENT received the following model definition:\n";
-    //std::cout << def;
-    
     for (auto it : regions) {
         Apollo::Region *region = it.second; 
         std::cout << region->name << "...\n";

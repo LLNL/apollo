@@ -85,7 +85,7 @@ class RunSettings {
             oss << "sim_sleep:" << sim_sleep << ",";
             oss << "random_ops:" << random_ops << ",";
             oss << "op_count_max:" << op_count_max << ",";
-            oss << "op_weight_max:" << noise_usec_max << ",";
+            oss << "op_weight_max:" << op_weight_max << ",";
             oss << "iter_max:" << iter_max << ",";
             oss << "delay_usec:" << delay_usec << ")";
             return oss.str();
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
 void experimentLoop(Apollo *apollo, auto& run) {
     std::uniform_int_distribution<uint32_t>
-        noise(0, std::max((int)run.noise_usec_max, (int)1));
+        weights(0, std::max((int)run.op_weight_max, (int)1));
     std::uniform_int_distribution<uint32_t>
         ops(1, std::max((int)run.op_count_max, (int)2));
 
@@ -202,8 +202,8 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
     int pol_idx = 0;
     int t_total = 0;
-    int t_noise = 0;
     int op_count = 1;
+    int op_weight = 0;
     int group_id = 0;
 
     int i = 1;
@@ -214,18 +214,18 @@ void experimentLoop(Apollo *apollo, auto& run) {
         } else {
             op_count = run.op_count_max;
         }
-        t_noise = std::min((int)noise(run.rng), (int)run.noise_usec_max);
+        op_weight = std::min((int)weights(run.rng), (int)run.op_weight_max);
         
         // Express our configuration to Caliper:
         reg->caliSetInt("group_id", group_id);
-        reg->caliSetInt("t_noise", t_noise);
         reg->caliSetInt("op_count", op_count);
+        reg->caliSetInt("op_weight", op_weight);
         // ...now Apollo can use those "features" when traversing a DT:
         pol_idx = getApolloPolicyChoice(reg);
         auto kernel = run.kernel_variants.at(pol_idx);
         // -----
         reg->iterationStart(i);
-            t_total = syntheticRegion(run, kernel, op_count, t_noise);
+            t_total = syntheticRegion(run, kernel, op_count, op_weight);
             reg->caliSetInt("t_total", t_total);
         reg->iterationStop();
         // -----

@@ -13,6 +13,7 @@
 #  set (BUILTIN_MODELS
 #      Random 
 #      Sequential
+#      Static
 #      DecisionTree
 #      Python
 #      )

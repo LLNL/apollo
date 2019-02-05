@@ -16,9 +16,29 @@ from ssos import SSOS
 
 VERBOSE = False
 FRAME_INTERVAL = 200
-sos = SSOS() 
+SOS = SSOS() 
 
-def learningExample(data, region_names): 
+def generateStaticModel(data, region_names):
+
+    model_def = {} 
+    model_def['type'] = {}
+    model_def['type']['index'] = 3
+    model_def['type']['name'] = "Static"
+    model_def['region_names'] = region_names
+    model_def['features'] = {}
+    model_def['features']['count'] = 0
+    model_def['features']['names'] = [] 
+    model_def['driver'] = {}
+    model_def['driver']['format'] = "int"
+    model_def['driver']['rules'] = 1 
+    
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    
+    return model_as_json
+
+
+
+def generateDecisionTree(data, region_names): 
     #print "numpy.__version__   == " + str(np.__version__)
     #print "pandas.__version__  == " + str(pd.__version__)
     #print "sklearn.__version__ == " + str(skl.__version__)
@@ -45,7 +65,7 @@ def learningExample(data, region_names):
         print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
 
     y = data["kernel_variant"].astype(int)
-    x = 
+    #x = 
 
     # For every row in the set, identify which kernel variant is the fastest
     # for a given input.
@@ -103,8 +123,9 @@ def learningExample(data, region_names):
 
     model_def = {} 
     model_def['type'] = {}
-    model_def['type']['index'] = 3
+    model_def['type']['index'] = 4 
     model_def['type']['name'] = "DecisionTree"
+    model_def['region_names'] = []
     model_def['region_names'] = region_names
     model_def['features'] = {}
     model_def['features']['count'] = len(feature_names)
@@ -122,10 +143,10 @@ def learningExample(data, region_names):
 
 ##########
 
- def main():
+def main():
 
 
-    sos.init()
+    SOS.init()
     sos_host = "localhost"
     sos_port = os.environ.get("SOS_CMD_PORT")
 
@@ -138,23 +159,24 @@ def learningExample(data, region_names):
         # Submit the query to SOS, return results as a Pandas DataFrame:
         data, region_names = getTrainingData(sos_host, sos_port, row_limit=0);
     
-        # Process an example ML pipeline w/hardcoded field names:
         model_def = ""
         model_len = 0
+        
+        #model_def, rules_code = generateDecisionTree(data, region_names)
+        #model_len = len(model_def)
+        #print "-----"
+        #print "STEP " + str(step) + " RULES:"
+        #print rules_code
+        #print "-----"
     
-        model_def, rules_code = learningExample(data, region_names)
+        model_def = generateStaticModel(data, region_names)
         model_len = len(model_def)
-    
-        print "-----"
-        print "STEP " + str(step) + " RULES:"
-        print rules_code
-        print "-----"
-    
+
         if model_len > 0:
             if (VERBOSE):
                 print "== CONTROLLER:  Sending model to SOS runtime for distribution to Apollo..."
                 print model_def
-            sos.trigger("APOLLO_MODELS", model_len, model_def)
+            SOS.trigger("APOLLO_MODELS", model_len, model_def)
         else:
             if (VERBOSE):
                 print "== CONTROLLER:  NOTICE: Model was not generated, nothing to send."
@@ -170,7 +192,7 @@ def learningExample(data, region_names):
 
 def waitForMoreRows(sos_host, sos_port, prior_frame_max):
     max_frame, results, col_names = \
-            sos.request_pub_manifest("", sos_host, sos_port)
+            SOS.request_pub_manifest("", sos_host, sos_port)
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
         print "== CONTROLLER:  Waiting for more data.  (" \
             + str(max_frame - prior_frame_max) + " of " \
@@ -178,7 +200,7 @@ def waitForMoreRows(sos_host, sos_port, prior_frame_max):
             + " total)"
         time.sleep(1)
         max_frame, results, col_names = \
-            sos.request_pub_manifest("", sos_host, sos_port)
+            SOS.request_pub_manifest("", sos_host, sos_port)
     print "== CONTROLLER: max_frame = " + str(max_frame)
     return max_frame
 
@@ -215,7 +237,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     if (VERBOSE):
         print "== CONTROLLER:  Retrieving list of unique loops being measured."
-    region_names, col_names = sos.query(sql_string, sos_host, sos_port) 
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port) 
     if (VERBOSE):
         print "== CONTROLLER:  Loop name list received:"
         for row in region_names:
@@ -226,7 +248,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
     """
     if (VERBOSE):
         print "== CONTROLLER:  Retrieving possible field names."
-    fields_avail, col_names = sos.query(sql_string, sos_host, sos_port)
+    fields_avail, col_names = SOS.query(sql_string, sos_host, sos_port)
     if (VERBOSE):
         print "== CONTROLLER:  Field names available for query:"
         for row in fields_avail:
@@ -274,7 +296,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     if (VERBOSE):
         print "== CONTROLLER:  Sending a query for training data..."
-    results, col_names = sos.query(sql_string, sos_host, sos_port)
+    results, col_names = SOS.query(sql_string, sos_host, sos_port)
 
     if (VERBOSE):
         print col_names
