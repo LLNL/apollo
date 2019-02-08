@@ -1,6 +1,8 @@
 #ifndef APOLLO_MODELS_SEQUENTIAL_H
 #define APOLLO_MODELS_SEQUENTIAL_H
 
+#include <string>
+
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
@@ -12,7 +14,7 @@ class Apollo::Model::Sequential : public Apollo::ModelObject {
         void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
-                const char *model_definition);
+                std::string model_definition);
         //
         int  getIndex(void);
 

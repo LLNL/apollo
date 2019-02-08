@@ -1,5 +1,6 @@
 
 #include <mutex>
+#include <string>
 #include <cstring>
 
 #include "apollo/Apollo.h"
@@ -11,20 +12,21 @@
 int
 Apollo::Model::Static::getIndex(void)
 {
-    iterCount++;
+    iter_count++;
 
-    return policyChoice;
+    return policy_choice;
 }
 
 void
 Apollo::Model::Static::configure(
-        Apollo *apollo_ptr,
-        int numPolicies,
-        const char *model_def)
+        Apollo     *apollo_ptr,
+        int         num_policies,
+        std::string new_model_rule)
 {
-    apollo = apollo_ptr;
-    policyCount = numPolicies;
-    policyChoice = atoi(model_def);
+    apollo        = apollo_ptr;
+    policy_count  = num_policies;
+    model_def     = new_model_rule;
+    policy_choice = std::stoi(new_model_rule);
 
     configured = true;
     return;
@@ -40,7 +42,7 @@ Apollo::Model::Static::configure(
 Apollo::Model::Static::Static()
 {
 
-    iterCount = 0;
+    iter_count = 0;
 }
 
 Apollo::Model::Static::~Static()

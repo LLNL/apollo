@@ -1,6 +1,7 @@
 #ifndef APOLLO_MODEL_H
 #define APOLLO_MODEL_H
 
+#include <string>
 #include "apollo/Apollo.h"
 
 #define APOLLO_DEFAULT_MODEL_TYPE   Apollo::Model::Type::Random
@@ -55,7 +56,7 @@ class Apollo::ModelObject {
         virtual void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
-                const char *model_definition) = 0;
+                std::string model_definition) = 0;
         //
         virtual int  getIndex(void) = 0;
 
@@ -65,9 +66,9 @@ class Apollo::ModelObject {
         bool         configured = false;
         //
         uint64_t     id;
-        int          policyCount;
+        int          policy_count;
         std::string  model_def;
-        int          iterCount;
+        int          iter_count;
 
 }; //end: Apollo::ModelObject (abstract class)
 

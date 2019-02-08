@@ -68,33 +68,31 @@ Apollo::attachModel(const char *def)
     int i;
 
     if (def == NULL) {
-        apollo_log(0, "ERROR: apollo->attachModel() called with a"
+        apollo_log(0, "[ERROR] apollo->attachModel() called with a"
                     " NULL model definition. Doing nothing.");
         return;
     }
 
     if (strlen(def) < 1) {
-        apollo_log(0, "ERROR: apollo->attachModel() called with an"
+        apollo_log(0, "[ERROR] apollo->attachModel() called with an"
                     " empty model definition. Doing nothing.");
         return;
     }
     
-    typedef std::stringstream unpack_str;
-    std::istringstream model_def_sstream(def);
-    std::string        line;
-
-    int model_type = 0;
-    std::getline(model_def_sstream, line);
-    unpack_str(line) >> model_type;
-
+    // TODO: This is naive for now, we send the model definition to every
+    //       region's modelWrapper, where if it doesn't apply that
+    //       region can just return and not change anything.
+    //
+    //       This way we unpack and sanity-check the JSON in one place, though
+    //       eventually that needs to get baked into a '.digest()' sort of a
+    //       method in the ModelType abstract  class, since it only goes
+    //       into the common elements and doesn't touch the model
+    //       definition/encoding set in its 'rule' field..
     for (auto it : regions) {
         Apollo::Region *region = it.second; 
-        std::cout << region->name << "...\n";
-
         Apollo::ModelWrapper *model = region->getModel();
+        //
         model->configure(def);
-
-        /// ---
     };
 
     //std::cout << "Done attempting to load new model.\n";

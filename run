@@ -9,4 +9,4 @@ export CALI_LOG_VERBOSITY=0
 # Launch the app:
 #
 #./build/examples/addvect/addvect
-./build/examples/synben/synben -v -s -d 10000 -n 0 -r -o 2000 -i 30 
+./build/examples/synben/synben -v -s -d 10000 -n 0 -r -o 2000 

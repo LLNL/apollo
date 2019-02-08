@@ -1,4 +1,4 @@
-
+#include <string>
 #include <mutex>
 
 #include "apollo/Apollo.h"
@@ -10,14 +10,14 @@
 int
 Apollo::Model::Sequential::getIndex(void)
 {
-    iterCount++;
+    iter_count++;
 
     static int choice = -1;
 
     // Return a sequential index, 0..N:
     choice++;
 
-    if (choice == policyCount) {
+    if (choice == policy_count) {
         choice = 0;
     }
 
@@ -26,13 +26,14 @@ Apollo::Model::Sequential::getIndex(void)
 
 void
 Apollo::Model::Sequential::configure(
-        Apollo *apollo_ptr,
-        int numPolicies,
-        const char *model_def)
+        Apollo      *apollo_ptr,
+        int          num_policies,
+        std::string  new_model_def)
 {
-    apollo = apollo_ptr;
-    policyCount = numPolicies;
-    configured = true;
+    apollo        = apollo_ptr;
+    policy_count  = num_policies;
+    model_def     = new_model_def;
+    configured    = true;
     return;
 }
 
@@ -45,8 +46,7 @@ Apollo::Model::Sequential::configure(
 
 Apollo::Model::Sequential::Sequential()
 {
-
-    iterCount = 0;
+    iter_count = 0;
 }
 
 Apollo::Model::Sequential::~Sequential()

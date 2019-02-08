@@ -11,6 +11,11 @@ else()
 endif()
 
 include_directories(${PROJECT_BINARY_DIR})
+include_directories(${CALIPER_INCLUDE_DIR})
+include_directories(
+    ../include/external/nlohmann/
+    ../include/external/cxxopts/
+    )
 
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
@@ -23,7 +28,6 @@ set(APOLLO_HEADERS
     ../include/apollo/models/Static.h
     ../include/apollo/models/Python.h
     ../include/apollo/models/DecisionTree.h
-    ../include/external/nlohmann/json.hpp
     )
 
 set(APOLLO_SOURCES

@@ -24,16 +24,22 @@ def generateStaticModel(data, region_names):
     model_def['type'] = {}
     model_def['type']['index'] = 3
     model_def['type']['name'] = "Static"
-    model_def['region_names'] = region_names
+    model_def['region_names'] = []
+    for n in region_names:
+        for nm in n:
+            model_def['region_names'].append(nm)
     model_def['features'] = {}
     model_def['features']['count'] = 0
     model_def['features']['names'] = [] 
     model_def['driver'] = {}
     model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = 1 
+    model_def['driver']['rules'] = "1" 
     
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
-    
+
+    if VERBOSE:
+        print "== CONTROLLER: model_as_json = " + model_as_json
+
     return model_as_json
 
 

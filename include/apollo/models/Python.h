@@ -12,7 +12,7 @@ class Apollo::Model::Python : public Apollo::ModelObject {
         void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
-                const char *model_definition);
+                std::string model_definition);
         //
         int  getIndex(void);
 

@@ -1,4 +1,6 @@
 
+#include <string>
+
 #include "Python.h"
 
 #include "apollo/Apollo.h"
@@ -16,6 +18,7 @@
 int
 Apollo::Model::Python::getIndex(void)
 {
+    iter_count++;
     static int choice = -1;
 
     // TODO: Grab the python string.
@@ -34,22 +37,21 @@ Apollo::Model::Python::getIndex(void)
 //
 
 void
-Apollo::Model::Python::configure(Apollo *apollo_ptr, int numPolicies, const char *model_conf_def)
+Apollo::Model::Python::configure(
+        Apollo       *apollo_ptr,
+        int           num_policies,
+        std::string   new_model_def)
 {
-    apollo = apollo_ptr;
-    policyCount = numPolicies;
-    if (model_conf_def != NULL) {
-        model_def = model_conf_def;
-    } else {
-        model_def = "";
-    }
-    configured = true;
+    apollo       = apollo_ptr;
+    policy_count = num_policies;
+    model_def    = new_model_def;
+    configured   = true;
     return;
 }
 
 Apollo::Model::Python::Python()
 {
-    iterCount = 0;
+    iter_count = 0;
 }
 
 Apollo::Model::Python::~Python()

@@ -1,7 +1,9 @@
 #=============================================================================
 #
 # Apollo is an online machine learning utility designed to support
-# performance portability of HPC codes using RAJA and SOSflow.
+# performance portability of HPC codes.
+#
+# Apollo makes use of the Caliper, RAJA, and SOSflow enabling technologies.
 #
 #=== Usage ===================================================================
 #
@@ -15,8 +17,8 @@
 #   2. Configure your project with this option:
 #      -Dapollo_DIR=<apollo install prefix>/share/
 #
-# If you have done either of these things, then CMake should automatically find
-# and include this file when you call find_package(apollo) from your
+# If you have done either of these things, then CMake should automatically
+# find and include this file when you call find_package(apollo) from your
 # CMakeLists.txt file.
 #
 #=== Components ==============================================================

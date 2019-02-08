@@ -170,7 +170,7 @@ Apollo::ModelWrapper::configure(
 
     Apollo::ModelObject *lnm = nm.get();
 
-    lnm->configure(apollo, num_policies, model_def);
+    lnm->configure(apollo, num_policies, m_drv_rules);
 
     std::cout << "model_sptr == " << model_sptr << std::endl;
     std::cout << "nm         == " << nm << std::endl;

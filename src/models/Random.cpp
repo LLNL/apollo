@@ -1,4 +1,4 @@
-
+#include <string>
 #include <random>
 #include <mutex>
 
@@ -12,17 +12,16 @@
 int
 Apollo::Model::Random::getIndex(void)
 {
-    iterCount++;
+    iter_count++;
 
     int choice = 0;
 
-    if (policyCount > 1) {
-        //TODO: Move this up into the constructor for efficiency.
-        // Return a random index, 0..N:
-        std::random_device rd; 
-        std::mt19937 gen(rd()); 
-        std::uniform_int_distribution<> dis(0, (policyCount - 1));
-        choice = dis(gen);
+    if (policy_count > 1) {
+        std::random_device              random_dev; 
+        std::mt19937                    random_gen(random_dev()); 
+        std::uniform_int_distribution<> random_dist(0, (policy_count - 1));
+        // Return a random index, 0..(policy_count - 1):
+        choice = random_dist(random_gen);
     } else {
         choice = 0;
     }
@@ -33,11 +32,15 @@ Apollo::Model::Random::getIndex(void)
 void
 Apollo::Model::Random::configure(
         Apollo *apollo_ptr,
-        int numPolicies,
-        const char *model_def)
+        int num_policies,
+        std::string new_model_def)
 {
     apollo = apollo_ptr;
-    policyCount = numPolicies;
+    policy_count = num_policies;
+    model_def = new_model_def;
+        std::random_device rd; 
+        std::mt19937 gen(rd()); 
+        std::uniform_int_distribution<> dis(0, (policy_count - 1));
     configured = true;
     return;
 }
@@ -51,7 +54,7 @@ Apollo::Model::Random::configure(
 
 Apollo::Model::Random::Random()
 {
-    iterCount = 0;
+    iter_count = 0;
 }
 
 Apollo::Model::Random::~Random()
