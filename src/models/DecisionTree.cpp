@@ -21,18 +21,18 @@ int
 Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     // Compare the node->value to the defined comparison values
     // and either dive down a branch or return the choice up.
-    if (node->feature->value <= node->leq_val) {
-        if (node->leftChild == nullptr) {
+    if (node->feature->value <= node->value_LEQ) {
+        if (node->left_child == nullptr) {
             return node->recommendation;
         } else {
-            return recursiveTreeWalk(node->leftChild);
+            return recursiveTreeWalk(node->left_child);
         }
     }
-    if (node->feature->value > node->grt_val) {
-        if (node->rightChild == nullptr) {
+    if (node->feature->value > node->value_GRT) {
+        if (node->right_child == nullptr) {
             return node->recommendation;
         } else {
-            return recursiveTreeWalk(node->rightChild);
+            return recursiveTreeWalk(node->right_child);
         }
     }
     return node->recommendation;
@@ -47,11 +47,11 @@ Apollo::Model::DecisionTree::getIndex(void)
 
     iter_count++;
     if (configured == false) {
-        if (iterCount < 10) {
+        if (iter_count < 10) {
             fprintf(stderr, "[ERROR] DecisionTree::getIndex() called prior to"
                 " model configuration. Defaulting to index 0.\n");
             fflush(stderr);
-        } else if (iterCount == 10) {
+        } else if (iter_count == 10) {
             fprintf(stderr, "[ERROR] DecisionTree::getIndex() has still not been"
                     " configured. Continuing default behavior without further"
                     " error messages.\n");
@@ -90,25 +90,23 @@ Apollo::Model::DecisionTree::configure(
     //NOTE: Make sure to grab the lock from the calling code:
     //          std::lock_guard<std::mutex> lock(model->modelMutex);
 
-    apollo      = apollo_ptr;
-    policyCount = numPolicies;
+    apollo       = apollo_ptr;
+    policy_count = numPolicies;
 
     if (configured == true) {
-        // TODO: This is a RE-configuration. Remove previous configuration.
-        // ...
-        // ...
+        //This is a RE-configuration. Remove previous configuration.
         configured = false;
         tree_head = nullptr;
         for (Node *node : tree_nodes) {
-            free(node);
+            if (node != nullptr) { free(node); }
         }
         tree_nodes.clear();
         for (Feature *feat : tree_features) {
-            free(feat);
+            if (feat != nullptr) { free(feat); }
         }
         tree_features.clear();
-
         model_def = "";
+        iter_count = 0;
     }
 
     // Construct a decisiontree for this model_definition.
@@ -122,30 +120,45 @@ Apollo::Model::DecisionTree::configure(
 
     model_def = model_definition;
 
-    //TODO: Unpack the JSON of the tree.
+    //TODO: Wrap this loop in a DFS recursive unrolling of the JSON tree:
     
-    //TODO: Something like below, initalize the nodes and attach whatever
-    //      feature each one refers to.  If that feature doesn't exist,
-    //      initialize it and add it to the list of features.
-    auto feature_id_find = tree_features.find(feat_name);
-    if (feature_id_find == tree_features.end()) {
-        // We're not tracking this feature in our accelleration
-        // structure yet..
+    // #####
+    // #
+    // #
+    // FOR this NODE these will get plucked from the Decision Tree:
+    cali_id_t   feat_id;
+    std::string feat_name = "";
+    double      leq_val = 0.0;
+    double      grt_val = 0.0;
+    int         recc_val = 0;
+
+    // Scan to see if we have this feature in our accelleration structure::
+    bool found = false;
+    for (Feature *feat : tree_features) {
+        if (feat->name == feat_name) {
+            found = true;
+            break;
+        }
+    }
+    if (not found) {
+        // add it
         feat_id = cali_find_attribute(feat_name.c_str());
         if (feat_id == CALI_INV_ID) {
-            // Error out: Somehow the DecisionTree told us to split on a
-            // value that is not in our Caliper data, in a model built
-            // using only our Caliper data. This can be a very specific
-            // error message, likely a hard fail for debugging.
-            apollo_log(); 
+            fprintf(stderr, "== APOLLO: "
+            "[ERROR] DecisionTree contains features no present in Caliper data.\n"
+                "\tThis is likely do to an error in the Apollo Controller logic.\n"
+                "\tTerminating.\n");
+            fflush(stderr);
             exit(EXIT_FAILURE);
+        } else {
+            Feature *feat = new Feature();
+            // NOTE: feat->value_variant and feat->value are filled
+            //       before being used for traversal in getIndex()
+            feat->cali_id = feat_id;
+            feat->name    = feat_name;
+            tree_features.push_back(feat);
         }
-        // TODO: Put in the in the map
     }
-
-    // TODO: Traverse the nodes and assemble them together into a
-    //       binary tree. This should be doable given the linear indexing
-    //       of the nodes.
 
     configured = true;
     return;
@@ -159,7 +172,7 @@ Apollo::Model::DecisionTree::configure(
 
 Apollo::Model::DecisionTree::DecisionTree()
 {
-    iterCount = 0;
+    iter_count = 0;
 }
 
 Apollo::Model::DecisionTree::~DecisionTree()

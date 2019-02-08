@@ -17,7 +17,6 @@ using json = nlohmann::json;
 #include "apollo/models/Sequential.h"
 #include "apollo/models/Static.h"
 #include "apollo/models/DecisionTree.h"
-#include "apollo/models/Python.h"
 
 using namespace std;
 
@@ -135,7 +134,6 @@ Apollo::ModelWrapper::configure(
     if      (m_type_name == "Random")     { model_type = MT.Random; }
     else if (m_type_name == "Sequential") { model_type = MT.Sequential; }
     else if (m_type_name == "Static")     { model_type = MT.Static; }
-    else if (m_type_name == "Python")     { model_type = MT.Python; }
     else                                  { model_type = MT.Default; }
 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
@@ -156,9 +154,6 @@ Apollo::ModelWrapper::configure(
             break;
         case MT.DecisionTree:
             nm = make_shared<Apollo::Model::DecisionTree>();
-            break;
-        case MT.Python:
-            nm = make_shared<Apollo::Model::Python>();
             break;
         //
         default:

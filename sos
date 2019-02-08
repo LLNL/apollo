@@ -1,0 +1,3 @@
+./sosd.kill
+./sosd.cleanup
+./sosd.start

@@ -13,7 +13,6 @@ class Apollo::Model {
         class Sequential   ; // : public ModelObject;
         class Static       ; // : public ModelObject;
         class DecisionTree ; // : public ModelObject;
-        class Python       ; // : public ModelObject;
 
         class Type {
             public:
@@ -22,7 +21,6 @@ class Apollo::Model {
                 static constexpr int Sequential   = 2;
                 static constexpr int Static       = 3;
                 static constexpr int DecisionTree = 4;
-                static constexpr int Python       = 5;
 
                 // Default configuration JSON:
                 const char *DefaultConfigJSON =  "\n"                                    \

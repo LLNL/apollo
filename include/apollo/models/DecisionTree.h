@@ -21,17 +21,18 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 Apollo     *apollo_ptr,
                 int         num_policies,
                 std::string model_definition);
-        //
+    
         int  getIndex(void);
 
     private:
         class Feature {
             public:
-                Feature();
-                ~Feature();
+                Feature() {};
+                ~Feature() {};
                 cali_id_t       cali_id;
                 std::string     name;
-                cali_variant_t  value;
+                cali_variant_t  value_variant;
+                double          value;
         };
 
         class Node {
@@ -48,8 +49,8 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 }
                 ~Node() {};
 
-                double    leq_val;
-                double    grt_val;
+                double    value_LEQ;
+                double    value_GRT;
                 int       recommendation;
 
                 Feature  *feature;
@@ -67,9 +68,11 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 //
         }; // end: Node (class)
         //
-        Node                             *tree_head;
-        std::vector<Node *>               tree_nodes;
-        std::map<std::string, Feature *>  tree_features;
+        int  recursiveTreeWalk(Node *node);
+        //
+        Node                   *tree_head;
+        std::vector<Node *>     tree_nodes;
+        std::vector<Feature *>  tree_features;
 
 }; //end: Apollo::Model::DecisionTree (class)
 
