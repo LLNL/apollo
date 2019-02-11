@@ -6,7 +6,7 @@ import cStringIO
 import numpy   as np
 import pandas  as pd    
 import sklearn as skl
-from sklearn.preprocessing   import StandardScaler   
+from sklearn.preprocessing   import StandardScaler
 from sklearn.tree            import DecisionTreeClassifier
 from sklearn.tree            import DecisionTreeRegressor
 from sklearn.pipeline        import Pipeline
@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 from ssos import SSOS 
 
-VERBOSE = False
+VERBOSE = True
 FRAME_INTERVAL = 200
 SOS = SSOS() 
 
@@ -43,6 +43,27 @@ def generateStaticModel(data, region_names):
     return model_as_json
 
 
+def generateSyntheticDecisionTree(data, region_names):
+
+    fake_json = {}
+    fake_json = {} 
+    fake_json['type'] = {}
+    fake_json['type']['index'] = 4 
+    fake_json['type']['name'] = "DecisionTree"
+    fake_json['region_names'] = []
+    fake_json['region_names'] = region_names
+    fake_json['features'] = {}
+    fake_json['features']['count'] = len(feature_names)
+    fake_json['features']['names'] = []
+    fake_json['features']['names'] = feature_names
+    fake_json['driver'] = {}
+    fake_json['driver']['format'] = "json"
+    fake_json['driver']['rules'] = rules_json 
+
+
+
+    return fake_json
+
 
 def generateDecisionTree(data, region_names): 
     #print "numpy.__version__   == " + str(np.__version__)
@@ -65,32 +86,85 @@ def generateDecisionTree(data, region_names):
 
 
     #y = target value
-    #x = features
+    #x = independent features (data that would effect the kernel decision)
 
-    if (VERBOSE):
-        print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
+    #x is not something dependent on the kernel that was selected.
+    #x determines y
+    # example: X will not be t_total
 
-    y = data["kernel_variant"].astype(int)
-    #x = 
 
-    # For every row in the set, identify which kernel variant is the fastest
-    # for a given input.
-    # Deduplicated the rows, leaving only the identity with the fastest variant
-    # 
+# Prepare the data before building the tree:
+#       filter out all but the best scoring t_totals
+#       for every unique combination of X values
+#   [Y]    [ X:                             ]    -cut- (used to determine Y)
+#   kern   [ t_op    op_count    t_op_weight]     t_total
+#    0     [  2        1212           1     ]       112
+#    1     [  4        1212           1     ]       112
+#    2     [  2        1212           1     ]       112
+#    3     [  6        1212           1     ]       112
+#    4     [  1        1212           1     ]       112
+#            ^-_ remove duplicates with worst times
 
-    # From among: frame, loop, policyIndex, op_count, t_total, t_noise
-    if (VERBOSE):
-        print "== CONTROLLER:  Exclude columns we don't want to use for learning..."
-    x = data.drop([
-            "frame",
+
+# TREE #1:
+# Feature:
+#    kern_selected  Y
+#    t_op           X
+#    op_count       X
+#    t_op_weight    X
+#    t_total       ---cut
+
+
+#NOTE: For tree 2, we need to do something about sets of unique X's producing
+#           different t_totals.
+#           IDEAS:  Random Drop
+#                   Recency Drop
+#                   Ranges (rolling min/max allowed)
+#
+
+# TREE #2:
+#    t_total        Y   <-- bin this into ranges/stddev's?
+#    kern_selected  X
+#    t_op           X
+#    op_count       X
+#    t_op_weight    X
+
+
+###
+#
+#  Some vector X that describes the kernels, Y is total
+#
+#  Things we might observe at runtime to use to produce the tree:
+#     -- number of data elements
+#     -- size of elements
+#     -- thread count
+#  
+#  Row for each combination of [application] and [kernel]
+#
+#
+###
+
+    if (VERBOSE): print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
+
+    data["loop"] = pd.Categorical(data["loop"])
+    data["loop_id"] = data["loop"].cat.codes
+
+    if (VERBOSE): print "== CONTROLLER:  Exclude columns we don't want to use for learning..."
+    #def pickMin(df):
+    #    return df.loc(df["t_total"].astype(int).idxmin())
+    #data.groupby(["policy_index", "group_id", "op_count", "t_total"]).filter(lambda x: )
+
+    grp_data = data.sort_values("t_total").groupby(["policy_index", "op_count", "group_id"], as_index=False).first()
+    y = grp_data["policy_index"].astype(int)
+    x = grp_data.drop([
             "loop",
             "t_total",
-            "t_op_avg",
-            "policyIndex"
+            "policy_index",
+            "group_id"
         ], axis="columns").values.astype(float)
 
-    
-
+    # This leaves X with...
+    feature_names = ["frame", "group_id", "op_count", "t_op_weight", "t_op_avg"]
 
     if (VERBOSE): print "== CONTROLLER:  Initializing pipelines..."
     #####
@@ -102,30 +176,31 @@ def generateDecisionTree(data, region_names):
                  presort=False, random_state=None, splitter='best'))]
     #####
 
-
-    if (VERBOSE):
-        print "== CONTROLLER:  Initializing model..."
+    if (VERBOSE): print "== CONTROLLER:  Initializing model..."
     model = Pipeline(pipe)
 
-    #if (VERBOSE): print "== CONTROLLER:  Cross-validation... (10-fold)"
-    #scores = cross_val_score(model, x, y, cv=10)
-    #print("\n".join([("    " + str(score)) for score in scores]))
-    #print "    score.mean == " + str(np.mean(scores))
+    if (VERBOSE and (x.shape[0] > 10)):
+        print "== CONTROLLER:  Cross-validation... (10-fold)"
+        scores = cross_val_score(model, x, y, cv=min(10, (x.shape[0] - 1)))
+        print("\n".join([("    " + str(score)) for score in scores]))
+        print "    score.mean == " + str(np.mean(scores))
 
-    if (VERBOSE):
-        print "== CONTROLLER:  Training model..."
+    if (VERBOSE): print "== CONTROLLER:  Training model..."
     model.fit(x, y)
 
     trained_model = model.named_steps['estimator']
 
-    if (VERBOSE):
-        print "== CONTROLLER:  Encoding rules..."
+    if (VERBOSE): print "== CONTROLLER:  Encoding rules..."
     #
-    feature_names = ["op_count", "t_noise"]
     #
-    rules_json = tree_to_json(trained_model, feature_names)
+    rules_json = tree_to_json(trained_model, feature_names) 
     rules_code = tree_to_code(trained_model, feature_names)
     #rules_code = tree_to_string(trained_model, feature_names)
+
+    dotfile = open("model.dot", 'w')
+    from sklearn import tree as _tree
+    _tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
+    dotfile.close()
 
     model_def = {} 
     model_def['type'] = {}
@@ -167,15 +242,16 @@ def main():
     
         model_def = ""
         model_len = 0
-        
-        #model_def, rules_code = generateDecisionTree(data, region_names)
-        #model_len = len(model_def)
-        #print "-----"
-        #print "STEP " + str(step) + " RULES:"
-        #print rules_code
-        #print "-----"
-    
-        model_def = generateStaticModel(data, region_names)
+
+        model_def, rules_code = generateDecisionTree(data, region_names)
+        model_len = len(model_def)
+        print "-----"
+        print "STEP " + str(step) + " RULES:"
+        print rules_code
+        print "-----"
+ 
+        model_def
+        model_def= generateStaticModel(data, region_names)
         model_len = len(model_def)
 
         if model_len > 0:
@@ -203,7 +279,7 @@ def waitForMoreRows(sos_host, sos_port, prior_frame_max):
         print "== CONTROLLER:  Waiting for more data.  (" \
             + str(max_frame - prior_frame_max) + " of " \
             + str(FRAME_INTERVAL) + " new frames, " + str(max_frame) \
-            + " total)"
+            + "  total. "
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
@@ -219,10 +295,10 @@ def tablePrint(results):
     return
 
 
-
 def getTrainingData(sos_host, sos_port, row_limit):
-
-    # Drive an outer loop that grabs the list of unique loop names
+    # Eventually, we can drive an outer loop
+    # that generates models for each unique
+    # Apollo region in the workflow:
     sql_string = """
         SELECT DISTINCT loop FROM (
             SELECT
@@ -260,15 +336,15 @@ def getTrainingData(sos_host, sos_port, row_limit):
         for row in fields_avail:
             print "    " + str(row[0])
 
-    sql_string = """
-        SELECT frame, loop, policyIndex as kernel_variant, group_id, op_count, t_total, t_op_weight, (t_total / op_count) AS t_op_avg FROM (
+    sql_string = """\
+        SELECT frame, loop, policy_index, group_id, op_count, t_total, COALESCE(t_op_weight, 0) as t_op_weight, (t_total / op_count) AS t_op_avg FROM (
             SELECT
                   tblVals.frame AS frame,
                   tblData.guid AS guid,
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "loop"
                                   THEN tblVals.val END) AS "loop", 
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policyIndex"
-                                  THEN tblVals.val END) AS "policyIndex",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policy_index"
+                                  THEN tblVals.val END) AS "policy_index",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "group_id"
                                   THEN tblVals.val END) AS "group_id",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "op_count"
@@ -292,26 +368,19 @@ def getTrainingData(sos_host, sos_port, row_limit):
         )   WHERE  cali_event_end IS NOT NULL
 
         ORDER BY
-            loop
-    """
+            loop"""
 
     if (row_limit < 1):
         sql_string += ";"
     else:
         sql_string += "LIMIT " + str(row_limit) + ";"
 
-    if (VERBOSE):
-        print "== CONTROLLER:  Sending a query for training data..."
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
-
-    if (VERBOSE):
-        print col_names
-        tablePrint(results)
-
     data = pd.DataFrame.from_records(results, columns=col_names)
 
     if (VERBOSE):
         print "== CONTROLLER:  Received training data from SOS..."
+        tablePrint(results)
 
     return data, region_names
 
