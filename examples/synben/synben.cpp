@@ -225,18 +225,23 @@ void experimentLoop(Apollo *apollo, auto& run) {
         }
         op_weight = std::min((int)weights(run.rng), (int)run.op_weight_max);
         
-        // Express our configuration to Caliper:
-        reg->caliSetInt("group_id", group_id);
-        reg->caliSetInt("op_count", op_count);
-        reg->caliSetInt("op_weight", op_weight);
-        // ...now Apollo can use those "features" when traversing a DT:
-        pol_idx = getApolloPolicyChoice(reg);
-        reg->caliSetInt("policy_index", pol_idx);
-        auto kernel = run.kernel_variants.at(pol_idx);
+        group_id = i % 50;
+        
         // -----
         reg->iterationStart(i);
-            reg->caliSetInt("group_id", i % 10);
+            // Express our configuration to Caliper:
+            reg->caliSetInt("group_id", group_id);
+            reg->caliSetInt("op_count", op_count);
+            reg->caliSetInt("t_op_weight", op_weight);
+            // Select our "kernel variant":
+            pol_idx = getApolloPolicyChoice(reg);
+            reg->caliSetInt("policy_index", pol_idx);
+            auto kernel = run.kernel_variants.at(pol_idx);
+            reg->caliSetInt("t_op", kernel.t_op);
+            // Run it:
             t_total = syntheticRegion(run, kernel, op_count, op_weight);
+            // Record the computed time, in case we're not actually sleeping
+            // and don't want to use the time captured by Caliper:
             reg->caliSetInt("t_total", t_total);
         reg->iterationStop();
         // -----

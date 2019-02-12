@@ -5,8 +5,34 @@ export CALI_SERVICES_ENABLE="aggregate:event:timestamp:sos"
 export CALI_SOS_TRIGGER_ATTR="iteration#synben"
 export CALI_LOG_VERBOSITY=0
 
+
+#Usage:
+#  ./build/examples/synben/synben [OPTION...]
 #
-# Launch the app:
+#  -h, --help     Display this message
+#  -v, --verbose  Display verbose status messages
 #
-#./build/examples/addvect/addvect
-./build/examples/synben/synben -v -s -d 10000 
+# Experiment options:
+#  -s, --sim-sleep          Directly set times rather than actually sleeping
+#  -r, --random-ops         Randomize number of operations per iteration
+#  -o, --op-count-max arg   Maximum operations to be simulated in the Apollo
+#                           region (default: 2000)
+#  -i, --iter-max arg       Limit to the # of times Apollo region is iterated
+#                           (default: -1)
+#  -w, --op-weight-max arg  Operation cost units (usec) between 0 and
+#                           op-weight-max per operation, randomized between iterations
+#                           (default: 0)
+#  -d, --delay-usec arg     Unmeasured delay between Apollo region iterations
+#                           (default: 0)
+#
+
+#
+# Launch the synthetic benchmark:
+#
+./build/examples/synben/synben  --verbose                   \
+                                --random-ops                \
+                                --op-count-max 3000         \
+                                --op-weight-max 3           \
+                                --iter-max -1               \
+                                --sim-sleep                 \
+                                --delay-usec 10000          

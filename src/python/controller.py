@@ -3,6 +3,7 @@ import os
 import json
 import time
 import cStringIO
+import warnings
 import numpy   as np
 import pandas  as pd    
 import sklearn as skl
@@ -77,35 +78,6 @@ def generateDecisionTree(data, region_names):
     # within that GroupId. This lets us pretend different iteration groupings 
     # have different behavior.
 
-    #sort by t_op_avg
-    #group by group_id
-    #drop slowest ones (or take first from each group, Pandas-style)
-
-    # NOTE: The rows that are dropped should be identical to the rows
-    # that are kept EXCEPT for the time and the variant.
-
-
-    #y = target value
-    #x = independent features (data that would effect the kernel decision)
-
-    #x is not something dependent on the kernel that was selected.
-    #x determines y
-    # example: X will not be t_total
-
-
-# Prepare the data before building the tree:
-#       filter out all but the best scoring t_totals
-#       for every unique combination of X values
-#   [Y]    [ X:                             ]    -cut- (used to determine Y)
-#   kern   [ t_op    op_count    t_op_weight]     t_total
-#    0     [  2        1212           1     ]       112
-#    1     [  4        1212           1     ]       112
-#    2     [  2        1212           1     ]       112
-#    3     [  6        1212           1     ]       112
-#    4     [  1        1212           1     ]       112
-#            ^-_ remove duplicates with worst times
-
-
 # TREE #1:
 # Feature:
 #    kern_selected  Y
@@ -114,14 +86,11 @@ def generateDecisionTree(data, region_names):
 #    t_op_weight    X
 #    t_total       ---cut
 
-
 #NOTE: For tree 2, we need to do something about sets of unique X's producing
 #           different t_totals.
 #           IDEAS:  Random Drop
 #                   Recency Drop
 #                   Ranges (rolling min/max allowed)
-#
-
 # TREE #2:
 #    t_total        Y   <-- bin this into ranges/stddev's?
 #    kern_selected  X
@@ -130,60 +99,55 @@ def generateDecisionTree(data, region_names):
 #    t_op_weight    X
 
 
-###
-#
-#  Some vector X that describes the kernels, Y is total
-#
-#  Things we might observe at runtime to use to produce the tree:
-#     -- number of data elements
-#     -- size of elements
-#     -- thread count
-#  
-#  Row for each combination of [application] and [kernel]
-#
-#
-###
-
-    if (VERBOSE): print "== CONTROLLER:  Extracting dependent variable for Y-axis..."
-
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
-    if (VERBOSE): print "== CONTROLLER:  Exclude columns we don't want to use for learning..."
-    #def pickMin(df):
-    #    return df.loc(df["t_total"].astype(int).idxmin())
-    #data.groupby(["policy_index", "group_id", "op_count", "t_total"]).filter(lambda x: )
+    # Example of value binning (up to 100 bins, dropping any bins with duplicated edge values):
+    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
 
-    grp_data = data.sort_values("t_total").groupby(["policy_index", "op_count", "group_id"], as_index=False).first()
-    y = grp_data["policy_index"].astype(int)
-    x = grp_data.drop([
+    grp_data = data\
+            .sort_values("t_op_avg")\
+            .groupby(["op_count_binned"], as_index=False)\
+            .first()
+
+    drop_fields =[
+            "frame",
             "loop",
-            "t_total",
+            "loop_id",
+            "group_id",
             "policy_index",
-            "group_id"
-        ], axis="columns").values.astype(float)
+            "t_total",
+            "t_op",
+            "t_op_weight",
+            "t_op_avg",
+            "op_count_binned"
+        ] 
+    
+    y = grp_data["policy_index"].astype(int)
+    x = grp_data.drop(drop_fields, axis="columns").values.astype(float)
 
-    # This leaves X with...
-    feature_names = ["frame", "group_id", "op_count", "t_op_weight", "t_op_avg"]
-
-    if (VERBOSE): print "== CONTROLLER:  Initializing pipelines..."
-    #####
-    pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=2,
-                 max_features=1, max_leaf_nodes=None,
-                 min_impurity_split=1e-07, min_samples_leaf=1,
-                 min_samples_split=2, min_weight_fraction_leaf=0.0,
-                 presort=False, random_state=None, splitter='best'))]
-    #####
-
+    feature_names = []
+    raw_names = grp_data.drop(drop_fields, axis="columns").columns
+    for name in raw_names:
+        feature_names.append(name)
+ 
+    
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
+    pipe = [('estimator',   DecisionTreeClassifier(
+                 class_weight=None, criterion='gini', max_depth=7,
+                 max_features=len(feature_names), max_leaf_nodes=None,
+                 min_impurity_split=1e-07, min_samples_leaf=5,
+                 min_samples_split=10, min_weight_fraction_leaf=0.0,
+                 presort=False, random_state=None, splitter='best'))]
     model = Pipeline(pipe)
-
-    if (VERBOSE and (x.shape[0] > 10)):
-        print "== CONTROLLER:  Cross-validation... (10-fold)"
-        scores = cross_val_score(model, x, y, cv=min(10, (x.shape[0] - 1)))
+    if (VERBOSE and x.shape[0] > 2):
+        warnings.filterwarnings("ignore")
+        cv_folds = 10
+        print "== CONTROLLER:  Cross-validation... (" + str(cv_folds) + "-fold)"
+        scores = cross_val_score(model, x, y, cv=cv_folds)
         print("\n".join([("    " + str(score)) for score in scores]))
         print "    score.mean == " + str(np.mean(scores))
+        warnings.resetwarnings()
 
     if (VERBOSE): print "== CONTROLLER:  Training model..."
     model.fit(x, y)
@@ -191,11 +155,8 @@ def generateDecisionTree(data, region_names):
     trained_model = model.named_steps['estimator']
 
     if (VERBOSE): print "== CONTROLLER:  Encoding rules..."
-    #
-    #
     rules_json = tree_to_json(trained_model, feature_names) 
     rules_code = tree_to_code(trained_model, feature_names)
-    #rules_code = tree_to_string(trained_model, feature_names)
 
     dotfile = open("model.dot", 'w')
     from sklearn import tree as _tree
@@ -250,15 +211,15 @@ def main():
         print rules_code
         print "-----"
  
-        model_def
-        model_def= generateStaticModel(data, region_names)
-        model_len = len(model_def)
+        #model_def
+        #model_def= generateStaticModel(data, region_names)
+        #model_len = len(model_def)
 
         if model_len > 0:
             if (VERBOSE):
-                print "== CONTROLLER:  Sending model to SOS runtime for distribution to Apollo..."
+                print "== CONTROLLER:  < SKIPPING > Sending model to SOS runtime for distribution to Apollo..."
                 print model_def
-            SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            #SOS.trigger("APOLLO_MODELS", model_len, model_def)
         else:
             if (VERBOSE):
                 print "== CONTROLLER:  NOTICE: Model was not generated, nothing to send."
@@ -325,19 +286,18 @@ def getTrainingData(sos_host, sos_port, row_limit):
         for row in region_names:
             print "    " + str(row[0])
 
-    sql_string = """
-        SELECT DISTINCT name FROM tblData;
-    """
-    if (VERBOSE):
-        print "== CONTROLLER:  Retrieving possible field names."
-    fields_avail, col_names = SOS.query(sql_string, sos_host, sos_port)
-    if (VERBOSE):
-        print "== CONTROLLER:  Field names available for query:"
-        for row in fields_avail:
-            print "    " + str(row[0])
-
     sql_string = """\
-        SELECT frame, loop, policy_index, group_id, op_count, t_total, COALESCE(t_op_weight, 0) as t_op_weight, (t_total / op_count) AS t_op_avg FROM (
+        SELECT
+            frame,
+            loop,
+            policy_index,
+            group_id,
+            op_count,
+            t_total,
+            COALESCE(t_op, 0) as t_op,
+            COALESCE(t_op_weight, 0) as t_op_weight,
+            ((t_total * 1.0) / (op_count * 1.0)) AS t_op_avg
+        FROM (
             SELECT
                   tblVals.frame AS frame,
                   tblData.guid AS guid,
@@ -350,7 +310,9 @@ def getTrainingData(sos_host, sos_port, row_limit):
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "op_count"
                                   THEN tblVals.val END) AS "op_count",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_total"
-                                  THEN tblVals.val END) AS "t_total", 
+                                  THEN tblVals.val END) AS "t_total",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_op"
+                                  THEN tblVals.val END) AS "t_op",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_op_weight"
                                   THEN tblVals.val END) AS "t_op_weight",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "sum#time.inclusive.duration"
@@ -368,7 +330,8 @@ def getTrainingData(sos_host, sos_port, row_limit):
         )   WHERE  cali_event_end IS NOT NULL
 
         ORDER BY
-            loop"""
+            loop
+        """
 
     if (row_limit < 1):
         sql_string += ";"
