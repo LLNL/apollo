@@ -17,10 +17,15 @@ using json = nlohmann::json;
 #define modelFile __FILE__
 
 
+using namespace std;
+
 int
 Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     // Compare the node->value to the defined comparison values
     // and either dive down a branch or return the choice up.
+    //
+    // NOTE: This is failing on evaluation
+    //
     if (node->feature->value <= node->value_LEQ) {
         if (node->left_child == nullptr) {
             return node->recommendation;
@@ -28,7 +33,7 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
             return recursiveTreeWalk(node->left_child);
         }
     }
-    if (node->feature->value > node->value_GRT) {
+    if (node->feature->value > node->value_LEQ) {
         if (node->right_child == nullptr) {
             return node->recommendation;
         } else {
@@ -87,8 +92,6 @@ Apollo::Model::DecisionTree::configure(
         int          numPolicies,
         std::string  model_definition)
 {
-    //NOTE: Make sure to grab the lock from the calling code:
-    //          std::lock_guard<std::mutex> lock(model->modelMutex);
 
     apollo       = apollo_ptr;
     policy_count = numPolicies;
@@ -119,49 +122,106 @@ Apollo::Model::DecisionTree::configure(
     }
 
     model_def = model_definition;
-
-    //TODO: Wrap this loop in a DFS recursive unrolling of the JSON tree:
     
-    // #####
-    // #
-    // #
-    // FOR this NODE these will get plucked from the Decision Tree:
-    cali_id_t   feat_id;
-    std::string feat_name = "";
-    double      leq_val = 0.0;
-    double      grt_val = 0.0;
-    int         recc_val = 0;
+    // Expand the escape sequences embedded into the string-ified JSON into
+    // their actual JSON format:
+    int fmt_scrub_len = model_def.length() + 1;
+    char *fmt_scrub     = (char *) calloc(fmt_scrub_len, 1);
+    snprintf(fmt_scrub, fmt_scrub_len, model_def.c_str());
+    std::string model_scrubbed = fmt_scrub;
+    free(fmt_scrub);
 
-    // Scan to see if we have this feature in our accelleration structure::
-    bool found = false;
-    for (Feature *feat : tree_features) {
-        if (feat->name == feat_name) {
-            found = true;
-            break;
-        }
-    }
-    if (not found) {
-        // add it
-        feat_id = cali_find_attribute(feat_name.c_str());
-        if (feat_id == CALI_INV_ID) {
-            fprintf(stderr, "== APOLLO: "
-            "[ERROR] DecisionTree contains features no present in Caliper data.\n"
-                "\tThis is likely do to an error in the Apollo Controller logic.\n"
-                "\tTerminating.\n");
-            fflush(stderr);
-            exit(EXIT_FAILURE);
-        } else {
-            Feature *feat = new Feature();
-            // NOTE: feat->value_variant and feat->value are filled
-            //       before being used for traversal in getIndex()
-            feat->cali_id = feat_id;
-            feat->name    = feat_name;
-            tree_features.push_back(feat);
-        }
-    }
+    //std::cout << "Parsing the following model:" << std::endl;
+    //std::cout << model_scrubbed;
+
+    json j = json::parse(model_scrubbed);
+    // Recursive function that constructs tree from nested JSON:
+    tree_head = nodeFromJson(j, nullptr);
+
+    // ----------
+
+
+
 
     configured = true;
     return;
+}
+
+Apollo::Model::DecisionTree::Node*
+Apollo::Model::DecisionTree::nodeFromJson(json j,
+        Apollo::Model::DecisionTree::Node *parent)
+{
+    Apollo::Model::DecisionTree::Node *node =
+        new Apollo::Model::DecisionTree::Node;
+    tree_nodes.push_back(node);
+
+    node->parent_node   = parent;
+    node->left_child    = nullptr;
+    node->right_child   = nullptr;
+    node->value_LEQ     = -1.0;
+    
+
+
+    // [ ] IF there is a "rule", there are L/R children
+    if (j.find("rule") != j.end()) {
+        // [ ] Extract the feature name and the comparison value for LEQ/GT
+        cali_id_t   feat_id;
+
+        std::string rule = j["rule"].get<string>();
+        std::string feat_name = "";
+        std::string comparison_symbol = "";
+        double      leq_val = 0.0;
+
+        std::stringstream rule_split(rule);
+
+        rule_split >> feat_name;
+        rule_split >> comparison_symbol;
+        rule_split >> leq_val;
+
+        std::cout << "BRANCH" << feat_name << " <= " << leq_val << std::endl;
+
+        // Scan to see if we have this feature in our accelleration structure::
+        bool found = false;
+        for (Feature *feat : tree_features) {
+            if (feat->name == feat_name) {
+                found = true;
+                break;
+            }
+        }
+        if (not found) {
+            // add it
+            feat_id = cali_find_attribute(feat_name.c_str());
+            if (feat_id == CALI_INV_ID) {
+                fprintf(stderr, "== APOLLO: "
+                "[ERROR] DecisionTree refers to features not present in Caliper data.\n"
+                "\tThis is likely due to an error in the Apollo Controller logic.\n");
+                fprintf(stderr, "== APOLLO: Referenced feature: \"%s\"\n",
+                        feat_name.c_str());
+                fflush(stderr);
+                exit(EXIT_FAILURE);
+            } else {
+                Feature *feat = new Feature();
+                // NOTE: feat->value_variant and feat->value are filled
+                //       before being used for traversal in getIndex()
+                feat->cali_id = feat_id;
+                feat->name    = feat_name;
+                tree_features.push_back(feat);
+            }
+        }
+        // [ ] Recurse into the L/R children
+        node->left_child = nodeFromJson(j["left"], node);
+        node->right_child = nodeFromJson(j["right"], node);
+    } else {
+        // [ ] We are a leaf, extract the values from the tree
+        node->recommendation_vector = j["value"].get<vector<float>>();
+        // [ ] TODO: Some reduction operation to turn this vector into
+        //           the correct policy index recommendation.
+        node->recommendation = -1;
+
+        std::cout << "RECOMMENDS" << node->recommendation << std::endl;
+    }
+
+    return node;
 }
 //
 // ----------

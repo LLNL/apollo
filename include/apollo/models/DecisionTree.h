@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include "external/nlohmann/json.hpp"
+
 #include "caliper/cali.h"
 #include "caliper/common/cali_types.h"
 
@@ -37,39 +39,22 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
 
         class Node {
             public:
-                Node(Apollo *apollo_ptr, Feature *feat_ptr)
-                {
-                    apollo       = apollo_ptr;
-                    //
-                    parent_node  = nullptr;
-                    left_child   = nullptr;
-                    right_child  = nullptr;
-                    //
-                    feature      = feat_ptr;
-                }
+                Node() {};
                 ~Node() {};
 
                 double    value_LEQ;
-                double    value_GRT;
-                int       recommendation;
-
                 Feature  *feature;
                 Node     *left_child;
                 Node     *right_child;
-
-
-            private:
-                Apollo   *apollo;
-                //
-                bool      filled = false;
-                //
                 Node     *parent_node;
-                //
-                //
+                
+                int                recommendation;
+                std::vector<float> recommendation_vector;
         }; // end: Node (class)
-        //
+        
+        Node* nodeFromJson(nlohmann::json parsed_json, Node *parent);
         int  recursiveTreeWalk(Node *node);
-        //
+        
         Node                   *tree_head;
         std::vector<Node *>     tree_nodes;
         std::vector<Feature *>  tree_features;

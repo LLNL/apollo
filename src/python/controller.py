@@ -168,14 +168,16 @@ def generateDecisionTree(data, region_names):
     model_def['type']['index'] = 4 
     model_def['type']['name'] = "DecisionTree"
     model_def['region_names'] = []
-    model_def['region_names'] = region_names
+    for n in region_names:
+        for nm in n:
+            model_def['region_names'].append(nm)
     model_def['features'] = {}
     model_def['features']['count'] = len(feature_names)
     model_def['features']['names'] = []
     model_def['features']['names'] = feature_names
     model_def['driver'] = {}
     model_def['driver']['format'] = "json"
-    model_def['driver']['rules'] = rules_json 
+    model_def['driver']['rules'] = rules_json #json.dumps(trained_model, sort_keys=False, indent=4)  
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
 
@@ -217,9 +219,9 @@ def main():
 
         if model_len > 0:
             if (VERBOSE):
-                print "== CONTROLLER:  < SKIPPING > Sending model to SOS runtime for distribution to Apollo..."
+                print "== CONTROLLER:  Sending model to SOS runtime for distribution to Apollo..."
                 print model_def
-            #SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            SOS.trigger("APOLLO_MODELS", model_len, model_def)
         else:
             if (VERBOSE):
                 print "== CONTROLLER:  NOTICE: Model was not generated, nothing to send."

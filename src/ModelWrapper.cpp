@@ -38,7 +38,7 @@ Apollo::ModelWrapper::configure(
         apollo_log(2, "Using the default model for initialization.\n");
     }
 
-    apollo_log(4, "Model definition:\n%s\n", model_def);
+    apollo_log(9, "Model definition:\n%s\n", model_def);
 
     // Extract the various common elements from the model definition
     // and provide them to the configure method, independent of whatever
@@ -131,16 +131,15 @@ Apollo::ModelWrapper::configure(
         exit(1);
     }
 
-    if      (m_type_name == "Random")     { model_type = MT.Random; }
-    else if (m_type_name == "Sequential") { model_type = MT.Sequential; }
-    else if (m_type_name == "Static")     { model_type = MT.Static; }
-    else                                  { model_type = MT.Default; }
+    if      (m_type_name == "Random")       { model_type = MT.Random; }
+    else if (m_type_name == "Sequential")   { model_type = MT.Sequential; }
+    else if (m_type_name == "Static")       { model_type = MT.Static; }
+    else if (m_type_name == "DecisionTree") { model_type = MT.DecisionTree; }
+    else                                    { model_type = MT.Default; }
 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
     shared_ptr<Apollo::ModelObject> nm = nullptr;
 
-    std::cout << "m_type_name == " << m_type_name << std::endl;
-   
     switch (model_type) {
         //
         case MT.Random:
