@@ -24,7 +24,11 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     // Compare the node->value to the defined comparison values
     // and either dive down a branch or return the choice up.
     //
-    // NOTE: This is failing on evaluation
+    // Every node needs to have an initialized FEATURE
+    //
+    //
+    //IF this a LEAF node, return the int.
+    //OTHERWISE...
     //
     if (node->feature->value <= node->value_LEQ) {
         if (node->left_child == nullptr) {
@@ -214,6 +218,8 @@ Apollo::Model::DecisionTree::nodeFromJson(json j,
     } else {
         // [ ] We are a leaf, extract the values from the tree
         node->recommendation_vector = j["value"].get<vector<float>>();
+        // B/C why not.
+        node->feature = node->parent_node->feature;
         // [ ] TODO: Some reduction operation to turn this vector into
         //           the correct policy index recommendation.
         node->recommendation = -1;
