@@ -16,7 +16,7 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = True
-FRAME_INTERVAL = 200
+FRAME_INTERVAL = 2000
 SOS = SSOS() 
 
 def generateStaticModel(data, region_names):
@@ -103,7 +103,7 @@ def generateDecisionTree(data, region_names):
     data["loop_id"] = data["loop"].cat.codes
 
     # Example of value binning (up to 100 bins, dropping any bins with duplicated edge values):
-    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
+    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 100, duplicates="drop")
 
     grp_data = data\
             .sort_values("t_op_avg")\
@@ -134,7 +134,7 @@ def generateDecisionTree(data, region_names):
     
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
     pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=7,
+                 class_weight=None, criterion='gini', max_depth=6,
                  max_features=len(feature_names), max_leaf_nodes=None,
                  min_impurity_split=1e-07, min_samples_leaf=5,
                  min_samples_split=10, min_weight_fraction_leaf=0.0,

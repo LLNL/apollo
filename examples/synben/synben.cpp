@@ -17,7 +17,9 @@
 #include "apollo/PolicyChooser.h"
 #include "apollo/Feature.h"
 
-void configureKernels(void);
+void configureKernelVariants(void);
+int  syntheticKernelVariantRecommendation(int op_count);
+
 int  syntheticRegion(auto& run, auto& kernel_variant, int t_op_weight);
 void experimentLoop(Apollo *apollo, auto& run);
 
@@ -174,13 +176,28 @@ RunSettings parse(int argc, char **argv) {
     return run;
 }
 
-void configureKernels(auto& run) {
-    run.kernel_variants.push_back(KernelVariant(1000, 9, "[cpu     ]"));
-    run.kernel_variants.push_back(KernelVariant(4000, 4, "[pthreads]"));
-    run.kernel_variants.push_back(KernelVariant(5000, 3, "[openmp  ]"));
-    run.kernel_variants.push_back(KernelVariant(7000, 1, "[cuda    ]"));
+void configureKernelVariants(auto& run) {
+    run.kernel_variants.push_back(KernelVariant(1000,  5, "[cpu     ]")); 
+    run.kernel_variants.push_back(KernelVariant(2000,  2, "[pthreads]")); 
+    run.kernel_variants.push_back(KernelVariant(4000,  2, "[openmp  ]")); 
+    run.kernel_variants.push_back(KernelVariant(4000,  1, "[cuda    ]")); 
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
     return;    
+}
+
+int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight) {
+    int this_cost = 0;
+    int best_cost_seen = 99999999;
+    int best_kernel = -1;
+    for (unsigned int i = 0; i < run.kernel_variants.size(); i++) {
+        auto kernel = run.kernel_variants[i];
+        this_cost = syntheticRegion(run, kernel, op_count, op_weight); 
+        if (this_cost < best_cost_seen) {
+            best_kernel = (int) i;
+            best_cost_seen = this_cost;
+        }
+    }
+    return best_kernel;
 }
 
 
@@ -188,7 +205,7 @@ int main(int argc, char **argv)
 {
     auto run = parse(argc, argv);    
     Apollo *apollo = new Apollo();
-    configureKernels(run);
+    configureKernelVariants(run);
     experimentLoop(apollo, run);
 
     return EXIT_SUCCESS;
@@ -212,10 +229,14 @@ void experimentLoop(Apollo *apollo, auto& run) {
     reg->begin();
 
     int pol_idx = 0;
+    int test_pol = 0;
+
     int t_total = 0;
     int op_count = 1;
     int op_weight = 0;
     int group_id = 0;
+
+    bool optimal_variant_used = false;
 
     int i = 1;
     while (true) {
@@ -237,6 +258,15 @@ void experimentLoop(Apollo *apollo, auto& run) {
             reg->caliSetInt("t_op_weight", op_weight);
             // Select our "kernel variant":
             pol_idx = getApolloPolicyChoice(reg);
+
+            // Check the kernel variant recommended against the synthetic test:
+            test_pol = syntheticKernelVariantRecommendation(run, op_count, op_weight);
+            if (test_pol != pol_idx) {
+                optimal_variant_used = false;
+            } else {
+                optimal_variant_used = true;
+            }
+
             reg->caliSetInt("policy_index", pol_idx);
             auto kernel = run.kernel_variants.at(pol_idx);
             reg->caliSetInt("t_op", kernel.t_op);
@@ -246,7 +276,8 @@ void experimentLoop(Apollo *apollo, auto& run) {
             //
             run.log("Iter ", i, runMaxDesc,
                 ": k.variant ", pol_idx, " ", kernel.name, " took ", std::left,
-                std::setw(5), t_total, " usec on ", op_count, " ops");
+                std::setw(5), t_total, " usec on ", std::left, std::setw(5),
+                op_count, " ops, optimal == ", optimal_variant_used);
             //
             // Record the computed time, in case we're not actually sleeping
             // and don't want to use the time captured by Caliper:
