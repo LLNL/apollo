@@ -16,54 +16,8 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = True
-FRAME_INTERVAL = 2000
+FRAME_INTERVAL = 1000
 SOS = SSOS() 
-
-def generateStaticModel(data, region_names):
-
-    model_def = {} 
-    model_def['type'] = {}
-    model_def['type']['index'] = 3
-    model_def['type']['name'] = "Static"
-    model_def['region_names'] = []
-    for n in region_names:
-        for nm in n:
-            model_def['region_names'].append(nm)
-    model_def['features'] = {}
-    model_def['features']['count'] = 0
-    model_def['features']['names'] = [] 
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1" 
-    
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
-
-    if VERBOSE:
-        print "== CONTROLLER: model_as_json = " + model_as_json
-
-    return model_as_json
-
-
-def generateSyntheticDecisionTree(data, region_names):
-
-    fake_json = {}
-    fake_json = {} 
-    fake_json['type'] = {}
-    fake_json['type']['index'] = 4 
-    fake_json['type']['name'] = "DecisionTree"
-    fake_json['region_names'] = []
-    fake_json['region_names'] = region_names
-    fake_json['features'] = {}
-    fake_json['features']['count'] = len(feature_names)
-    fake_json['features']['names'] = []
-    fake_json['features']['names'] = feature_names
-    fake_json['driver'] = {}
-    fake_json['driver']['format'] = "json"
-    fake_json['driver']['rules'] = rules_json 
-
-
-
-    return fake_json
 
 
 def generateDecisionTree(data, region_names): 
@@ -78,37 +32,42 @@ def generateDecisionTree(data, region_names):
     # within that GroupId. This lets us pretend different iteration groupings 
     # have different behavior.
 
-# TREE #1:
-# Feature:
-#    kern_selected  Y
-#    t_op           X
-#    op_count       X
-#    t_op_weight    X
-#    t_total       ---cut
-
-#NOTE: For tree 2, we need to do something about sets of unique X's producing
-#           different t_totals.
-#           IDEAS:  Random Drop
-#                   Recency Drop
-#                   Ranges (rolling min/max allowed)
-# TREE #2:
-#    t_total        Y   <-- bin this into ranges/stddev's?
-#    kern_selected  X
-#    t_op           X
-#    op_count       X
-#    t_op_weight    X
-
+    # TREE #1:
+    # Feature:
+    #    kern_selected  Y
+    #    t_op           X
+    #    op_count       X
+    #    t_op_weight    X
+    #    t_total       ---cut
+    
+    #NOTE: For tree 2, we need to do something about sets of unique X's producing
+    #           different t_totals.
+    #           IDEAS:  Random Drop
+    #                   Recency Drop
+    #                   Ranges (rolling min/max allowed)
+    # TREE #2:
+    #    t_total        Y   <-- bin this into ranges/stddev's?
+    #    kern_selected  X
+    #    t_op           X
+    #    op_count       X
+    #    t_op_weight    X
+    
 
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
-    # Example of value binning (up to 100 bins, dropping any bins with duplicated edge values):
-    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 100, duplicates="drop")
-
+    # Example of value binning (up to 50 bins, dropping any bins with duplicated edge values):
+    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
     grp_data = data\
             .sort_values("t_op_avg")\
             .groupby(["op_count_binned"], as_index=False)\
             .first()
+
+    #grp_data = data\
+    #        .sort_values("t_total")\
+    #        .groupby(["op_count"], as_index=False)\
+    #        .first()
+
 
     drop_fields =[
             "frame",
@@ -118,13 +77,13 @@ def generateDecisionTree(data, region_names):
             "policy_index",
             "t_total",
             "t_op",
-            "t_op_weight",
             "t_op_avg",
             "op_count_binned"
         ] 
     
     y = grp_data["policy_index"].astype(int)
     x = grp_data.drop(drop_fields, axis="columns").values.astype(float)
+    # At this point, x contains 'op_count' only.
 
     feature_names = []
     raw_names = grp_data.drop(drop_fields, axis="columns").columns
@@ -134,7 +93,7 @@ def generateDecisionTree(data, region_names):
     
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
     pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=6,
+                 class_weight=None, criterion='gini', max_depth=5,
                  max_features=len(feature_names), max_leaf_nodes=None,
                  min_impurity_split=1e-07, min_samples_leaf=5,
                  min_samples_split=10, min_weight_fraction_leaf=0.0,
@@ -219,9 +178,25 @@ def main():
 
         if model_len > 0:
             if (VERBOSE):
-                print "== CONTROLLER:  Sending model to SOS runtime for distribution to Apollo..."
-                print model_def
+                print "== CONTROLLER:  Sending >>> DECISIONTREE <<< to SOS for Apollo..."
+                print "== CONTROLLER:    ..."
             SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            if (VERBOSE): print "== CONTROLLER:  Sleeping 8 seconds to let model run..."
+            time.sleep(8)
+
+            if (VERBOSE): print "== CONTROLLER:  Clearing prior training data..."
+            wipeTrainingData(sos_host, sos_port, prior_frame_max)
+            
+            if (VERBOSE):
+                print "== CONTROLLER:  Sending >>> RANDOMSEARCH <<< to SOS for Apollo..."
+                print "== CONTROLLER:    ..."
+            model_def = generateRandomModel(data, region_names)
+            model_len = len(model_def)
+            SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            # Reset the frame max to so we give the controller new random stuff to learn on
+            # TODO: We need to ignore data from the previous optimal run...
+            prior_frame_max, pub_titles, col_names = \
+                SOS.request_pub_manifest("", sos_host, sos_port)
         else:
             if (VERBOSE):
                 print "== CONTROLLER:  NOTICE: Model was not generated, nothing to send."
@@ -242,7 +217,7 @@ def waitForMoreRows(sos_host, sos_port, prior_frame_max):
         print "== CONTROLLER:  Waiting for more data.  (" \
             + str(max_frame - prior_frame_max) + " of " \
             + str(FRAME_INTERVAL) + " new frames, " + str(max_frame) \
-            + "  total. "
+            + "  total)"
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
@@ -258,10 +233,14 @@ def tablePrint(results):
     return
 
 
+def wipeTrainingData(sos_host, sos_port, prior_frame_max):
+    sql_string =  "DELETE FROM tblVals "
+    sql_string += "WHERE tblVals.frame < " + str(prior_frame_max) + ";"
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port) 
+    return
+
+
 def getTrainingData(sos_host, sos_port, row_limit):
-    # Eventually, we can drive an outer loop
-    # that generates models for each unique
-    # Apollo region in the workflow:
     sql_string = """
         SELECT DISTINCT loop FROM (
             SELECT
@@ -297,7 +276,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
             op_count,
             t_total,
             COALESCE(t_op, 0) as t_op,
-            COALESCE(t_op_weight, 0) as t_op_weight,
+            COALESCE(t_op_weight, 0.0) as t_op_weight,
             ((t_total * 1.0) / (op_count * 1.0)) AS t_op_avg
         FROM (
             SELECT
@@ -349,6 +328,46 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     return data, region_names
 
+
+def generateRandomModel(data, region_names):
+
+    model_def = {} 
+    model_def['type'] = {}
+    model_def['type']['index'] = 1 
+    model_def['type']['name'] = "Random"
+    model_def['region_names'] = []
+    for n in region_names:
+        for nm in n:
+            model_def['region_names'].append(nm)
+    model_def['features'] = {}
+    model_def['features']['count'] = 0
+    model_def['features']['names'] = [] 
+    model_def['driver'] = {}
+    model_def['driver']['format'] = "int"
+    model_def['driver']['rules'] = "1" 
+    
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    return model_as_json
+
+def generateStaticModel(data, region_names):
+
+    model_def = {} 
+    model_def['type'] = {}
+    model_def['type']['index'] = 3
+    model_def['type']['name'] = "Static"
+    model_def['region_names'] = []
+    for n in region_names:
+        for nm in n:
+            model_def['region_names'].append(nm)
+    model_def['features'] = {}
+    model_def['features']['count'] = 0
+    model_def['features']['names'] = [] 
+    model_def['driver'] = {}
+    model_def['driver']['format'] = "int"
+    model_def['driver']['rules'] = "1" 
+    
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    return model_as_json
 
 #########
 

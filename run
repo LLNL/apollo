@@ -32,7 +32,7 @@ export CALI_LOG_VERBOSITY=0
 ./build/examples/synben/synben  --verbose                   \
                                 --random-ops                \
                                 --op-count-max 4000         \
-                                --op-weight-max 0           \
+                                --op-weight-max 4           \
                                 --iter-max -1               \
                                 --sim-sleep                 \
-                                --delay-usec 50000
+                                --delay-usec 10000
