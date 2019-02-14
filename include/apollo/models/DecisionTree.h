@@ -18,7 +18,7 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
     public:
         DecisionTree();
         ~DecisionTree();
-
+        
         void configure(
                 Apollo     *apollo_ptr,
                 int         num_policies,
@@ -42,22 +42,31 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 Node() {};
                 ~Node() {};
 
-                double    value_LEQ;
-                Feature  *feature;
-                Node     *left_child;
-                Node     *right_child;
-                Node     *parent_node;
+                bool        is_leaf;
+
+                int         recommendation;
+                std::vector<float>
+                            recommendation_vector;
+ 
+                double      value_LEQ;
+                Feature    *feature;
+                Node       *left_child;
+                Node       *right_child;
+                Node       *parent_node;
                 
-                int                recommendation;
-                std::vector<float> recommendation_vector;
+      
+                int         indent;
+                int         json_id;
+        
         }; // end: Node (class)
         
-        Node* nodeFromJson(nlohmann::json parsed_json, Node *parent);
+        Node* nodeFromJson(nlohmann::json parsed_json, Node *parent, int indent);
         int  recursiveTreeWalk(Node *node);
         
         Node                   *tree_head;
         std::vector<Node *>     tree_nodes;
         std::vector<Feature *>  tree_features;
+
 
 }; //end: Apollo::Model::DecisionTree (class)
 

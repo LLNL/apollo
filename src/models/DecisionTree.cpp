@@ -19,6 +19,7 @@ using json = nlohmann::json;
 
 using namespace std;
 
+
 int
 Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     // Compare the node->value to the defined comparison values
@@ -100,22 +101,6 @@ Apollo::Model::DecisionTree::configure(
     apollo       = apollo_ptr;
     policy_count = numPolicies;
 
-    if (configured == true) {
-        //This is a RE-configuration. Remove previous configuration.
-        configured = false;
-        tree_head = nullptr;
-        for (Node *node : tree_nodes) {
-            if (node != nullptr) { free(node); }
-        }
-        tree_nodes.clear();
-        for (Feature *feat : tree_features) {
-            if (feat != nullptr) { free(feat); }
-        }
-        tree_features.clear();
-        model_def = "";
-        iter_count = 0;
-    }
-
     // Construct a decisiontree for this model_definition.
     if (model_definition == "") {
         fprintf(stderr, "[WARNING] Cannot successfully configure"
@@ -140,7 +125,7 @@ Apollo::Model::DecisionTree::configure(
 
     json j = json::parse(model_scrubbed);
     // Recursive function that constructs tree from nested JSON:
-    tree_head = nodeFromJson(j, nullptr);
+    tree_head = nodeFromJson(j, nullptr, 1);
 
     // ----------
 
@@ -152,22 +137,25 @@ Apollo::Model::DecisionTree::configure(
 }
 
 Apollo::Model::DecisionTree::Node*
-Apollo::Model::DecisionTree::nodeFromJson(json j,
-        Apollo::Model::DecisionTree::Node *parent)
+Apollo::Model::DecisionTree::nodeFromJson(
+        json j, Apollo::Model::DecisionTree::Node *parent, int my_indent)
 {
     Apollo::Model::DecisionTree::Node *node =
         new Apollo::Model::DecisionTree::Node;
     tree_nodes.push_back(node);
 
+    node->indent        = my_indent;
     node->parent_node   = parent;
     node->left_child    = nullptr;
     node->right_child   = nullptr;
     node->value_LEQ     = -1.0;
     
-
+    std::string indent = std::string(my_indent * 4, ' ');
 
     // [ ] IF there is a "rule", there are L/R children
     if (j.find("rule") != j.end()) {
+        // [ ] We're a branch
+        node->is_leaf = false;
         // [ ] Extract the feature name and the comparison value for LEQ/GT
         cali_id_t   feat_id;
 
@@ -182,12 +170,19 @@ Apollo::Model::DecisionTree::nodeFromJson(json j,
         rule_split >> comparison_symbol;
         rule_split >> leq_val;
 
-        std::cout << "BRANCH" << feat_name << " <= " << leq_val << std::endl;
-
+        //std::cout << "feat_name == '" << feat_name << "'" << std::endl;
+        //std::cout << "comparison_symbol == '" << comparison_symbol << "'" << std::endl;
+        //std::cout << "leq_val == '" << leq_val << "'" << std::endl;
+        
+        node->value_LEQ = leq_val;
+            
         // Scan to see if we have this feature in our accelleration structure::
         bool found = false;
-        for (Feature *feat : tree_features) {
-            if (feat->name == feat_name) {
+        Feature *feat;
+
+        for (auto f : tree_features) {
+            if (f->name == feat_name) {
+                feat = f;
                 found = true;
                 break;
             }
@@ -204,7 +199,7 @@ Apollo::Model::DecisionTree::nodeFromJson(json j,
                 fflush(stderr);
                 exit(EXIT_FAILURE);
             } else {
-                Feature *feat = new Feature();
+                feat = new Feature();
                 // NOTE: feat->value_variant and feat->value are filled
                 //       before being used for traversal in getIndex()
                 feat->cali_id = feat_id;
@@ -212,19 +207,63 @@ Apollo::Model::DecisionTree::nodeFromJson(json j,
                 tree_features.push_back(feat);
             }
         }
+        node->feature = feat;
+        if (APOLLO_VERBOSE >= 1) {
+            std::cout << indent << "if (" << feat_name << \
+                " <= " << node->value_LEQ << ")" << std::endl;
+        }
         // [ ] Recurse into the L/R children
-        node->left_child = nodeFromJson(j["left"], node);
-        node->right_child = nodeFromJson(j["right"], node);
+        node->left_child = nodeFromJson(j["left"],   node, my_indent + 1);
+        if (APOLLO_VERBOSE >= 1) {
+            std::cout << indent << "else" << std::endl;
+        }
+        node->right_child = nodeFromJson(j["right"], node, my_indent + 1);
     } else {
         // [ ] We are a leaf, extract the values from the tree
-        node->recommendation_vector = j["value"].get<vector<float>>();
-        // B/C why not.
+        node->is_leaf = true;
         node->feature = node->parent_node->feature;
-        // [ ] TODO: Some reduction operation to turn this vector into
-        //           the correct policy index recommendation.
-        node->recommendation = -1;
-
-        std::cout << "RECOMMENDS" << node->recommendation << std::endl;
+        node->recommendation_vector = j["value"].get<vector<float>>();
+        // [ ] Look at the vector and find the index with the most clients
+        //     in it, that's where the best performing kernels were clustered
+        //     at this point in the decision tree:
+        bool    duplicate_maximums_exist = false;
+        bool    more_than_one_best_fit   = false;
+        float   val_here   = -1.0;
+        float   max_seen   = -1.0;
+        int     max_pos    = 0;
+        int     pos        = 0;
+        for (pos = 0; pos < node->recommendation_vector.size(); pos++) {
+            val_here = node->recommendation_vector[pos];
+            if ((val_here > 0) && (max_seen >= 0.0)) {
+                more_than_one_best_fit = true;
+            }
+            if (val_here == max_seen) {
+                // NOTE: This means our tree may be a bit confused here
+                //       about what the best policy is for however some
+                //       measurements were binned for analysis by the
+                //       controller.
+                // NOTE: Be default, we move to this as the new max_pos.
+                duplicate_maximums_exist = true;
+                max_pos = pos;
+                // NOTE: We *could* get clever and look at the adjacent
+                //       leaves and take the average, but for now, we don't.
+            } else if (val_here > max_seen) {
+                // We have a new winner!
+                duplicate_maximums_exist = false;
+                max_pos = pos;
+                max_seen = val_here;
+            }
+        }
+        //
+        node->recommendation = max_pos;
+        if (APOLLO_VERBOSE >= 1) {
+            std::cout << indent << "use kernel_variant " << node->recommendation;
+            if (duplicate_maximums_exist || more_than_one_best_fit) {
+                if (more_than_one_best_fit)   { std::cout << " [>1 recc.]"; }
+                if (duplicate_maximums_exist) { std::cout << " [dupe.max]"; }
+            }
+            std::cout << std::endl;
+        }
     }
 
     return node;
@@ -243,6 +282,21 @@ Apollo::Model::DecisionTree::DecisionTree()
 
 Apollo::Model::DecisionTree::~DecisionTree()
 {
+    if (configured == true) {
+        configured = false;
+        tree_head = nullptr;
+        for (Node *node : tree_nodes) {
+            if (node != nullptr) { delete node; }
+        }
+        tree_nodes.clear();
+        for (Feature *feat : tree_features) {
+            if (feat != nullptr) { delete feat; }
+        }
+        tree_features.clear();
+        model_def = "";
+        iter_count = 0;
+    }
+
     return;
 }
 

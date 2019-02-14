@@ -143,15 +143,19 @@ Apollo::ModelWrapper::configure(
     switch (model_type) {
         //
         case MT.Random:
+            apollo_log(2, "Applying new Apollo::Model::Random()\n");
             nm = make_shared<Apollo::Model::Random>();
             break;
         case MT.Sequential:
+            apollo_log(2, "Applying new Apollo::Model::Sequential()\n");
             nm = make_shared<Apollo::Model::Sequential>();
             break;
         case MT.Static:
+            apollo_log(2, "Applying new Apollo::Model::Static()\n");
             nm = make_shared<Apollo::Model::Static>();
             break;
         case MT.DecisionTree:
+            apollo_log(2, "Applying new Apollo::Model::DecisionTree()\n");
             nm = make_shared<Apollo::Model::DecisionTree>();
             break;
         //
@@ -165,9 +169,6 @@ Apollo::ModelWrapper::configure(
     Apollo::ModelObject *lnm = nm.get();
 
     lnm->configure(apollo, num_policies, m_drv_rules);
-
-    std::cout << "model_sptr == " << model_sptr << std::endl;
-    std::cout << "nm         == " << nm << std::endl;
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
     model_sptr = nm;    // Make this new model available for use.

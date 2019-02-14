@@ -134,7 +134,7 @@ def generateDecisionTree(data, region_names):
     
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
     pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=15,
+                 class_weight=None, criterion='gini', max_depth=7,
                  max_features=len(feature_names), max_leaf_nodes=None,
                  min_impurity_split=1e-07, min_samples_leaf=5,
                  min_samples_split=10, min_weight_fraction_leaf=0.0,

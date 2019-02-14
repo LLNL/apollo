@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
@@ -174,11 +175,12 @@ RunSettings parse(int argc, char **argv) {
 }
 
 void configureKernels(auto& run) {
-    run.kernel_variants.push_back(KernelVariant(1000, 9, "cpu"));
-    run.kernel_variants.push_back(KernelVariant(4000, 4, "pthreads"));
-    run.kernel_variants.push_back(KernelVariant(5000, 3, "openmp"));
-    run.kernel_variants.push_back(KernelVariant(7000, 1, "cuda"));
+    run.kernel_variants.push_back(KernelVariant(1000, 9, "[cpu     ]"));
+    run.kernel_variants.push_back(KernelVariant(4000, 4, "[pthreads]"));
+    run.kernel_variants.push_back(KernelVariant(5000, 3, "[openmp  ]"));
+    run.kernel_variants.push_back(KernelVariant(7000, 1, "[cuda    ]"));
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
+    return;    
 }
 
 
@@ -239,16 +241,19 @@ void experimentLoop(Apollo *apollo, auto& run) {
             auto kernel = run.kernel_variants.at(pol_idx);
             reg->caliSetInt("t_op", kernel.t_op);
             // Run it:
+            //
             t_total = syntheticRegion(run, kernel, op_count, op_weight);
+            //
+            run.log("Iter ", i, runMaxDesc,
+                ": k.variant ", pol_idx, " ", kernel.name, " took ", std::left,
+                std::setw(5), t_total, " usec on ", op_count, " ops");
+            //
             // Record the computed time, in case we're not actually sleeping
             // and don't want to use the time captured by Caliper:
             reg->caliSetInt("t_total", t_total);
         reg->iterationStop();
         // -----
 
-        run.log("Iteration ", i, runMaxDesc,
-                ": kernel variant ", pol_idx, " took ", t_total,
-                " usec to process ", op_count, " ops");
         //
         i++; if ((run.iter_max > 0) && (i > run.iter_max)) { break; }
         if (not (i % 100)) { group_id++; };

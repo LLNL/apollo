@@ -29,11 +29,10 @@ export CALI_LOG_VERBOSITY=0
 #
 # Launch the synthetic benchmark:
 #
-gdb --args \
 ./build/examples/synben/synben  --verbose                   \
                                 --random-ops                \
                                 --op-count-max 3000         \
-                                --op-weight-max 3           \
+                                --op-weight-max 0           \
                                 --iter-max -1               \
                                 --sim-sleep                 \
-                                --delay-usec 100000
+                                --delay-usec 50000
