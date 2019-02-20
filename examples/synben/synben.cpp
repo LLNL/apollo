@@ -10,6 +10,7 @@
 #include <chrono>
 #include <thread>
 #include <algorithm>
+#include <set>
 
 #include "external/cxxopts/cxxopts.hpp"
 
@@ -23,6 +24,18 @@ int  syntheticKernelVariantRecommendation(int op_count);
 int  syntheticRegion(auto& run, auto& kernel_variant, int t_op_weight);
 void experimentLoop(Apollo *apollo, auto& run);
 
+template<typename T>
+std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
+    using namespace std;
+    copy(v.begin(), v.end(), ostream_iterator<T>(os, "\n"));
+    return os;
+}
+
+static constexpr 
+unsigned int hash(const char* str, int h = 0)
+{
+        return !str[h] ? 5381 : (hash(str, h+1)*33) ^ str[h];
+}
 
 class KernelVariant {
     public:
@@ -54,9 +67,17 @@ class KernelVariant {
 
 class RunSettings {
     public:
-        RunSettings() {}; 
+        RunSettings() {};
+
         ~RunSettings() {};
-        
+       
+        class Behavior {
+            public:
+                static constexpr int StaticMax      = 0;
+                static constexpr int Sweep          = 1;
+                static constexpr int Random         = 2;
+        }; //end: class RunSettings::Behavior
+
         template <typename Arg, typename... Args>
         void log(Arg&& arg, Args&&... args)
         {
@@ -68,13 +89,19 @@ class RunSettings {
             std::cout << std::endl;
         };
 
+ 
         bool verbose        = false;
         bool sim_sleep      = false;
-        bool random_ops     = false;
         int  op_count_max   = 0;
         int  op_weight_max  = 0;
         int  iter_max       = -1;
         int  delay_usec     = 0;
+        //
+        std::vector<std::string>
+                    behavior_set;
+        std::string behavior_str = "";
+        int         behavior       = Behavior::Random;
+
 
         std::vector<KernelVariant> kernel_variants;
 
@@ -87,7 +114,7 @@ class RunSettings {
             oss << "RunSettings(";
             oss << "verbose:" << verbose << ",";
             oss << "sim_sleep:" << sim_sleep << ",";
-            oss << "random_ops:" << random_ops << ",";
+            oss << "behavior:" << behavior_str << ",";
             oss << "op_count_max:" << op_count_max << ",";
             oss << "op_weight_max:" << op_weight_max << ",";
             oss << "iter_max:" << iter_max << ",";
@@ -121,21 +148,21 @@ RunSettings parse(int argc, char **argv) {
 
         options
             .add_options("Experiment")
-            ("s,sim-sleep",
+            ("s,simulated-sleep",
                 "Directly set times rather than actually sleeping",
                 cxxopts::value<bool>()
                     ->default_value("false"))
-            ("r,random-ops",
-                "Randomize number of operations per iteration",
-                cxxopts::value<bool>()
-                    ->default_value("false"))
-            ("o,op-count-max",
-                "Maximum operations to be simulated in the Apollo region",
-                cxxopts::value<int>()->default_value("2000"))
+            ("b,behavior",
+                "How to explore parameter space [static-max|sweep|random]",
+                cxxopts::value<std::string>()
+                    ->default_value("random"))
             ("i,iter-max",
                 "Limit to the # of times Apollo region is iterated",
                 cxxopts::value<int>()->default_value("-1"))
-            ("n,op-weight-max",
+            ("c,op-count-max",
+                "Maximum operations to be simulated in the Apollo region",
+                cxxopts::value<int>()->default_value("2000"))
+            ("w,op-weight-max",
                 "Operation cost units (usec) between 0 and op-weight-max per"
                 " operation, randomized between iterations",
                 cxxopts::value<int>()->default_value("0"))
@@ -153,13 +180,35 @@ RunSettings parse(int argc, char **argv) {
 
         result.count("verbose");
 
+        run.behavior_set.push_back("static-max");
+        run.behavior_set.push_back("sweep");
+        run.behavior_set.push_back("random");
+
+
         run.verbose        = result["verbose"].as<bool>();
         run.sim_sleep      = result["sim-sleep"].as<bool>();
-        run.random_ops     = result["random-ops"].as<bool>();
+        run.behavior_str   = result["behavior"].as<std::string>();
         run.op_count_max   = result["op-count-max"].as<int>();
         run.op_weight_max  = result["op-weight-max"].as<int>();
         run.iter_max       = result["iter-max"].as<int>();
         run.delay_usec     = result["delay-usec"].as<int>();
+
+        // Validate and apply the requested behavior
+        if (std::find(std::begin(run.behavior_set), std::end(run.behavior_set),
+                    run.behavior_str) != std::end(run.behavior_set)) {
+            // Valid behavior selected
+            switch (hash(run.behavior_str.c_str())) {
+                case hash("static-max"): run.behavior = RunSettings::Behavior::StaticMax; break;
+                case hash("sweep"):      run.behavior = RunSettings::Behavior::Sweep;     break;
+                case hash("random"):     run.behavior = RunSettings::Behavior::Random;    break;
+                default: run.behavior = RunSettings::Behavior::Random; break;
+            }
+        } else {
+            // Invalid behavior specified
+            std::cout << "== SYNBEN: [ERROR] Behavior not supported: " << run.behavior_str << std::endl;
+            std::cout << "== SYNBEN: Please select from the following options:\n\t" << run.behavior_set << std::endl;
+            exit(EXIT_FAILURE);
+        }
 
     } catch (const cxxopts::OptionException &e) {
         std::cout << "== SYNBEN: [ERROR] Could not parse command line options.\n\n\t" << e.what() << "\n" << std::endl;
@@ -237,16 +286,42 @@ void experimentLoop(Apollo *apollo, auto& run) {
     int group_id = 0;
 
     bool optimal_variant_used = false;
+    bool sweep_complete       = false; // Only used for sweep behavior
+
+    std::string       sweep_progress;
+    std::stringstream sweep_progress_ss;
+    sweep_progress = "";
+    sweep_progress_ss << "";
 
     int i = 1;
     while (true) {
 
-        if (run.random_ops) {
-            op_count = ops(run.rng);
-        } else {
-            op_count = run.op_count_max;
+        switch (run.behavior) {
+            case RunSettings::Behavior::StaticMax:
+                op_count = run.op_count_max;
+                break;
+
+            case RunSettings::Behavior::Sweep:
+                // This will give us at least one of each count X weight in the range specified
+                op_count++;
+                if (op_count > run.op_count_max) {
+                    op_count = 1;
+                    op_weight++;
+                    if (op_weight > run.op_weight_max) {
+                        op_weight = 0;
+                        sweep_complete = true;
+                        run.log("---- SWEEP COMPLETE ----");
+                    }
+                }
+                break;
+
+            case RunSettings::Behavior::Random:
+            default:
+                op_count = ops(run.rng);
+                op_weight = std::min((int)weights(run.rng), (int)run.op_weight_max);
+                break;
         }
-        op_weight = std::min((int)weights(run.rng), (int)run.op_weight_max);
+
         
         group_id = i % 50;
         
@@ -274,22 +349,50 @@ void experimentLoop(Apollo *apollo, auto& run) {
             //
             t_total = syntheticRegion(run, kernel, op_count, op_weight);
             //
-            run.log("Iter ", i, runMaxDesc,
+            
+            if (run.behavior == RunSettings::Behavior::Sweep) {
+                sweep_progress = "";
+                int denom = std::max(1, run.op_count_max) * std::max(1, run.op_weight_max);
+                sweep_progress_ss << "SweepProgress(" << std::setprecision(2) << (i / denom) << ") ";
+                sweep_progress = sweep_progress_ss.str();
+            }
+
+            run.log(sweep_progress, "Iter ", i, runMaxDesc,
                 ": k.variant ", pol_idx, " ", kernel.name, " took ", std::left,
                 std::setw(5), t_total, " usec on ", std::left, std::setw(5),
                 op_count, " ops, optimal == ", optimal_variant_used);
-            //
+
             // Record the computed time, in case we're not actually sleeping
             // and don't want to use the time captured by Caliper:
             reg->caliSetInt("t_total", t_total);
         reg->iterationStop();
         // -----
 
-        //
-        i++; if ((run.iter_max > 0) && (i > run.iter_max)) { break; }
+        // Count this iteration:
+        i++;
+        if (run.iter_max > 0) {
+            // We're not set to run forever, see if we're ready to terminate:
+            if (run.behavior == RunSettings::Behavior::Sweep) {
+                // We need to make sure we have at least one
+                // complete sweep of the parameters
+                if ((sweep_complete)
+                 && (i > run.iter_max)) {
+                    break; // leave the loop
+                }
+            } else {
+                // We're not sweeping, so if we've hit enough iterations, we're done
+                if (i > run.iter_max) {
+                    break; //leave the loop
+                }
+            }
+        }
+        // Increment an arbitrary group_id field to for easy optional
+        // subdivision of data later on during analysis:
         if (not (i % 100)) { group_id++; };
+        // If an "untimed" per-iteration delay was requested, sleep now
         std::this_thread::sleep_for(std::chrono::microseconds(run.delay_usec));
-    }
+    } // end: iteration loop
+
     reg->end();
     return;
 }
