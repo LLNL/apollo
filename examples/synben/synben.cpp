@@ -21,7 +21,7 @@
 void configureKernelVariants(void);
 int  syntheticKernelVariantRecommendation(int op_count);
 
-int  syntheticRegion(auto& run, auto& kernel_variant, int t_op_weight);
+int  syntheticRegion(auto& run, auto& kernel_variant, int op_weight);
 void experimentLoop(Apollo *apollo, auto& run);
 
 template<typename T>
@@ -226,10 +226,8 @@ RunSettings parse(int argc, char **argv) {
 }
 
 void configureKernelVariants(auto& run) {
-    run.kernel_variants.push_back(KernelVariant(1000,  5, "[cpu     ]")); 
-    run.kernel_variants.push_back(KernelVariant(2000,  2, "[pthreads]")); 
-    run.kernel_variants.push_back(KernelVariant(4000,  2, "[openmp  ]")); 
-    run.kernel_variants.push_back(KernelVariant(4000,  1, "[cuda    ]")); 
+    run.kernel_variants.push_back(KernelVariant(100,  2, "[example0]")); // best up to 100
+    run.kernel_variants.push_back(KernelVariant(300,  1, "[example1]")); // best after 100
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
     return;    
 }
@@ -291,7 +289,8 @@ void experimentLoop(Apollo *apollo, auto& run) {
     std::string       sweep_progress;
     std::stringstream sweep_progress_ss;
     sweep_progress = "";
-    sweep_progress_ss << "";
+    sweep_progress_ss.str(std::string());
+    sweep_progress_ss.precision(2);
 
     int i = 1;
     while (true) {
@@ -310,7 +309,6 @@ void experimentLoop(Apollo *apollo, auto& run) {
                     if (op_weight > run.op_weight_max) {
                         op_weight = 0;
                         sweep_complete = true;
-                        run.log("---- SWEEP COMPLETE ----");
                     }
                 }
                 break;
@@ -328,10 +326,15 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // -----
         reg->iterationStart(i);
             // Express our configuration to Caliper:
-            reg->caliSetInt("group_id", group_id);
-            reg->caliSetInt("op_count", op_count);
-            reg->caliSetInt("t_op_weight", op_weight);
-            // Select our "kernel variant":
+            reg->caliSetInt("group_id",  group_id);
+            reg->caliSetInt("op_count",  op_count);
+            reg->caliSetInt("op_weight", op_weight);
+
+            // Select our "kernel variant"
+            // TODO: This needs to be able to figure out if we're in TRAINING
+            //       or execution mode, and if we're in TRAINING mode, the
+            //       policy variant need to be another dimension of the Sweep
+            //       behavior if that is what we've specified.
             pol_idx = getApolloPolicyChoice(reg);
 
             // Check the kernel variant recommended against the synthetic test:
@@ -353,13 +356,13 @@ void experimentLoop(Apollo *apollo, auto& run) {
             if (run.behavior == RunSettings::Behavior::Sweep) {
                 sweep_progress = "";
                 sweep_progress_ss.str(std::string());
-                int denom = std::max(1, run.op_count_max) * std::max(1, run.op_weight_max);
-                sweep_progress_ss << "SweepProgress(" << std::setprecision(4) << (((float) i / (float) denom) * 100.0) << ") ";
+                int denom = std::max(1, run.op_count_max) * std::max(1, (run.op_weight_max + 1));
+                sweep_progress_ss << "Sweep(" << std::fixed << (((float) i / (float) denom) * 100.0) << "%) ";
                 sweep_progress = sweep_progress_ss.str();
             }
 
-            run.log(sweep_progress, "Iter ", i, runMaxDesc,
-                ": k.variant ", pol_idx, " ", kernel.name, " took ", std::left,
+            run.log(sweep_progress, "Model(", reg->getModel()->getName(), ") ", i, runMaxDesc,
+                " Kernel[", pol_idx, "]( ", kernel.name, " took ", std::left,
                 std::setw(5), t_total, " usec on ", std::left, std::setw(5),
                 op_count, " ops, optimal == ", optimal_variant_used);
 

@@ -46,6 +46,7 @@ Apollo::Model::Sequential::configure(
 
 Apollo::Model::Sequential::Sequential()
 {
+    name = "Sequential";
     iter_count = 0;
 }
 

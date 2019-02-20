@@ -30,8 +30,8 @@ class Apollo::Model {
                                                  "        \"rules\": \"0\"\n"            \
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
-                                                 "        \"index\": 3,\n"               \
-                                                 "        \"name\": \"Random\"\n"        \
+                                                 "        \"index\": 2,\n"               \
+                                                 "        \"name\": \"Sequential\"\n"    \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \
@@ -57,6 +57,7 @@ class Apollo::ModelObject {
                 std::string model_definition) = 0;
         //
         virtual int  getIndex(void) = 0;
+        std::string  name;
 
     protected:
         Apollo      *apollo;

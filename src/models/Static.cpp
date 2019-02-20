@@ -41,7 +41,7 @@ Apollo::Model::Static::configure(
 
 Apollo::Model::Static::Static()
 {
-
+    name = "Static";
     iter_count = 0;
 }
 

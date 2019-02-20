@@ -277,6 +277,7 @@ Apollo::Model::DecisionTree::nodeFromJson(
 
 Apollo::Model::DecisionTree::DecisionTree()
 {
+    name = "DecisionTree";
     iter_count = 0;
 }
 

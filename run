@@ -31,8 +31,8 @@ export CALI_LOG_VERBOSITY=0
 #
 ./build/examples/synben/synben  --verbose                   \
                                 --behavior=sweep			\
-								--op-count-max 4000         \
-                                --op-weight-max 4           \
+								--op-count-max 200          \
+                                --op-weight-max 0           \
                                 --iter-max -1               \
                                 --sim-sleep                 \
                                 --delay-usec 10000

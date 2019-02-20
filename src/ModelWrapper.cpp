@@ -20,6 +20,13 @@ using json = nlohmann::json;
 
 using namespace std;
 
+std::string
+Apollo::ModelWrapper::getName(void)
+{
+    Apollo::ModelObject *lnm = model_sptr.get();
+    return lnm->name;
+}
+
 bool
 Apollo::ModelWrapper::configure(
         const char           *model_def)

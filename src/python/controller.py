@@ -16,7 +16,7 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = True
-FRAME_INTERVAL = 1000
+FRAME_INTERVAL = 200 
 SOS = SSOS() 
 
 
@@ -32,14 +32,6 @@ def generateDecisionTree(data, region_names):
     # within that GroupId. This lets us pretend different iteration groupings 
     # have different behavior.
 
-    # TREE #1:
-    # Feature:
-    #    kern_selected  Y
-    #    t_op           X
-    #    op_count       X
-    #    t_op_weight    X
-    #    t_total       ---cut
-    
     #NOTE: For tree 2, we need to do something about sets of unique X's producing
     #           different t_totals.
     #           IDEAS:  Random Drop
@@ -50,23 +42,26 @@ def generateDecisionTree(data, region_names):
     #    kern_selected  X
     #    t_op           X
     #    op_count       X
-    #    t_op_weight    X
+    #    op_weight    X
     
 
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
     # Example of value binning (up to 50 bins, dropping any bins with duplicated edge values):
-    data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
+    #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
+    #grp_data = data\
+    #        .sort_values("t_op_avg")\
+    #        .groupby(["op_count_binned"], as_index=False)\
+    #        .first()
+
+    # NOTE: We use t_op_avg instead of t_total because there will be different numbers of operations
+    #       as we sweep through different dimensions/configs. We don't want to be picking some kernel
+    #       just because it got a super low time doing only 1 operation.  We want best on average.
     grp_data = data\
             .sort_values("t_op_avg")\
-            .groupby(["op_count_binned"], as_index=False)\
+            .groupby(["op_count"], as_index=False)\
             .first()
-
-    #grp_data = data\
-    #        .sort_values("t_total")\
-    #        .groupby(["op_count"], as_index=False)\
-    #        .first()
 
 
     drop_fields =[
@@ -75,10 +70,10 @@ def generateDecisionTree(data, region_names):
             "loop_id",
             "group_id",
             "policy_index",
+            "op_weight",
             "t_total",
             "t_op",
-            "t_op_avg",
-            "op_count_binned"
+            "t_op_avg"
         ] 
     
     y = grp_data["policy_index"].astype(int)
@@ -93,7 +88,7 @@ def generateDecisionTree(data, region_names):
     
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
     pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=5,
+                 class_weight=None, criterion='gini', max_depth=20,
                  max_features=len(feature_names), max_leaf_nodes=None,
                  min_impurity_split=1e-07, min_samples_leaf=5,
                  min_samples_split=10, min_weight_fraction_leaf=0.0,
@@ -157,23 +152,23 @@ def main():
     prior_frame_max = 0
 
     while (True):
-        prior_frame_max = waitForMoreRows(sos_host, sos_port, prior_frame_max)
-
-        # Submit the query to SOS, return results as a Pandas DataFrame:
+        prior_frame_max    = waitForMoreRows(sos_host, sos_port, prior_frame_max)
         data, region_names = getTrainingData(sos_host, sos_port, row_limit=0);
     
         model_def = ""
         model_len = 0
 
+        # DECISIONTREE :
         model_def, rules_code = generateDecisionTree(data, region_names)
         model_len = len(model_def)
-        print "-----"
-        print "STEP " + str(step) + " RULES:"
-        print rules_code
-        print "-----"
+        if (VERBOSE):
+            print "-----"
+            print "STEP " + str(step) + " RULES:"
+            print rules_code
+            print "-----"
  
-        #model_def
-        #model_def= generateStaticModel(data, region_names)
+        # STATIC:
+        #model_def = generateStaticModel(data, region_names)
         #model_len = len(model_def)
 
         if model_len > 0:
@@ -181,8 +176,8 @@ def main():
                 print "== CONTROLLER:  Sending >>> DECISIONTREE <<< to SOS for Apollo..."
                 print "== CONTROLLER:    ..."
             SOS.trigger("APOLLO_MODELS", model_len, model_def)
-            if (VERBOSE): print "== CONTROLLER:  Sleeping 8 seconds to let model run..."
-            time.sleep(8)
+            if (VERBOSE): print "== CONTROLLER:  Pausing to allow new model to run for a fresh interval ..."
+            waitForMoreRows(sos_host, sos_port, prior_frame_max);
 
             if (VERBOSE): print "== CONTROLLER:  Clearing prior training data..."
             wipeTrainingData(sos_host, sos_port, prior_frame_max)
@@ -276,7 +271,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
             op_count,
             t_total,
             COALESCE(t_op, 0) as t_op,
-            COALESCE(t_op_weight, 0.0) as t_op_weight,
+            COALESCE(op_weight, 0.0) as op_weight,
             ((t_total * 1.0) / (op_count * 1.0)) AS t_op_avg
         FROM (
             SELECT
@@ -294,8 +289,8 @@ def getTrainingData(sos_host, sos_port, row_limit):
                                   THEN tblVals.val END) AS "t_total",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_op"
                                   THEN tblVals.val END) AS "t_op",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "t_op_weight"
-                                  THEN tblVals.val END) AS "t_op_weight",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "op_weight"
+                                  THEN tblVals.val END) AS "op_weight",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "sum#time.inclusive.duration"
                                   THEN tblVals.val END) AS "sum_time_inclusive_duration",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "cali_event_end"

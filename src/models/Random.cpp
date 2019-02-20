@@ -54,6 +54,7 @@ Apollo::Model::Random::configure(
 
 Apollo::Model::Random::Random()
 {
+    name = "Random";
     iter_count = 0;
 }
 
