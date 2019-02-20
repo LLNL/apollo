@@ -148,7 +148,7 @@ RunSettings parse(int argc, char **argv) {
 
         options
             .add_options("Experiment")
-            ("s,simulated-sleep",
+            ("s,sim-sleep",
                 "Directly set times rather than actually sleeping",
                 cxxopts::value<bool>()
                     ->default_value("false"))
@@ -352,8 +352,9 @@ void experimentLoop(Apollo *apollo, auto& run) {
             
             if (run.behavior == RunSettings::Behavior::Sweep) {
                 sweep_progress = "";
+                sweep_progress_ss.str(std::string());
                 int denom = std::max(1, run.op_count_max) * std::max(1, run.op_weight_max);
-                sweep_progress_ss << "SweepProgress(" << std::setprecision(2) << (i / denom) << ") ";
+                sweep_progress_ss << "SweepProgress(" << std::setprecision(4) << (((float) i / (float) denom) * 100.0) << ") ";
                 sweep_progress = sweep_progress_ss.str();
             }
 
