@@ -111,19 +111,23 @@ Apollo::Model::DecisionTree::configure(
     }
 
     model_def = model_definition;
-    
-    // Expand the escape sequences embedded into the string-ified JSON into
-    // their actual JSON format:
-    int fmt_scrub_len = model_def.length() + 1;
-    char *fmt_scrub     = (char *) calloc(fmt_scrub_len, 1);
-    snprintf(fmt_scrub, fmt_scrub_len, model_def.c_str());
-    std::string model_scrubbed = fmt_scrub;
-    free(fmt_scrub);
+   
+    //std::cout << "----- BEFORE:" << std::endl;
+    //std::cout << model_def;
 
-    //std::cout << "Parsing the following model:" << std::endl;
+    //std::cout << "----- AFTER:" << std::endl;
     //std::cout << model_scrubbed;
 
-    json j = json::parse(model_scrubbed);
+    json j;
+    try {
+        j = json::parse(model_def);
+    } catch (json::parse_error& e) {
+        // output exception information
+        std::cout << "Error parsing JSON:\n\tmessage: " << e.what() << '\n'
+            << "\texception id: " << e.id << '\n'
+            << "\tbyte position of error: " << e.byte << std::endl;
+        exit(EXIT_FAILURE);
+    }
     // Recursive function that constructs tree from nested JSON:
     tree_head = nodeFromJson(j, nullptr, 1);
 

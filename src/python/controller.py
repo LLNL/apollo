@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 import json
 import time
 import cStringIO
@@ -16,7 +17,7 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = True
-FRAME_INTERVAL = 200 
+FRAME_INTERVAL = 1000 
 SOS = SSOS() 
 
 
@@ -32,17 +33,29 @@ def generateDecisionTree(data, region_names):
     # within that GroupId. This lets us pretend different iteration groupings 
     # have different behavior.
 
-    #NOTE: For tree 2, we need to do something about sets of unique X's producing
+    # NOTE: For tree 2, we need to do something about sets of unique X's producing
     #           different t_totals.
     #           IDEAS:  Random Drop
     #                   Recency Drop
-    #                   Ranges (rolling min/max allowed)
-    # TREE #2:
+
+    # CONCEPT #2
+    #   Swap in the new model for n% of iterations and see if it is better
+    #      (some form of A/B testing)
+
+    # CONCEPT #3 (TREE 2)
     #    t_total        Y   <-- bin this into ranges/stddev's?
     #    kern_selected  X
     #    t_op           X
     #    op_count       X
-    #    op_weight    X
+    #    op_weight      X
+
+    # CONCEPT #4
+    #     Show that features are evolving over time, "zoom in on the ones that matter"
+    #     This means keeping the old data around.
+    #   -- show different architectures
+    #   -- vectorized vs. non-vectorized (RAJA kernel variants?)
+    #   -- show debug vs. optimized build options
+
     
 
     data["loop"] = pd.Categorical(data["loop"])
@@ -60,7 +73,7 @@ def generateDecisionTree(data, region_names):
     #       just because it got a super low time doing only 1 operation.  We want best on average.
     grp_data = data\
             .sort_values("t_op_avg")\
-            .groupby(["op_count"], as_index=False)\
+            .groupby(["op_count", "op_weight"], as_index=False, sort=False)\
             .first()
 
 
@@ -70,7 +83,6 @@ def generateDecisionTree(data, region_names):
             "loop_id",
             "group_id",
             "policy_index",
-            "op_weight",
             "t_total",
             "t_op",
             "t_op_avg"
@@ -87,11 +99,12 @@ def generateDecisionTree(data, region_names):
  
     
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
+    #pipe = [('estimator', DecisionTreeClassifier())]
     pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=20,
+                 class_weight=None, criterion='gini',
                  max_features=len(feature_names), max_leaf_nodes=None,
-                 min_impurity_split=1e-07, min_samples_leaf=5,
-                 min_samples_split=10, min_weight_fraction_leaf=0.0,
+                 min_impurity_split=1e-07, min_samples_leaf=1,
+                 min_samples_split=2, min_weight_fraction_leaf=0.0,
                  presort=False, random_state=None, splitter='best'))]
     model = Pipeline(pipe)
     if (VERBOSE and x.shape[0] > 2):
@@ -109,8 +122,9 @@ def generateDecisionTree(data, region_names):
     trained_model = model.named_steps['estimator']
 
     if (VERBOSE): print "== CONTROLLER:  Encoding rules..."
-    rules_json = tree_to_json(trained_model, feature_names) 
+    rules_json = tree_to_json(trained_model, feature_names) + "\n"
     rules_code = tree_to_code(trained_model, feature_names)
+
 
     dotfile = open("model.dot", 'w')
     from sklearn import tree as _tree
@@ -119,7 +133,7 @@ def generateDecisionTree(data, region_names):
 
     model_def = {} 
     model_def['type'] = {}
-    model_def['type']['index'] = 4 
+    model_def['type']['guid'] = SOS.get_guid() 
     model_def['type']['name'] = "DecisionTree"
     model_def['region_names'] = []
     for n in region_names:
@@ -133,7 +147,7 @@ def generateDecisionTree(data, region_names):
     model_def['driver']['format'] = "json"
     model_def['driver']['rules'] = rules_json #json.dumps(trained_model, sort_keys=False, indent=4)  
 
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
 
     return model_as_json, rules_code
 
@@ -161,11 +175,6 @@ def main():
         # DECISIONTREE :
         model_def, rules_code = generateDecisionTree(data, region_names)
         model_len = len(model_def)
-        if (VERBOSE):
-            print "-----"
-            print "STEP " + str(step) + " RULES:"
-            print rules_code
-            print "-----"
  
         # STATIC:
         #model_def = generateStaticModel(data, region_names)
@@ -208,15 +217,25 @@ def main():
 def waitForMoreRows(sos_host, sos_port, prior_frame_max):
     max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
+    
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
-        print "== CONTROLLER:  Waiting for more data.  (" \
-            + str(max_frame - prior_frame_max) + " of " \
-            + str(FRAME_INTERVAL) + " new frames, " + str(max_frame) \
-            + "  total)"
+        sys.stdout.write("== CONTROLLER:  Waiting for data. " \
+            + "[" + progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+            + "( " + str(max_frame - prior_frame_max) + " of " \
+            + str(FRAME_INTERVAL) + ", " + str(max_frame) \
+            + " total)\r")
+        sys.stdout.flush()
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
-    print "== CONTROLLER: max_frame = " + str(max_frame)
+
+    #####
+    sys.stdout.write("== CONTROLLER:  Waiting for data. " \
+        + "[" + progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+        + "( " + str(max_frame - prior_frame_max) + " of " \
+        + str(FRAME_INTERVAL) + ", " + str(max_frame) \
+        + " total)\n")
+    sys.stdout.flush()
     return max_frame
 
 def tablePrint(results):
@@ -328,7 +347,7 @@ def generateRandomModel(data, region_names):
 
     model_def = {} 
     model_def['type'] = {}
-    model_def['type']['index'] = 1 
+    model_def['type']['guid'] = SOS.get_guid() 
     model_def['type']['name'] = "Random"
     model_def['region_names'] = []
     for n in region_names:
@@ -341,14 +360,15 @@ def generateRandomModel(data, region_names):
     model_def['driver']['format'] = "int"
     model_def['driver']['rules'] = "1" 
     
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
+            ensure_ascii=True)
     return model_as_json
 
 def generateStaticModel(data, region_names):
 
     model_def = {} 
     model_def['type'] = {}
-    model_def['type']['index'] = 3
+    model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "Static"
     model_def['region_names'] = []
     for n in region_names:
@@ -361,12 +381,25 @@ def generateStaticModel(data, region_names):
     model_def['driver']['format'] = "int"
     model_def['driver']['rules'] = "1" 
     
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4)
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
+            ensure_ascii=True)
     return model_as_json
 
 #########
 
 from sklearn.tree import _tree
+
+
+
+def progressBar(amount, total, length, fill='='):
+    if amount >= total:
+        return fill * length
+    if length < 4: length = 4
+    fillLen = int(length * amount // total)
+    emptyLen = length - 1 - fillLen
+    bar = (fill * fillLen) + ">" + ("-" * emptyLen)
+    return bar
+
 
 def tree_to_json(decision_tree, feature_names=None):
     from warnings import warn
@@ -497,6 +530,35 @@ def tree_to_code(tree, feature_names):
 
     recurse(result, 0, 1)
     return result.getvalue()
+
+def json_load_byteified(file_handle):
+    return _byteify(
+        json.load(file_handle, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+def json_loads_byteified(json_text):
+    return _byteify(
+        json.loads(json_text, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+def _byteify(data, ignore_dicts = False):
+    # if this is a unicode string, return its string representation
+    if isinstance(data, unicode):
+        return data.encode('utf-8')
+    # if this is a list of values, return list of byteified values
+    if isinstance(data, list):
+        return [ _byteify(item, ignore_dicts=True) for item in data ]
+    # if this is a dictionary, return dictionary of byteified keys and values
+    # but only if we haven't already byteified it
+    if isinstance(data, dict) and not ignore_dicts:
+        return dict((_byteify(key,
+            ignore_dicts=True),
+            _byteify(value, ignore_dicts=True)) \
+                for key, value in data.iteritems())
+    # if it's anything else, return it in its original form
+    return data
 
 
 if __name__ == "__main__":

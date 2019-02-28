@@ -10,6 +10,9 @@
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
 
+#include "sos.h"
+#include "sos_types.h"
+
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
 //
@@ -25,6 +28,20 @@ Apollo::ModelWrapper::getName(void)
 {
     Apollo::ModelObject *lnm = model_sptr.get();
     return lnm->name;
+}
+
+uint64_t
+Apollo::ModelWrapper::getGuid(void)
+{
+    Apollo::ModelObject *lnm = model_sptr.get();
+    return lnm->getGuid();
+}
+
+bool
+Apollo::ModelWrapper::isTraining(void)
+{
+    Apollo::ModelObject *lnm = model_sptr.get();
+    return lnm->training;
 }
 
 bool
@@ -52,7 +69,7 @@ Apollo::ModelWrapper::configure(
     // further definitions are unique to that model.
     json j = json::parse(model_def);
 
-    int            m_type_idx;
+    uint64_t       m_type_guid;
     string         m_type_name;
     vector<string> m_region_names;
     int            m_feat_count;
@@ -69,12 +86,12 @@ Apollo::ModelWrapper::configure(
         apollo_log(1, "Invalid model_def: missing [type]\n");
         model_errors++;
     } else {
-        apollo_log(3, "\t[type][index]\n");
-        if (j["type"].find("index") == j["type"].end()) {
-            apollo_log(1, "Invalid model_def: missing [type][index]\n");
+        apollo_log(3, "\t[type][guid]\n");
+        if (j["type"].find("guid") == j["type"].end()) {
+            apollo_log(1, "Invalid model_def: missing [type][guid]\n");
             model_errors++;
         } else {
-            m_type_idx = j["type"]["index"].get<int>();
+            m_type_guid = j["type"]["guid"].get<uint64_t>();
         }
         apollo_log(3, "\t[type][name]\n");
         if (j["type"].find("name") == j["type"].end()) {
@@ -91,6 +108,8 @@ Apollo::ModelWrapper::configure(
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
     }
+    
+   
     apollo_log(3, "\t[features]\n");
     if (j.find("features") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [features]\n");
@@ -175,7 +194,21 @@ Apollo::ModelWrapper::configure(
 
     Apollo::ModelObject *lnm = nm.get();
 
+    switch (model_type) {
+        case MT.Static:
+        case MT.DecisionTree:
+            lnm->training = false;
+            break;
+            //
+        case MT.Random:
+        case MT.Sequential:
+        default:
+            lnm->training = true;
+            break;
+    }
+
     lnm->configure(apollo, num_policies, m_drv_rules);
+    lnm->setGuid(m_type_guid);
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
     model_sptr = nm;    // Make this new model available for use.

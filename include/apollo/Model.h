@@ -27,11 +27,11 @@ class Apollo::Model {
                                                  "{\n"                                   \
                                                  "    \"driver\": {\n"                   \
                                                  "        \"format\": \"int\",\n"        \
-                                                 "        \"rules\": \"0\"\n"            \
+                                                 "        \"rules\": \"random\"\n"       \
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
-                                                 "        \"index\": 2,\n"               \
-                                                 "        \"name\": \"Sequential\"\n"    \
+                                                 "        \"guid\": 0,\n"                \
+                                                 "        \"name\": \"Random\"\n"        \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \
@@ -56,15 +56,20 @@ class Apollo::ModelObject {
                 int         num_policies,
                 std::string model_definition) = 0;
         //
-        virtual int  getIndex(void) = 0;
-        std::string  name;
+        virtual int      getIndex(void) = 0;
+        
+        void setGuid(uint64_t ng) { guid = ng; return;}
+        uint64_t getGuid(void) { return guid; }
+
+        std::string      name           = "";
+        bool             training       = false;
 
     protected:
         Apollo      *apollo;
         //
         bool         configured = false;
         //
-        uint64_t     id;
+        uint64_t     guid;
         int          policy_count;
         std::string  model_def;
         int          iter_count;

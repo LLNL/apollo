@@ -42,6 +42,7 @@ Apollo::Model::Static::configure(
 Apollo::Model::Static::Static()
 {
     name = "Static";
+    training = false;
     iter_count = 0;
 }
 

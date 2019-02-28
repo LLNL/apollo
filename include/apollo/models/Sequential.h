@@ -16,6 +16,7 @@ class Apollo::Model::Sequential : public Apollo::ModelObject {
                 int         num_policies,
                 std::string model_definition);
         //
+        bool learning = true;
         int  getIndex(void);
 
     private:

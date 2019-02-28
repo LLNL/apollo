@@ -14,6 +14,26 @@
 
 #include "external/cxxopts/cxxopts.hpp"
 
+#define RST  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+
+#define FRED(x) KRED x RST
+#define FGRN(x) KGRN x RST
+#define FYEL(x) KYEL x RST
+#define FBLU(x) KBLU x RST
+#define FMAG(x) KMAG x RST
+#define FCYN(x) KCYN x RST
+#define FWHT(x) KWHT x RST
+
+#define BOLD(x) "\x1B[1m" x RST
+#define UNDL(x) "\x1B[4m" x RST
+
 #include "apollo/Apollo.h"
 #include "apollo/PolicyChooser.h"
 #include "apollo/Feature.h"
@@ -226,8 +246,8 @@ RunSettings parse(int argc, char **argv) {
 }
 
 void configureKernelVariants(auto& run) {
-    run.kernel_variants.push_back(KernelVariant(100,  2, "[example0]")); // best up to 100
-    run.kernel_variants.push_back(KernelVariant(300,  1, "[example1]")); // best after 100
+    run.kernel_variants.push_back(KernelVariant(10,  2, "[cpu     ]"));
+    run.kernel_variants.push_back(KernelVariant(32,  1, "[cuda    ]"));
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
     return;    
 }
@@ -238,7 +258,8 @@ int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight)
     int best_kernel = -1;
     for (unsigned int i = 0; i < run.kernel_variants.size(); i++) {
         auto kernel = run.kernel_variants[i];
-        this_cost = syntheticRegion(run, kernel, op_count, op_weight); 
+        this_cost = syntheticRegion(run, kernel, op_count, op_weight);
+        //printf("\t\t\tkernel[%d](%d, %d) == %d\n", i, op_count, op_weight, this_cost);
         if (this_cost < best_cost_seen) {
             best_kernel = (int) i;
             best_cost_seen = this_cost;
@@ -275,11 +296,14 @@ void experimentLoop(Apollo *apollo, auto& run) {
         new Apollo::Region(apollo, "synben", run.kernel_variants.size());
     reg->begin();
 
+    int pol_count = (int) run.kernel_variants.size();
+    
     int pol_idx = 0;
     int test_pol = 0;
+    int sweep_pol = 0;
 
     int t_total = 0;
-    int op_count = 1;
+    int op_count = 0;
     int op_weight = 0;
     int group_id = 0;
 
@@ -292,6 +316,8 @@ void experimentLoop(Apollo *apollo, auto& run) {
     sweep_progress_ss.str(std::string());
     sweep_progress_ss.precision(2);
 
+    uint64_t prior_model_guid = 0;
+
     int i = 1;
     while (true) {
 
@@ -300,15 +326,31 @@ void experimentLoop(Apollo *apollo, auto& run) {
                 op_count = run.op_count_max;
                 break;
 
+            // If we're in SWEEP mode, AND we're not training...
             case RunSettings::Behavior::Sweep:
-                // This will give us at least one of each count X weight in the range specified
+                // If we have a new model, reset the sweep:
+                if (prior_model_guid != reg->getModel()->getGuid()) {
+                    run.log(BOLD(FMAG("==================== NEW MODEL : SWEEP RESET ====================")));
+                    op_count  = 0;
+                    op_weight = 0;
+                    sweep_pol = 0;
+                    sweep_complete = false;
+                    prior_model_guid = reg->getModel()->getGuid();
+                    std::this_thread::sleep_for(std::chrono::microseconds(10 * run.delay_usec));
+                }
+                // This will give us at least one of each (count X weight X policy)
+                // for the range specified
                 op_count++;
                 if (op_count > run.op_count_max) {
                     op_count = 1;
                     op_weight++;
                     if (op_weight > run.op_weight_max) {
                         op_weight = 0;
-                        sweep_complete = true;
+                        sweep_pol++;
+                        if (sweep_pol >= pol_count) {
+                            sweep_pol = 0;
+                            sweep_complete = true;
+                        }
                     }
                 }
                 break;
@@ -323,54 +365,66 @@ void experimentLoop(Apollo *apollo, auto& run) {
         
         group_id = i % 50;
         
-        // -----
+        // ##########
+        // #
+        // #
         reg->iterationStart(i);
-            // Express our configuration to Caliper:
-            reg->caliSetInt("group_id",  group_id);
-            reg->caliSetInt("op_count",  op_count);
-            reg->caliSetInt("op_weight", op_weight);
+        // Express our configuration to Caliper:
+        reg->caliSetInt("group_id",  group_id);
+        reg->caliSetInt("op_count",  op_count);
+        reg->caliSetInt("op_weight", op_weight);
 
-            // Select our "kernel variant"
-            // TODO: This needs to be able to figure out if we're in TRAINING
-            //       or execution mode, and if we're in TRAINING mode, the
-            //       policy variant need to be another dimension of the Sweep
-            //       behavior if that is what we've specified.
-            pol_idx = getApolloPolicyChoice(reg);
+        // Select our "kernel variant"
+        pol_idx = getApolloPolicyChoice(reg);
 
-            // Check the kernel variant recommended against the synthetic test:
-            test_pol = syntheticKernelVariantRecommendation(run, op_count, op_weight);
-            if (test_pol != pol_idx) {
-                optimal_variant_used = false;
-            } else {
-                optimal_variant_used = true;
-            }
+        if ((reg->getModel()->isTraining())
+         && (run.behavior == RunSettings::Behavior::Sweep)) {
+            // If we're training during a sweep, override any
+            // suggested policy with the one we need to be
+            // gathering data for.
+            pol_idx = sweep_pol;
+        }
 
-            reg->caliSetInt("policy_index", pol_idx);
-            auto kernel = run.kernel_variants.at(pol_idx);
-            reg->caliSetInt("t_op", kernel.t_op);
-            // Run it:
-            //
-            t_total = syntheticRegion(run, kernel, op_count, op_weight);
-            //
-            
-            if (run.behavior == RunSettings::Behavior::Sweep) {
-                sweep_progress = "";
-                sweep_progress_ss.str(std::string());
-                int denom = std::max(1, run.op_count_max) * std::max(1, (run.op_weight_max + 1));
-                sweep_progress_ss << "Sweep(" << std::fixed << (((float) i / (float) denom) * 100.0) << "%) ";
-                sweep_progress = sweep_progress_ss.str();
-            }
+        // Check the kernel variant recommended against the synthetic test:
+        test_pol = syntheticKernelVariantRecommendation(run, op_count, op_weight);
+        if (test_pol != pol_idx) {
+            optimal_variant_used = false;
+        } else {
+            optimal_variant_used = true;
+        }
 
-            run.log(sweep_progress, "Model(", reg->getModel()->getName(), ") ", i, runMaxDesc,
-                " Kernel[", pol_idx, "]( ", kernel.name, " took ", std::left,
-                std::setw(5), t_total, " usec on ", std::left, std::setw(5),
-                op_count, " ops, optimal == ", optimal_variant_used);
+        reg->caliSetInt("policy_index", pol_idx);
+        auto kernel = run.kernel_variants.at(pol_idx);
+        reg->caliSetInt("t_op", kernel.t_op);
+        // Run it:
+        //
+        t_total = syntheticRegion(run, kernel, op_count, op_weight);
+        //
+        
+        if (run.behavior == RunSettings::Behavior::Sweep) {
+            sweep_progress = "";
+            sweep_progress_ss.str(std::string());
+            int denom = \
+                  std::max(1, run.op_count_max)   \
+                * std::max(1, (run.op_weight_max + 1))  \
+                * std::max(1, pol_count);
+            sweep_progress_ss << "Sweep(" << std::fixed << (((float) i / (float) denom) * 100.0) << "%) ";
+            sweep_progress = sweep_progress_ss.str();
+        }
 
-            // Record the computed time, in case we're not actually sleeping
-            // and don't want to use the time captured by Caliper:
-            reg->caliSetInt("t_total", t_total);
+        run.log(sweep_progress, i, runMaxDesc,
+            " Kernel[", pol_idx, "]", kernel.name, " took ", std::left,
+            std::setw(5), t_total, " usec on ", std::left, std::setw(5),
+            op_count, " ops, ", reg->getModel()->getGuid(), ":", reg->getModel()->getName(), " ",
+            "optimal == ", optimal_variant_used ? BOLD(FGRN("true")) : BOLD(FRED("false")));
+
+        // Record the computed time, in case we're not actually sleeping
+        // and don't want to use the time captured by Caliper:
+        reg->caliSetInt("t_total", t_total);
         reg->iterationStop();
-        // -----
+        // #
+        // #
+        // ##########
 
         // Count this iteration:
         i++;

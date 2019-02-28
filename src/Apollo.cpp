@@ -1,9 +1,13 @@
-
+#include <string>
+#include <vector>
 #include <iostream>
 #include <sstream>
 #include <cstdint>
 #include <cstring>
 #include <typeinfo>
+
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
@@ -79,20 +83,20 @@ Apollo::attachModel(const char *def)
         return;
     }
     
-    // TODO: This is naive for now, we send the model definition to every
-    //       region's modelWrapper, where if it doesn't apply that
-    //       region can just return and not change anything.
-    //
-    //       This way we unpack and sanity-check the JSON in one place, though
-    //       eventually that needs to get baked into a '.digest()' sort of a
-    //       method in the ModelType abstract  class, since it only goes
-    //       into the common elements and doesn't touch the model
-    //       definition/encoding set in its 'rule' field..
+    std::vector<std::string> region_names;
+    json j = json::parse(def);
+    if (j.find("region_names") != j.end()) {
+        region_names = j["region_names"].get<std::vector<std::string>>();
+    }
+    
     for (auto it : regions) {
         Apollo::Region *region = it.second; 
         Apollo::ModelWrapper *model = region->getModel();
         //
-        model->configure(def);
+        if (std::find(std::begin(region_names), std::end(region_names),
+                    region->name) != std::end(region_names)) {
+            model->configure(def);
+        }
     };
 
     //std::cout << "Done attempting to load new model.\n";
@@ -139,7 +143,7 @@ Apollo::Apollo()
     
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
 
-    baseRegion = new Apollo::Region(this, "APOLLO", 0);
+    //baseRegion = new Apollo::Region(this, "APOLLO", 0);
 
     apollo_log(1, "Initialized.\n");
 
@@ -152,7 +156,7 @@ Apollo::~Apollo()
         SOS_finalize(sos);
         sos = NULL;
     }
-    delete baseRegion;
+    //delete baseRegion;
 }
 
 Apollo::Feature

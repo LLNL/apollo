@@ -5,6 +5,7 @@
 #include <string>
 #include <mutex>
 #include <map>
+
 #include <type_traits>
 
 #include "caliper/cali.h"

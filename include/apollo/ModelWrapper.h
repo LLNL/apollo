@@ -19,8 +19,11 @@ class Apollo::ModelWrapper {
 
         // NOTE: This is what RAJA loops use, not the model's
         //       direct model->getIndex() method.
-        int  requestPolicyIndex(void);
-        std::string getName(void);
+        int          requestPolicyIndex(void);
+        //
+        std::string  getName(void);
+        uint64_t     getGuid(void);
+        bool         isTraining(void);
 
     private:
         Apollo *apollo;

@@ -39,7 +39,6 @@ class Apollo::Region {
         //
         Apollo        *apollo;
         //
-        //
         // Deprecated (somewhat):
         uint64_t       id;
         uint64_t       parent_id;
