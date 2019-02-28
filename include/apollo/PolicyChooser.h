@@ -3,8 +3,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
- 
-RAJA_INLINE
+
 int getApolloPolicyChoice(Apollo::Region *reg) 
 {
     assert (reg != NULL); 

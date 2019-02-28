@@ -7,11 +7,11 @@
 #include <map>
 
 #include <type_traits>
+#include <list>
+#include <vector>
 
 #include "caliper/cali.h"
 #include "caliper/Annotation.h"
-//
-#include "RAJA/RAJA.hpp"
 
  
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
