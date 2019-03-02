@@ -2,37 +2,35 @@
 #  Set up caliper to use SOS:
 #
 export CALI_SERVICES_ENABLE="aggregate:event:timestamp:sos" 
-export CALI_SOS_TRIGGER_ATTR="iteration#synben"
+export CALI_SOS_TRIGGER_ATTR="iteration#rajaben"
 export CALI_LOG_VERBOSITY=0
 
-#Usage:
-#  ./build/examples/synben/synben [OPTION...]
-#
-#  -h, --help     Display this message
-#  -v, --verbose  Display verbose status messages
-#
-# Experiment options:
-#  -s, --sim-sleep          Directly set times rather than actually sleeping
-#  -b, --behavior arg       How to explore parameter space
-#                           [static-max|sweep|random] (default: random)
-#  -i, --iter-max arg       Limit to the # of times Apollo region is iterated
-#                           (default: -1)
-#  -c, --op-count-max arg   Maximum operations to be simulated in the Apollo
-#                           region (default: 2000)
-#  -w, --op-weight-max arg  Operation cost units (usec) between 0 and
-#                           op-weight-max per operation, randomized between iterations
-#                           (default: 0)
-#  -d, --delay-usec arg     Unmeasured delay between Apollo region iterations
-#                           (default: 0)
-#
+# Usage:
+#   ./build/examples/rajaben/rajaben [OPTION...]
+# 
+#   -h, --help     Display this message
+#   -v, --verbose  Display verbose status messages
+# 
+#  Experiment options:
+#   -b, --behavior arg          How to explore parameter space
+#                               [static-max|sweep|random] (default: random)
+#   -i, --iter-max arg          Limit to the # of times Apollo region is
+#                               iterated (default: -1)
+#   -n, --vector-size-min arg   Min. size of the (int) vector (default: 10000)
+#   -x, --vector-size-max arg   Max. size of the (int) vector (default: 10000)
+#   -s, --vector-size-step arg  Growth amount when sweeping multiple (int)
+#                               vector lengths (default: 1)
+#   -d, --delay-usec arg        Unmeasured delay between RAJA loop iterations
+#                               (default: 0)
+# 
 
 #
 # Launch the synthetic benchmark:
 #
-./build/examples/synben/synben  --verbose                   \
-                                --behavior=sweep			\
-								--op-count-max 100          \
-                                --op-weight-max 1           \
-                                --iter-max -1               \
-                                --sim-sleep                 \
-                                --delay-usec 10000
+./build/examples/rajaben/rajaben  --verbose                 \
+                                  --behavior=sweep          \
+                                  --iter-max -1             \
+                                  --vector-size-min 1000000 \
+                                  --vector-size-max 2000000 \
+                                  --vector-size-step 10000  \
+                                  --delay-usec 10000
