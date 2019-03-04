@@ -20,6 +20,69 @@ VERBOSE = True
 FRAME_INTERVAL = 1000 
 SOS = SSOS() 
 
+def serializeRegressor(tree):
+    """ Convert a sklearn.tree.DecisionTreeRegressor into a JSON-compatible format """
+    LEAF_ATTRIBUTES = ['children_left', 'children_right', 'threshold', 'value',
+                       'feature', 'impurity', 'weighted_n_node_samples']
+    TREE_ATTRIBUTES = ['n_classes_', 'n_features_', 'n_outputs_']
+    encoded = {
+        'nodes': {},
+        'tree': {},
+        'n_leaves': len(tree.tree_.threshold),
+        'params': tree.get_params()
+    }
+    for attr in LEAF_ATTRIBUTES:
+        encoded['nodes'][attr] = getattr(tree.tree_, attr).tolist()
+    for attr in TREE_ATTRIBUTES:
+        encoded['tree'][attr] = getattr(tree, attr)
+    return encoded
+
+
+def generateRegressionTree(data, region_names):
+    # Make a numeric representation of loop name strings:
+    data["loop"] = pd.Categorical(data["loop"])
+    data["loop_id"] = data["loop"].cat.codes
+
+    # We don't bin or simplify the raw data for regression trees,
+    # we want all of it.
+    drop_fields =[
+            "frame",
+            "loop",
+            "loop_id",
+            "t_op_avg",
+            "t_total"
+        ] 
+    
+    y = data["t_total"].astype(float)
+    x = data.drop(drop_fields, axis="columns").values.astype(float)
+
+    feature_names = []
+    raw_names = data.drop(drop_fields, axis="columns").columns
+    for name in raw_names:
+        feature_names.append(name)
+
+    predictedTime = DecisionTreeRegressor()
+    predictedTime.fit(x, y)
+
+    print "score: " + str()
+
+    print str(predictedTime)
+
+    print "prediction using: " + str(feature_names)
+    print "    " + str(x[-1]) + "    == " + str(predictedTime.predict(x[-1].reshape(1, -1)))
+
+    dotfile = open("regress.dot", 'w')
+    from sklearn import tree as _tree
+    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
+    dotfile.close()
+
+    reg_tree = json.dumps(serializeRegressor(predictedTime))
+    regfile = open("regress.json", 'w')
+    regfile.write(reg_tree)
+    regfile.close()
+    return
+
+
 
 def generateDecisionTree(data, region_names): 
     #print "numpy.__version__   == " + str(np.__version__)
@@ -103,6 +166,9 @@ def generateDecisionTree(data, region_names):
                  min_samples_split=2, min_weight_fraction_leaf=0.0,
                  presort=False, random_state=None, splitter='best'))]
     model = Pipeline(pipe)
+
+
+    # NOTE: Cross-Validation doesn't work well with the simplified/conditioned data.
     #if (VERBOSE and x.shape[0] > 2):
     #    warnings.filterwarnings("ignore")
     #    cv_folds = 10 
@@ -168,13 +234,16 @@ def main():
         model_def = ""
         model_len = 0
 
-        # DECISIONTREE :
-        model_def, rules_code = generateDecisionTree(data, region_names)
-        model_len = len(model_def)
+        # DECISIONTREE
+        #model_def, rules_code = generateDecisionTree(data, region_names)
+        #model_len = len(model_def)
+        #print rules_code
 
-        print rules_code
+        # REGRESSIONTREE
+        generateRegressionTree(data, region_names)
+        quit()
 
-        # STATIC:
+        # STATIC
         #model_def = generateStaticModel(data, region_names)
         #model_len = len(model_def)
 
