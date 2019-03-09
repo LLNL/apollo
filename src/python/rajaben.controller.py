@@ -16,8 +16,8 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 from ssos import SSOS 
 
-VERBOSE = True
-FRAME_INTERVAL = 1000 
+VERBOSE = False
+FRAME_INTERVAL = 500 
 SOS = SSOS() 
 
 def serializeRegressor(tree):
@@ -235,13 +235,13 @@ def main():
         model_len = 0
 
         # DECISIONTREE
-        #model_def, rules_code = generateDecisionTree(data, region_names)
-        #model_len = len(model_def)
-        #print rules_code
+        model_def, rules_code = generateDecisionTree(data, region_names)
+        model_len = len(model_def)
+        print rules_code
 
         # REGRESSIONTREE
-        generateRegressionTree(data, region_names)
-        quit()
+        #generateRegressionTree(data, region_names)
+        #quit()
 
         # STATIC
         #model_def = generateStaticModel(data, region_names)

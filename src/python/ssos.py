@@ -140,7 +140,6 @@ class SSOS:
         res_port = ffi.new("int*", int(port))
 
         # Send out the query...
-        print ("Sending the query...")
         lib.SSOS_query_exec(res_sql, res_host, res_port[0])
         # Grab the next available result.
         # NOTE: For queries submitted in a thread pool, this may not

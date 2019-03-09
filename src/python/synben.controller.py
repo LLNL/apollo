@@ -16,7 +16,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 from ssos import SSOS 
 
-VERBOSE = True
+VERBOSE = False
 FRAME_INTERVAL = 500 
 SOS = SSOS() 
 
