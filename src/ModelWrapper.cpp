@@ -20,8 +20,6 @@ using json = nlohmann::json;
 #include "apollo/models/Sequential.h"
 #include "apollo/models/Static.h"
 #include "apollo/models/DecisionTree.h"
-//
-#include "util/Debug.h"
 
 
 using namespace std;
@@ -53,8 +51,6 @@ Apollo::ModelWrapper::configure(
 {
     Apollo::Model::Type MT;
     int model_type = -1;
-
-    __apollo_DEBUG_string(model_def, 5);
 
     if (model_def == NULL) {
         model_type = MT.Default;

@@ -33,4 +33,4 @@ export CALI_LOG_VERBOSITY=0
                                   --vector-size-min 1000000 \
                                   --vector-size-max 2000000 \
                                   --vector-size-step 10000  \
-                                  --delay-usec 10000
+                                  --delay-usec 1000

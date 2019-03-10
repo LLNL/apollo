@@ -417,7 +417,7 @@ def generateRandomModel(data, region_names):
     model_def['driver']['rules'] = "1" 
     
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True)
+            ensure_ascii=True) + "\n"
     return model_as_json
 
 def generateStaticModel(data, region_names):
@@ -438,7 +438,7 @@ def generateStaticModel(data, region_names):
     model_def['driver']['rules'] = "1" 
     
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True)
+            ensure_ascii=True) + "\n"
     return model_as_json
 
 #########

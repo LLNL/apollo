@@ -14,6 +14,8 @@ using json = nlohmann::json;
 #include "apollo/ModelWrapper.h"
 #include "apollo/Feature.h"
 //
+#include "util/Debug.h"
+//
 #include "caliper/cali.h"
 #include "caliper/Annotation.h"
 //
@@ -50,7 +52,17 @@ handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
             void *apollo_ref = SOS_reference_get(
                     (SOS_runtime *)sos_context,
                     "APOLLO_CONTEXT");
-            call_Apollo_attachModel((struct ApolloDec *)apollo_ref, (char *) data);
+
+            //TODO: The *data field needs to be strncpy'ed into a new patch of clean memory
+            //      because it is not getting null terminated and this is leading to parse
+            //      errors.
+            //NOTE: Trace the ownership of the string, make sure it gets copied in
+            //      somewhere else so we can free it after this function returns.
+            
+            char *cleanstr = (char *) calloc(msg_size + 1, sizeof(char));
+            strncpy(cleanstr, (const char *)data, msg_size);
+            call_Apollo_attachModel((struct ApolloDec *)apollo_ref, (char *) cleanstr);
+            free(cleanstr);
             break;
     }
 
@@ -82,9 +94,11 @@ Apollo::attachModel(const char *def)
                     " empty model definition. Doing nothing.");
         return;
     }
-    
+
+    //__apollo_DEBUG_string(def, 5);
+
     std::vector<std::string> region_names;
-    json j = json::parse(def);
+    json j = json::parse(std::string(def));
     if (j.find("region_names") != j.end()) {
         region_names = j["region_names"].get<std::vector<std::string>>();
     }
