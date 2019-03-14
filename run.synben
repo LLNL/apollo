@@ -29,10 +29,13 @@ export CALI_LOG_VERBOSITY=0
 #
 # Launch the synthetic benchmark:
 #
+rm -f ./valgrind.log
+valgrind --leak-check=full \
+         --log-file=valgrind.log \
 ./build/examples/synben/synben  --verbose                   \
                                 --behavior=sweep			\
 								--op-count-max 100          \
                                 --op-weight-max 1           \
-                                --iter-max -1               \
+                                --iter-max 2500             \
                                 --sim-sleep                 \
-                                --delay-usec 10000
+                                --delay-usec 100

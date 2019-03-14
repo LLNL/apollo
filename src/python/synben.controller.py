@@ -17,7 +17,7 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = False
-FRAME_INTERVAL = 500 
+FRAME_INTERVAL = 500
 SOS = SSOS() 
 
 

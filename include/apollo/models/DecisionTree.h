@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <tuple>
 
 #include "external/nlohmann/json.hpp"
 
@@ -59,14 +60,14 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 int         json_id;
         
         }; // end: Node (class)
-        
+      
+
         Node* nodeFromJson(nlohmann::json parsed_json, Node *parent, int indent);
         int  recursiveTreeWalk(Node *node);
         
         Node                   *tree_head;
         std::vector<Node *>     tree_nodes;
         std::vector<Feature *>  tree_features;
-
 
 }; //end: Apollo::Model::DecisionTree (class)
 

@@ -1,4 +1,8 @@
 ssos_python.so
 model.dot
+model.json
 model.png
+regress.dot
+regress.json
+regress.png
 *.pyc

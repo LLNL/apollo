@@ -11,6 +11,7 @@
 #include <thread>
 #include <algorithm>
 #include <set>
+#include <future>
 
 #include "external/cxxopts/cxxopts.hpp"
 
@@ -319,7 +320,9 @@ void experimentLoop(Apollo *apollo, auto& run) {
     uint64_t prior_model_guid = 0;
 
     int i = 1;
-    while (true) {
+    bool simulation_running = true;
+
+    while (simulation_running) {
 
         switch (run.behavior) {
             case RunSettings::Behavior::StaticMax:
@@ -449,7 +452,10 @@ void experimentLoop(Apollo *apollo, auto& run) {
         if (not (i % 100)) { group_id++; };
         // If an "untimed" per-iteration delay was requested, sleep now
         std::this_thread::sleep_for(std::chrono::microseconds(run.delay_usec));
+
+   
     } // end: iteration loop
+
 
     reg->end();
     return;

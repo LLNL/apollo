@@ -17,6 +17,7 @@ from sklearn.svm             import SVC
 from ssos import SSOS 
 
 VERBOSE = False
+DEBUG   = True
 FRAME_INTERVAL = 500 
 SOS = SSOS() 
 
@@ -56,6 +57,12 @@ def generateRegressionTree(data, region_names):
     y = data["t_total"].astype(float)
     x = data.drop(drop_fields, axis="columns").values.astype(float)
 
+    pol_stds = data.groupby(["policy_index"], as_index=False)\
+        [["t_total"]].apply(np.std)
+
+    print str(pol_stds)
+    quit()
+
     feature_names = []
     raw_names = data.drop(drop_fields, axis="columns").columns
     for name in raw_names:
@@ -64,12 +71,19 @@ def generateRegressionTree(data, region_names):
     predictedTime = DecisionTreeRegressor()
     predictedTime.fit(x, y)
 
-    print "score: " + str()
+    #leafStdDev = np.std(y)
 
     print str(predictedTime)
-
-    print "prediction using: " + str(feature_names)
-    print "    " + str(x[-1]) + "    == " + str(predictedTime.predict(x[-1].reshape(1, -1)))
+    print "predictions table:"
+    comp = ""
+    for row in x:
+        for column in row:
+            comp += ("[" + str(int(column)) + "]")
+        comp += (" == " + str(predictedTime.predict(row.reshape(1, -1))))
+        #comp += (" @ " + str(leafStdDev))
+        #comp += (" @ " + str(pol_stds[row["policy_index"]))
+        comp += "\n"
+    print comp
 
     dotfile = open("regress.dot", 'w')
     from sklearn import tree as _tree
@@ -80,7 +94,7 @@ def generateRegressionTree(data, region_names):
     regfile = open("regress.json", 'w')
     regfile.write(reg_tree)
     regfile.close()
-    return
+    return reg_tree
 
 
 
@@ -235,13 +249,15 @@ def main():
         model_len = 0
 
         # DECISIONTREE
-        model_def, rules_code = generateDecisionTree(data, region_names)
-        model_len = len(model_def)
-        print rules_code
+        #model_def, rules_code = generateDecisionTree(data, region_names)
+        #model_len = len(model_def)
+        #print rules_code
 
         # REGRESSIONTREE
-        #generateRegressionTree(data, region_names)
-        #quit()
+        model_def = generateRegressionTree(data, region_names)
+        model_len = len(model_def)
+        
+        quit()
 
         # STATIC
         #model_def = generateStaticModel(data, region_names)
