@@ -7,7 +7,6 @@
 #include "RAJA/RAJA.hpp"
 //
 #include "apollo/Apollo.h"
-#include "apollo/PolicyChooser.h"
 #include "apollo/Feature.h"
 //
 #include "addvectLoops.h"
@@ -30,7 +29,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 
     std::cout << "\nExample application using RAJA for vector addition.\n";
 
-    Apollo         *apollo = new Apollo();
+    Apollo         *apollo = Apollo::instance();
     Apollo::Region *kernel = new Apollo::Region(apollo, "RAJA_kernel", 5);
 
     // 

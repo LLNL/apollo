@@ -70,14 +70,16 @@ class SSOS:
         lib.SSOS_pack(entry_name, entry_type, entry_addr)
 
     def request_pub_manifest(self, pub_title_filter, target_host, target_port):
-        res_manifest          = ffi.new("SSOS_query_results*");
+        res_manifest_addr     = ffi.new("SSOS_query_results**");
         res_max_frame_overall = ffi.new("int*");
         res_pub_title_filter  = ffi.new("char[]", pub_title_filter.encode('ascii'));
         res_target_host       = ffi.new("char[]", target_host.encode('ascii'));
         res_target_port       = ffi.new("int*", int(target_port));
 
-        lib.SSOS_request_pub_manifest(res_manifest, res_max_frame_overall, \
+        lib.SSOS_request_pub_manifest(res_manifest_addr, res_max_frame_overall, \
                 res_pub_title_filter, res_target_host, res_target_port[0])
+
+        res_manifest = ffi.new("SSOS_query_results*", res_manifest_addr[0])
 
         results = []
         for row in range(res_manifest.row_count):
@@ -140,6 +142,7 @@ class SSOS:
         res_port = ffi.new("int*", int(port))
 
         # Send out the query...
+        print ("Sending the query...")
         lib.SSOS_query_exec(res_sql, res_host, res_port[0])
         # Grab the next available result.
         # NOTE: For queries submitted in a thread pool, this may not

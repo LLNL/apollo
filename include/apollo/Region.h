@@ -5,8 +5,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
 
-#include "caliper/cali.h"
-#include "caliper/Annotation.h"
+int getApolloPolicyChoice(Apollo::Region *reg);
 
 class Apollo::Region {
     public:
@@ -46,8 +45,8 @@ class Apollo::Region {
         char           CURRENT_BINDING_GUID[256];
         //
         Apollo::ModelWrapper  *model;
-        cali::Loop            *cali_obj;
-        cali::Loop::Iteration *cali_iter_obj;
+        void                  *cali_obj_ptr;       //cali::Loop *
+        void                  *cali_iter_obj_ptr;  //cali::Loop::Iteration *
 }; //end: Apollo::Region
 
 

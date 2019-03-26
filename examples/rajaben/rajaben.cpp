@@ -20,7 +20,6 @@
 #include "loopDefinitions.h"
 //
 #include "apollo/Apollo.h"
-#include "apollo/PolicyChooser.h"
 
 void experimentLoop(Apollo *apollo, auto& run);
 
@@ -206,7 +205,7 @@ RunSettings parse(int argc, char **argv) {
 int main(int argc, char **argv)
 {
     auto run = parse(argc, argv);    
-    Apollo *apollo = new Apollo();
+    Apollo *apollo = Apollo::instance();
 
     experimentLoop(apollo, run);
 

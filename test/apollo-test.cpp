@@ -8,7 +8,7 @@ int main()
     int rc = 0;
     fprintf(stdout, "testing Apollo.\n");
 
-    Apollo *apollo = new Apollo();
+    Apollo *apollo = Apollo::instance();
     
 
 

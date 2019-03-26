@@ -36,7 +36,7 @@
 #define UNDL(x) "\x1B[4m" x RST
 
 #include "apollo/Apollo.h"
-#include "apollo/PolicyChooser.h"
+#include "apollo/Region.h"
 #include "apollo/Feature.h"
 
 void configureKernelVariants(void);
@@ -273,7 +273,7 @@ int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight)
 int main(int argc, char **argv)
 {
     auto run = parse(argc, argv);    
-    Apollo *apollo = new Apollo();
+    Apollo *apollo = Apollo::instance();
     configureKernelVariants(run);
     experimentLoop(apollo, run);
 

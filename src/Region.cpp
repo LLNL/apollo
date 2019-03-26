@@ -1,6 +1,8 @@
 
 #include <mutex>
 
+#include "assert.h"
+
 #include "sos.h"
 #include "sos_types.h"
 
@@ -9,8 +11,27 @@
 #include "apollo/Region.h"
 #include "apollo/Feature.h"
 
+#include "caliper/cali.h"
+#include "caliper/Annotation.h"
+
 extern SOS_runtime *sos;
 extern SOS_runtime *pub;
+
+typedef cali::Loop            loop;
+typedef cali::Loop::Iteration iter;
+
+int getApolloPolicyChoice(Apollo::Region *reg) 
+{
+    assert (reg != NULL); 
+    Apollo::ModelWrapper *model = reg->getModel();
+    assert (model != NULL);
+
+    int choice = model->requestPolicyIndex();
+    reg->caliSetInt("policyIndex", choice);
+
+    return choice;
+}
+
 
 Apollo::Region::Region(
         Apollo      *apollo_ptr,
@@ -22,8 +43,8 @@ Apollo::Region::Region(
 
     apollo->regions.insert({name, this});
 
-    cali_obj = NULL;
-    cali_iter_obj = NULL;
+    cali_obj_ptr      = NULL;
+    cali_iter_obj_ptr = NULL;
     ynInsideMarkedRegion = false;
 
     model = new Apollo::ModelWrapper(
@@ -47,13 +68,16 @@ Apollo::Region::~Region()
 void
 Apollo::Region::handleCommonBeginTasks(void)
 {
-    if (ynInsideMarkedRegion == true) {
+   loop *cali_obj      = (loop *) cali_obj_ptr;
+   iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
+   if (ynInsideMarkedRegion == true) {
         // Free up the old region and make a new one,
         // to comply with Caliper "constructor == start"
         // conventions.
         //
         cali_obj->end();
         delete cali_obj;
+        cali_obj_ptr = NULL;
         
     }
 
@@ -62,7 +86,7 @@ Apollo::Region::handleCommonBeginTasks(void)
         guid = SOS_uid_next(sos->uid.my_guid_pool);
     }
     //
-    cali_obj = new cali::Loop(name);
+    cali_obj_ptr = (void *) new cali::Loop(name);
 
     ynInsideMarkedRegion = true;
     return;
@@ -71,6 +95,8 @@ Apollo::Region::handleCommonBeginTasks(void)
 void
 Apollo::Region::handleCommonEndTasks(void)
 {
+   loop *cali_obj      = (loop *) cali_obj_ptr;
+   iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
     ynInsideMarkedRegion = false;
 
     if (cali_iter_obj != NULL) {
@@ -78,9 +104,11 @@ Apollo::Region::handleCommonEndTasks(void)
         cali_iter_obj = NULL;
     }
 
+    cali_obj = (loop *) cali_obj_ptr;
+
     cali_obj->end();
     delete cali_obj;
-    cali_obj = NULL;
+    cali_obj_ptr = NULL;
 
     return;
 }
@@ -114,12 +142,16 @@ Apollo::Region::end(void)
 
 void
 Apollo::Region::iterationStart(int i) {
+    loop *cali_obj      = (loop *) cali_obj_ptr;
+    iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
     if (ynInsideMarkedRegion == true) {
-        if (cali_iter_obj != NULL) {
+        if (cali_iter_obj_ptr != NULL) {
             delete cali_iter_obj;
+            cali_iter_obj_ptr = NULL;
         }
-        cali_iter_obj = new cali::Loop::Iteration(
+        cali_iter_obj_ptr = (void *) new iter(
                 cali_obj->iteration(static_cast<int>(i))  );
+        cali_iter_obj = (iter *) cali_iter_obj_ptr;
         caliSetInt("iteration", i);
     } else {
         // Do nothing.  (There is nothing to iterate on.)
@@ -130,9 +162,11 @@ Apollo::Region::iterationStart(int i) {
 
 void
 Apollo::Region::iterationStop(void) {
+    loop *cali_obj      = (loop *) cali_obj_ptr;
+    iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
     if (cali_iter_obj != NULL) {
         delete cali_iter_obj;
-        cali_iter_obj = NULL;
+        cali_iter_obj_ptr = NULL;
     }
     return;
 }

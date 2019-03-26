@@ -1,7 +1,7 @@
-
 include_directories(".")
+include_directories("../../include")
 include_directories("../../src")
-include_directories("${RAJA_DIR}/include")
+include_directories("${RAJA_DIR}")
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall -std=c99   -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -fopenmp")

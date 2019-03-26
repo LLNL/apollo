@@ -1,12 +1,23 @@
+#!/bin/bash
 rm -rf ./build
 rm -rf ./install
 mkdir build
 mkdir install
 cd build
+#
+#  We don't want to use the installed RAJA, we want the same custom one that
+#  the proxy app is using so the compiler doesn't get confused.
+#
+#cmake -DCMAKE_INSTALL_PREFIX=../install \
+#        -DCMAKE_BUILD_TYPE=Debug \
+#        -DSOS_DIR=$HOME/src/sos_flow/build \
+#        -DRAJA_DIR=$(spack location -i raja) \
+#        -DCALIPER_DIR=$HOME/src/caliper/install \
+#        ..
 cmake -DCMAKE_INSTALL_PREFIX=../install \
         -DCMAKE_BUILD_TYPE=Debug \
-        -DSOS_DIR=$(echo $HOME)/src/sos_flow/build \
-        -DRAJA_DIR=$(spack location -i raja) \
-        -DCALIPER_DIR=$(echo $HOME)/src/caliper/install \
+        -DSOS_DIR=$HOME/src/sos_flow/build \
+        -DRAJA_DIR=$HOME/src/raja-proxies/tpl/RAJA/include \
+        -DCALIPER_DIR=$HOME/src/caliper/install \
         ..
-make && make install && cd .. && tree install
+make -j && make -j install && cd .. && tree install

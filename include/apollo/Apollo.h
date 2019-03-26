@@ -10,9 +10,6 @@
 #include <list>
 #include <vector>
 
-#include "caliper/cali.h"
-#include "caliper/Annotation.h"
-
  
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
 #define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
@@ -48,11 +45,15 @@ extern "C" {
 class Apollo
 {
     public:
-        Apollo();
-        ~Apollo();
+       ~Apollo();
         // disallow copy constructor 
         Apollo(const Apollo&) = delete; 
         Apollo& operator=(const Apollo&) = delete;
+
+        static Apollo* instance(void) {
+            static Apollo the_instance;
+            return &the_instance;
+        }
 
         enum class Hint : int {
             INDEPENDENT,
@@ -108,6 +109,7 @@ class Apollo
         void disconnect();
 
     private:
+        Apollo();
         Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
@@ -118,7 +120,9 @@ class Apollo
 
 }; //end: Apollo
 
-    
+//Found in: src/Region.cpp
+extern int getApolloPolicyChoice(Apollo::Region *reg);
+
 
 // C++14 version of template that converts enum classes into
 // their underlying type, i.e. an int:
