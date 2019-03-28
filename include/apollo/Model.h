@@ -27,11 +27,11 @@ class Apollo::Model {
                                                  "{\n"                                   \
                                                  "    \"driver\": {\n"                   \
                                                  "        \"format\": \"int\",\n"        \
-                                                 "        \"rules\": \"random\"\n"       \
+                                                 "        \"rules\": \"1\"\n"            \
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
                                                  "        \"guid\": 0,\n"                \
-                                                 "        \"name\": \"Random\"\n"        \
+                                                 "        \"name\": \"Static\"\n"        \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \
