@@ -60,10 +60,9 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         static int increasing = 0;
         increasing++;
 
-        kernel->begin();
-        kernel->iterationStart(increasing);
+        kernel->begin(increasing);
         addvectPolicySwitcher(
-            getApolloPolicyChoice(kernel),
+            kernel->getPolicyIndex(),
             [=] (auto exec_policy) {
             RAJA::forall(exec_policy, (RAJA::RangeSegment(0, N) ), [=] (int i)
             {
@@ -72,7 +71,6 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
                 
             });
         });
-        kernel->iterationStop();
         kernel->end();
     }
 

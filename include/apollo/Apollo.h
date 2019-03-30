@@ -104,7 +104,9 @@ class Apollo
         // 
         bool isOnline();
         //
-        void publish();
+        int  sosPack(const char *name, int val);
+        int  sosPackRelated(long relation_id, const char *name, int val);
+        void sosPublish();
         //
         void disconnect();
 

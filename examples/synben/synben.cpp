@@ -123,7 +123,6 @@ class RunSettings {
         std::string behavior_str = "";
         int         behavior       = Behavior::Random;
 
-
         std::vector<KernelVariant> kernel_variants;
 
         std::mt19937 rng;
@@ -295,7 +294,6 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
     Apollo::Region *reg =
         new Apollo::Region(apollo, "synben", run.kernel_variants.size());
-    reg->begin();
 
     int pol_count = (int) run.kernel_variants.size();
     
@@ -371,14 +369,14 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // ##########
         // #
         // #
-        reg->iterationStart(i);
+        reg->begin(i);
         // Express our configuration to Caliper:
         reg->caliSetInt("group_id",  group_id);
         reg->caliSetInt("op_count",  op_count);
         reg->caliSetInt("op_weight", op_weight);
 
         // Select our "kernel variant"
-        pol_idx = getApolloPolicyChoice(reg);
+        pol_idx = reg->getPolicyIndex();
 
         if ((reg->getModel()->isTraining())
          && (run.behavior == RunSettings::Behavior::Sweep)) {
@@ -424,7 +422,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // Record the computed time, in case we're not actually sleeping
         // and don't want to use the time captured by Caliper:
         reg->caliSetInt("t_total", t_total);
-        reg->iterationStop();
+        reg->end();
         // #
         // #
         // ##########
@@ -456,8 +454,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
    
     } // end: iteration loop
 
-
-    reg->end();
+    delete reg;
     return;
 }
 

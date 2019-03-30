@@ -17,17 +17,34 @@
 extern SOS_runtime *sos;
 extern SOS_runtime *pub;
 
-typedef cali::Loop            loop;
-typedef cali::Loop::Iteration iter;
+typedef cali::Annotation note;
 
-int getApolloPolicyChoice(Apollo::Region *reg) 
+    // NOTE: If we want to grab a GUID for some future annotation, this is how:
+    // ----
+    //SOS_guid guid = 0;
+    //if (apollo->isOnline()) {
+    //    guid = SOS_uid_next(sos->uid.my_guid_pool);
+    //}
+    
+int
+Apollo::Region::getPolicyIndex(void) 
 {
-    assert (reg != NULL); 
-    Apollo::ModelWrapper *model = reg->getModel();
+    Apollo::ModelWrapper *model = getModel();
     assert (model != NULL);
 
     int choice = model->requestPolicyIndex();
-    reg->caliSetInt("policyIndex", choice);
+   
+    if (choice != current_policy) {
+        exec_count_current_policy = 1;
+        current_policy = choice;
+        ((note *)note_current_policy)->end();
+        ((note *)note_current_policy)->begin(current_policy);
+    } else {
+        exec_count_current_policy++;
+    }
+
+    ((note *)note_exec_count_current_policy)->end();
+    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
 
     return choice;
 }
@@ -39,147 +56,135 @@ Apollo::Region::Region(
         int          numAvailablePolicies)
 {
     apollo = apollo_ptr;
-    name = strdup(regionName);
+    name   = strdup(regionName);
+
+    current_step              = -1;
+    current_policy            = -1;
+    exec_count_total          = 0;
+    exec_count_current_step   = 0;
+    exec_count_current_policy = 0;
+    currently_inside_region   = false;
+
+    note_current_policy =
+        (void *) new note("current_policy", CALI_ATTR_ASVALUE);
+    note_current_step =
+        (void *) new note("current_step", CALI_ATTR_ASVALUE);
+    note_exec_count_total =
+        (void *) new note("exec_count_total", CALI_ATTR_ASVALUE);
+    note_exec_count_current_step =
+        (void *) new note("exec_count_current_step", CALI_ATTR_ASVALUE);
+    note_exec_count_current_policy =
+        (void *) new note("exec_count_current_policy", CALI_ATTR_ASVALUE);
+
+    ((note *)note_current_step)->begin(current_step);
+    ((note *)note_current_policy)->begin(current_policy);
+    ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
+    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
+
+    model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
+
+    model->configure("");
 
     apollo->regions.insert({name, this});
-
-    cali_obj_ptr      = NULL;
-    cali_iter_obj_ptr = NULL;
-    ynInsideMarkedRegion = false;
-
-    model = new Apollo::ModelWrapper(
-            apollo_ptr,
-            numAvailablePolicies);
-    
-    model->configure("");
 
     return;
 }
 
 Apollo::Region::~Region()
 {
+    if (currently_inside_region) {
+        this->end();
+    }
+
     if (name != NULL) {
         free(name);
-    }
-    return;
-}
-
-
-void
-Apollo::Region::handleCommonBeginTasks(void)
-{
-   loop *cali_obj      = (loop *) cali_obj_ptr;
-   iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
-   if (ynInsideMarkedRegion == true) {
-        // Free up the old region and make a new one,
-        // to comply with Caliper "constructor == start"
-        // conventions.
-        //
-        cali_obj->end();
-        delete cali_obj;
-        cali_obj_ptr = NULL;
-        
+        name = NULL;
     }
 
-    SOS_guid guid = 0;
-    if (apollo->isOnline()) {
-        guid = SOS_uid_next(sos->uid.my_guid_pool);
-    }
-    //
-    cali_obj_ptr = (void *) new cali::Loop(name);
-
-    ynInsideMarkedRegion = true;
-    return;
-}
-
-void
-Apollo::Region::handleCommonEndTasks(void)
-{
-   loop *cali_obj      = (loop *) cali_obj_ptr;
-   iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
-    ynInsideMarkedRegion = false;
-
-    if (cali_iter_obj != NULL) {
-        delete cali_iter_obj;
-        cali_iter_obj = NULL;
-    }
-
-    cali_obj = (loop *) cali_obj_ptr;
-
-    cali_obj->end();
-    delete cali_obj;
-    cali_obj_ptr = NULL;
+    note *nobj;
+    nobj = (note *) note_current_step; delete nobj;
+    nobj = (note *) note_current_policy; delete nobj;
+    nobj = (note *) note_exec_count_total; delete nobj;
+    nobj = (note *) note_exec_count_current_step; delete nobj;
+    nobj = (note *) note_exec_count_current_policy; delete nobj;
+    note_current_step = NULL;
+    note_current_policy = NULL;
+    note_exec_count_total = NULL;
+    note_exec_count_current_step = NULL;
+    nobj = NULL;
 
     return;
 }
 
 
+
+
 void
-Apollo::Region::begin(void) {
-    handleCommonBeginTasks();
-   
-    // NOTE: This is deprecated, features come directly through
-    //       the Caliper SOS service.
-    for(Apollo::Feature *feat : apollo->features) {
-        //if (feat->getHint() != to_underlying(Apollo::Hint::DEPENDENT)) {
-            feat->pack();
-        //}
+Apollo::Region::begin(int for_experiment_time_step) {
+    if (currently_inside_region) {
+        fprintf(stderr, "== APOLLO: [WARNING] region->begin(%d) called"
+                        " while already inside the region. Please call"
+                        " region->end() first to avoid unintended"
+                        " consequences. (region->name == %s)\n",
+                        current_step, name);
+        fflush(stderr);
     }
-    apollo->publish();
-    return;
-}
+    currently_inside_region = true;
 
-void
-Apollo::Region::end(void)
-{
-    //
-    // Log things here:
-    
-    //
-    handleCommonEndTasks();
-    return;
-}
+    if (for_experiment_time_step != current_step) {
+        exec_count_current_step = 0;
+        current_step = for_experiment_time_step;
+    }
 
-void
-Apollo::Region::iterationStart(int i) {
-    loop *cali_obj      = (loop *) cali_obj_ptr;
-    iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
-    if (ynInsideMarkedRegion == true) {
-        if (cali_iter_obj_ptr != NULL) {
-            delete cali_iter_obj;
-            cali_iter_obj_ptr = NULL;
-        }
-        cali_iter_obj_ptr = (void *) new iter(
-                cali_obj->iteration(static_cast<int>(i))  );
-        cali_iter_obj = (iter *) cali_iter_obj_ptr;
-        caliSetInt("iteration", i);
-    } else {
-        // Do nothing.  (There is nothing to iterate on.)
-    } 
+    exec_count_total++;
+    exec_count_current_step++;
+
+    ((note *)note_current_step)->begin(current_step);
+    ((note *)note_exec_count_total)->begin(exec_count_total);
+    ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
+
 
     return;  
 }
 
 void
-Apollo::Region::iterationStop(void) {
-    loop *cali_obj      = (loop *) cali_obj_ptr;
-    iter *cali_iter_obj = (iter *) cali_iter_obj_ptr;
-    if (cali_iter_obj != NULL) {
-        delete cali_iter_obj;
-        cali_iter_obj_ptr = NULL;
+Apollo::Region::end(void) {
+    if (not currently_inside_region) {
+        fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
+                        " while NOT inside the region. Please call"
+                        " region->begin(step) first to avoid unintended"
+                        " consequences. (region->name == %s)\n", name);
+        fflush(stderr);
     }
+
+
+    ((note *)note_current_step)->end();
+    ((note *)note_exec_count_total)->end();end();
+    ((note *)note_exec_count_current_step)->end();
+    currently_inside_region = false;
+
     return;
 }
 
 
 void
 Apollo::Region::caliSetInt(const char *name, int value) {
+    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetInt(%s, %d) called."
+    //                " This function is likely to be deprecated due to"
+    //                " the performance impacts of its frequent use.\n",
+    //                name, value);
+    //fflush(stderr);
     cali_set_int_byname(name, value); 
     return;
 }
 
 void
 Apollo::Region::caliSetString(const char *name, const char *value) {
+    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetString(%s, %s) called."
+    //                " This function is likely to be deprecated due to"
+    //                " the performance impacts of its frequent use.\n",
+    //                name, value);
+    //fflush(stderr);
     cali_set_string_byname(name, value); 
     return;
 }

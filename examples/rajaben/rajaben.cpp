@@ -218,9 +218,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         random_sizes(run.vector_size_min, run.vector_size_max);
     RunSettings::Behavior b;
 
-    Apollo::Region *reg =
-        new Apollo::Region(apollo, "rajaben", policy_count);
-    reg->begin();
+    Apollo::Region *reg = new Apollo::Region(apollo, "rajaben", policy_count);
 
     uint64_t prior_model_guid = 0;
     int      sweep_policy     = 0;
@@ -260,13 +258,13 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // features affiliated with the actual performance of the loop.
         // During training the model evaluates extremely fast, so this is
         // not a significant issue.
-        reg->iterationStart(iter);
+        reg->begin(iter);
         // Express our current application-defined features to Apollo
         // for use when evaluating the performance model
         reg->caliSetInt("vector_size", vector_size);
 
         // Evaluate our model and get a policy recommendation
-        policy_index = getApolloPolicyChoice(reg);
+        policy_index = reg->getPolicyIndex();
 
         if ((reg->getModel()->isTraining())
          && (run.behavior == RunSettings::Behavior::Sweep)
@@ -303,7 +301,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
                 
             });
         });
-        reg->iterationStop();
+        reg->end();
         // #
         // #
         // ##########
@@ -362,7 +360,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         std::this_thread::sleep_for(std::chrono::microseconds(run.delay_usec));
     } // end: iteration loop
 
-    reg->end(); // tear down the region
+    delete reg; // tear down the region
     return;
 }
 

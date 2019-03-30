@@ -136,6 +136,7 @@ Apollo::Apollo()
     }
 
     SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
+    SOS_reference_set(sos, "APOLLO_PUB", (void *) pub); 
 
     if (pub == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
@@ -202,7 +203,19 @@ Apollo::region(const char *regionName)
 
 }
 
-void Apollo::publish()
+int
+Apollo::sosPack(const char *name, int val)
+{
+    return SOS_pack(pub, name, SOS_VAL_TYPE_INT, &val);
+}
+
+int
+Apollo::sosPackRelated(long relation_id, const char *name, int val)
+{
+    return SOS_pack_related(pub, relation_id, name, SOS_VAL_TYPE_INT, &val);
+}
+ 
+void Apollo::sosPublish()
 {
     if (isOnline()) {
         SOS_publish(pub);
