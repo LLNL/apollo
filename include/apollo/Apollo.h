@@ -102,7 +102,8 @@ class Apollo
         //
         void attachModel(const char *modelEncoding);
         // 
-        bool isOnline();
+        bool        isOnline();
+        std::string uniqueRankIDText(void);
         //
         int  sosPack(const char *name, int val);
         int  sosPackRelated(long relation_id, const char *name, int val);

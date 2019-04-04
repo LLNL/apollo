@@ -53,6 +53,7 @@ class Apollo::Region {
         int            exec_count_current_policy;
         //
         // cali::Annotation *
+        void          *note_region_name;
         void          *note_current_step;
         void          *note_current_policy;
         void          *note_exec_count_total;

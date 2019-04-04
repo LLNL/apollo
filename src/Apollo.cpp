@@ -203,6 +203,18 @@ Apollo::region(const char *regionName)
 
 }
 
+std::string
+Apollo::uniqueRankIDText(void)
+{
+    std::stringstream ss_text;
+    ss_text << "{";
+    ss_text << "hostname: \"" << pub->node_id      << "\",";
+    ss_text << "pid: \""      << pub->process_id   << "\",";
+    ss_text << "mpi_rank: \"" << pub->comm_rank    << "\"";
+    ss_text << "}";
+    return ss_text.str();
+}
+
 int
 Apollo::sosPack(const char *name, int val)
 {

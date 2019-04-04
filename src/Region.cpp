@@ -65,10 +65,12 @@ Apollo::Region::Region(
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
-    note_current_policy =
-        (void *) new note("current_policy", CALI_ATTR_ASVALUE);
+    note_region_name =
+        (void *) new note("region_name", CALI_ATTR_ASVALUE);
     note_current_step =
         (void *) new note("current_step", CALI_ATTR_ASVALUE);
+    note_current_policy =
+        (void *) new note("current_policy", CALI_ATTR_ASVALUE);
     note_exec_count_total =
         (void *) new note("exec_count_total", CALI_ATTR_ASVALUE);
     note_exec_count_current_step =
@@ -78,8 +80,10 @@ Apollo::Region::Region(
 
     ((note *)note_current_step)->begin(current_step);
     ((note *)note_current_policy)->begin(current_policy);
+    ((note *)note_region_name)->begin(name);
     ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
     ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
+    ((note *)note_exec_count_total)->begin(exec_count_total);
 
     model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
 
@@ -102,16 +106,19 @@ Apollo::Region::~Region()
     }
 
     note *nobj;
+    nobj = (note *) note_region_name; delete nobj;
     nobj = (note *) note_current_step; delete nobj;
     nobj = (note *) note_current_policy; delete nobj;
     nobj = (note *) note_exec_count_total; delete nobj;
     nobj = (note *) note_exec_count_current_step; delete nobj;
     nobj = (note *) note_exec_count_current_policy; delete nobj;
+    nobj = NULL;
+    note_region_name = NULL;
     note_current_step = NULL;
     note_current_policy = NULL;
     note_exec_count_total = NULL;
     note_exec_count_current_step = NULL;
-    nobj = NULL;
+    note_exec_count_current_policy = NULL;
 
     return;
 }
@@ -140,9 +147,11 @@ Apollo::Region::begin(int for_experiment_time_step) {
     exec_count_current_step++;
 
     ((note *)note_current_step)->begin(current_step);
-    ((note *)note_exec_count_total)->begin(exec_count_total);
+    ((note *)note_current_policy)->begin(current_policy);
+    ((note *)note_region_name)->begin(name);
     ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
-
+    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
+    ((note *)note_exec_count_total)->begin(exec_count_total);
 
     return;  
 }
@@ -157,12 +166,14 @@ Apollo::Region::end(void) {
         fflush(stderr);
     }
 
-
-    ((note *)note_current_step)->end();
-    ((note *)note_exec_count_total)->end();end();
-    ((note *)note_exec_count_current_step)->end();
     currently_inside_region = false;
 
+    ((note *)note_current_step)->end();
+    ((note *)note_current_policy)->end();
+    ((note *)note_region_name)->end();
+    ((note *)note_exec_count_current_step)->end();
+    ((note *)note_exec_count_current_policy)->end();
+    ((note *)note_exec_count_total)->end();
     return;
 }
 
