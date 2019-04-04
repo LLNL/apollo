@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include <mutex>
 
 #include "assert.h"
@@ -146,6 +146,8 @@ Apollo::Region::begin(int for_experiment_time_step) {
     exec_count_total++;
     exec_count_current_step++;
 
+    std::cout << "region->begin();" << std::endl;
+
     ((note *)note_current_step)->begin(current_step);
     ((note *)note_current_policy)->begin(current_policy);
     ((note *)note_region_name)->begin(name);
@@ -167,6 +169,8 @@ Apollo::Region::end(void) {
     }
 
     currently_inside_region = false;
+
+    std::cout << "region->end();" << std::endl;
 
     ((note *)note_current_step)->end();
     ((note *)note_current_policy)->end();
