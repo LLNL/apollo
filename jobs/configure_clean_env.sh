@@ -10,19 +10,16 @@ fi
 echo ""
 echo "batchenv.sh: Configuring your environment for the SOSflow runtime..."
 echo "" 
-source /g/g17/wood67/src/apollo/experiments/common_unsetenv.sh
-source /g/g17/wood67/src/apollo/experiments/common_setenv.sh
 export SOS_BATCH_ENVIRONMENT="batch"
 echo ""
 echo "Setting \$SOS_WORK for this job..."
 unset SOS_WORK
 if [ "x$EXPERIMENT_JOB_TITLE" == "x" ]
 then
-    export SOS_WORK=$EXPERIMENT_BASE/job_work/$SLURM_JOBID
+    export SOS_WORK="${EXPERIMENT_BASE}/xx.no_job_title.${SLURM_JOBID}"
 else
-    export SOS_WORK=$EXPERIMENT_BASE/job_work/$SLURM_JOBID.$EXPERIMENT_JOB_TITLE
+    export SOS_WORK="${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOBID}"
 fi
-rm -f $SOS_WORK
 mkdir -p $SOS_WORK
 echo ""
 env | grep SOS

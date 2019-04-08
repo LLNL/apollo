@@ -9,6 +9,7 @@ if [ -z $1 ]; then echo "   >>> Clearing the lock file[s]."; fi;
 rm -rf ${SOS_WORK}/sosd.*.lock
 if [ -z $1 ]; then echo "   >>> Clearing the connection string[s]."; fi;
 rm -rf ${SOS_EVPATH_MEETUP}/sosd.*.key
+rm -rf ${SOS_EVPATH_MEETUP}/sosd.*.id
 if [ -z $1 ]; then echo "   >>> Clearing the database[s]."; fi;
 rm -rf ${SOS_WORK}/sosd.*.db
 rm -rf ${SOS_WORK}/sosd.*.db.export

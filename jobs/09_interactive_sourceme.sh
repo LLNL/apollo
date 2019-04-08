@@ -15,7 +15,12 @@ sleep 2
 #  Launch the SOS runtime:
 #
 #  Verify the environment has been configured:
+source $LAUNCHED_FROM_PATH/common_unsetenv.sh
+source $LAUNCHED_FROM_PATH/common_setenv.sh
 source $LAUNCHED_FROM_PATH/configure_clean_env.sh
+#
+export SOS_EVPATH_MEETUP="/g/g17/wood67/experiments/apollo/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
+mkdir -p $SOS_WORK
 #
 # Because we're running interactively, clear this out:
 export SOS_BATCH_ENVIRONMENT=""
@@ -26,8 +31,9 @@ if [ "x$SOS_ENV_SET" == "x" ] ; then
 fi
 if ls $SOS_EVPATH_MEETUP/sosd.*.key 1> /dev/null 2>&1
 then
-    echo "WARNING: Aggregator KEY file[s] exist already.  Deleting them."
+    echo "WARNING: Aggregator KEY and ID file[s] exist already.  Deleting them."
     rm -f $SOS_EVPATH_MEETUP/sosd.*.key
+    rm -f $SOS_EVPATH_MEETUP/sosd.*.id
 fi
 if ls $SOS_WORK/sosd.*.db 1> /dev/null 2>&1
 then
@@ -64,9 +70,9 @@ SOS_DAEMONS_SPAWNED="0"
 while [ $SOS_DAEMONS_SPAWNED -lt $SOS_DAEMON_TOTAL ]
 do
 
-    if ls $SOS_WORK/sosd.*.db 1> /dev/null 2>&1
+    if ls $SOS_WORK/sosd.*.id 1> /dev/null 2>&1
     then
-        SOS_DAEMONS_SPAWNED="$(ls -l $SOS_WORK/sosd.*.db | grep -v ^d | wc -l)"
+        SOS_DAEMONS_SPAWNED="$(ls -l $SOS_WORK/sosd.*.id | grep -v ^d | wc -l)"
     else
         SOS_DAEMONS_SPAWNED="0"
     fi
@@ -112,8 +118,8 @@ echo ""
 #
 # Example:   srun -N 1 -n 8 -r 1 $SOS_BUILD_DIR/bin/demo_app -i 1 -p 5 -m 25
 #
-export CONTROLLER_COMMAND="-N 1 -n 1 -r 0 ./controller.py"
-export JOB_LAUNCH_COMMAND="-N 8 -n 8 -r 1 ./lulesh-apollo -s 100"
+export CONTROLLER_COMMAND="-N 1 -n 1 -r 0 ./bin/controller.py"
+export JOB_LAUNCH_COMMAND="-N 8 -n 128 -r 1 mpirun ./bin/lulesh-apollo -q -s 100 -i 100 -b 1 -c 1"
 
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.
@@ -124,13 +130,13 @@ cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-apollo $SOS_WORK/bin
 cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe $SOS_WORK/bin
 cp /g/g17/wood67/src/sos_flow/src/python/ssos.py $SOS_WORK/bin
 #
-cp /g/g17/wood67/src/apollo/install/libapollo.so $SOS_WORK/lib
+cp /g/g17/wood67/src/apollo/install/lib/libapollo.so $SOS_WORK/lib
 cp /g/g17/wood67/src/sos_flow/build/lib/libsos.so $SOS_WORK/lib
 cp /g/g17/wood67/src/sos_flow/build/lib/ssos_python.so $SOS_WORK/lib
 cp /g/g17/wood67/src/caliper/install/lib64/libcaliper.so $SOS_WORK/lib
-
+#
 export PYTHONPATH=$SOS_WORK/lib:$PYTHONPATH
-
+#
 # Make an archive of this script and the environment config script:
 echo "srun $JOB_LAUNCH_COMMAND" > $SOS_WORK/COMMAND_JOB_LAUNCH
 echo "srun $CONTROLLER_COMMAND" > $SOS_WORK/COMMAND_CONTROLLER
@@ -144,12 +150,14 @@ cp $BASH_SOURCE $SOS_WORK/SLURM_BASH_SCRIPT
 # the databases for archival/reproducibility purposes.
 cd $SOS_WORK
 
+export CALI_LOG_VERBOSITY=0
+export CALI_AGGREGATE_KEY="APOLLO_time_flush"
+export CALI_SOS_TRIGGER_ATTR="APOLLO_time_flush"
+export CALI_SERVICES_ENABLE="sos,timestamp"
+export CALI_TIMER_SNAPSHOT_DURATION="false"
+export CALI_SOS_ITER_PER_PUBLISH="1"
 
-#TODO: srun $JOB_LAUNCH_COMMAND
-
-export JOB_LAUNCH_COMMAND="-N 8 -n 8 -r 1 $SOS_BUILD_DIR/bin/demo_app -i 1 -p 100 -m 1000000 -c 0"
 srun $JOB_LAUNCH_COMMAND
-
 
 #
 #^
