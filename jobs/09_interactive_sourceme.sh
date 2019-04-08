@@ -15,7 +15,7 @@ sleep 2
 #  Launch the SOS runtime:
 #
 #  Verify the environment has been configured:
-source $EXPERIMENT_BASE/configure_clean_env.sh
+source $LAUNCHED_FROM_PATH/configure_clean_env.sh
 #
 # Because we're running interactively, clear this out:
 export SOS_BATCH_ENVIRONMENT=""
@@ -112,27 +112,33 @@ echo ""
 #
 # Example:   srun -N 1 -n 8 -r 1 $SOS_BUILD_DIR/bin/demo_app -i 1 -p 5 -m 25
 #
+export CONTROLLER_COMMAND="-N 1 -n 1 -r 0 ./controller.py"
+export JOB_LAUNCH_COMMAND="-N 8 -n 8 -r 1 ./lulesh-apollo -s 100"
 
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.
-#TODO: export JOB_LAUNCH_COMMAND="-N 8 -n 8 -r 1 ./lulesh-apollo -s 100"
-#TODO: export JOB_BINARY_PATH=$PROJECT_BASE/sos_vpa_2017/chad/lulesh2.0.3
-#TODO: cp $JOB_BINARY_PATH/lulesh_par                    $SOS_WORK
-#TODO: cp $JOB_BINARY_PATH/alpine_options.json           $SOS_WORK
-#TODO: cp $JOB_BINARY_PATH/alpine_actions.json           $SOS_WORK
-#TODO: cp $PROJECT_BASE/matts_python_stuff/ssos.py       $SOS_WORK
-#TODO: cp $PROJECT_BASE/sos_flow/python/ssos_python.o    $SOS_WORK
-#TODO: cp $PROJECT_BASE/sos_flow/python/ssos_python.so   $SOS_WORK
-#TODO: cp $PROJECT_BASE/sos_flow/python/plot_lulesh.py   $SOS_WORK
-#TODO: cp $PROJECT_BASE/matts_python_stuff/visitlog.py   $SOS_WORK
-#TODO: cp $PROJECT_BASE/matts_python_stuff/vtk_writer.py $SOS_WORK
+mkdir -p $SOS_WORK/bin
+mkdir -p $SOS_WORK/lib
+#
+cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-apollo $SOS_WORK/bin
+cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe $SOS_WORK/bin
+cp /g/g17/wood67/src/sos_flow/src/python/ssos.py $SOS_WORK/bin
+#
+cp /g/g17/wood67/src/apollo/install/libapollo.so $SOS_WORK/lib
+cp /g/g17/wood67/src/sos_flow/build/lib/libsos.so $SOS_WORK/lib
+cp /g/g17/wood67/src/sos_flow/build/lib/ssos_python.so $SOS_WORK/lib
+cp /g/g17/wood67/src/caliper/install/lib64/libcaliper.so $SOS_WORK/lib
 
+export PYTHONPATH=$SOS_WORK/lib:$PYTHONPATH
 
 # Make an archive of this script and the environment config script:
-#TODO: echo "srun $JOB_LAUNCH_COMMAND" > $SOS_WORK/LAUNCH_COMMAND
-#TODO: cp $PROJECT_BASE/job_scripts/batchenv.sh $SOS_WORK
-#TODO: cp $BASH_SOURCE $SOS_WORK/LAUNCH_SCRIPT
-
+echo "srun $JOB_LAUNCH_COMMAND" > $SOS_WORK/COMMAND_JOB_LAUNCH
+echo "srun $CONTROLLER_COMMAND" > $SOS_WORK/COMMAND_CONTROLLER
+cp /g/g17/wood67/setenv.sh $SOS_WORK/ENV_USR
+cp $LAUNCHED_FROM_PATH/common_setenv.sh $SOS_WORK/ENV_SOS_SET
+cp $LAUNCHED_FROM_PATH/common_unsetenv.sh $SOS_WORK/ENV_SOS_UNSET
+cp $LAUNCHED_FROM_PATH/configure_clean_env.sh $SOS_WORK/ENV_JOB
+cp $BASH_SOURCE $SOS_WORK/SLURM_BASH_SCRIPT
 
 # Go into this location, so that any files created will be stored alongside
 # the databases for archival/reproducibility purposes.
@@ -140,6 +146,7 @@ cd $SOS_WORK
 
 
 #TODO: srun $JOB_LAUNCH_COMMAND
+
 export JOB_LAUNCH_COMMAND="-N 8 -n 8 -r 1 $SOS_BUILD_DIR/bin/demo_app -i 1 -p 100 -m 1000000 -c 0"
 srun $JOB_LAUNCH_COMMAND
 

@@ -38,6 +38,12 @@ Apollo::ModelWrapper::getGuid(void)
     return lnm->getGuid();
 }
 
+int
+Apollo::ModelWrapper::getPolicyCount(void)
+{
+    return num_policies;
+}
+
 bool
 Apollo::ModelWrapper::isTraining(void)
 {

@@ -29,6 +29,14 @@ typedef cali::Annotation note;
 int
 Apollo::Region::getPolicyIndex(void) 
 {
+    if (not currently_inside_region) {
+        fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
+                        " while NOT inside the region. Please call"
+                        " region->begin(step) first so the model has values to use"
+                        " when selecting a policy. (region->name == %s)\n", name);
+        fflush(stderr);
+    }
+
     Apollo::ModelWrapper *model = getModel();
     assert (model != NULL);
 
@@ -37,14 +45,9 @@ Apollo::Region::getPolicyIndex(void)
     if (choice != current_policy) {
         exec_count_current_policy = 1;
         current_policy = choice;
-        ((note *)note_current_policy)->end();
-        ((note *)note_current_policy)->begin(current_policy);
     } else {
         exec_count_current_policy++;
     }
-
-    ((note *)note_exec_count_current_policy)->end();
-    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
 
     return choice;
 }
@@ -58,6 +61,15 @@ Apollo::Region::Region(
     apollo = apollo_ptr;
     name   = strdup(regionName);
 
+    policyTimers.resize(numAvailablePolicies);
+    for (auto && t: policyTimers) {
+        t.exec_count = 0;
+        t.max  = 0.0;
+        t.avg  = 0.0;
+        t.last = 0.0;
+        t.min  = 9999999.99999;
+    }
+
     current_step              = -1;
     current_policy            = -1;
     exec_count_total          = 0;
@@ -65,28 +77,20 @@ Apollo::Region::Region(
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
-    note_region_name =
-        (void *) new note("region_name", CALI_ATTR_ASVALUE);
-    note_current_step =
-        (void *) new note("current_step", CALI_ATTR_ASVALUE);
-    note_current_policy =
-        (void *) new note("current_policy", CALI_ATTR_ASVALUE);
-    note_exec_count_total =
-        (void *) new note("exec_count_total", CALI_ATTR_ASVALUE);
-    note_exec_count_current_step =
-        (void *) new note("exec_count_current_step", CALI_ATTR_ASVALUE);
-    note_exec_count_current_policy =
-        (void *) new note("exec_count_current_policy", CALI_ATTR_ASVALUE);
-
-    ((note *)note_current_step)->begin(current_step);
-    ((note *)note_current_policy)->begin(current_policy);
-    ((note *)note_region_name)->begin(name);
-    ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
-    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
-    ((note *)note_exec_count_total)->begin(exec_count_total);
+    // note_region_name =
+    //     (void *) new note("region_name", CALI_ATTR_ASVALUE);
+    // note_current_step =
+    //     (void *) new note("current_step", CALI_ATTR_ASVALUE);
+    // note_current_policy =
+    //     (void *) new note("current_policy", CALI_ATTR_ASVALUE);
+    // note_exec_count_total =
+    //     (void *) new note("exec_count_total", CALI_ATTR_ASVALUE);
+    // note_exec_count_current_step =
+    //     (void *) new note("exec_count_current_step", CALI_ATTR_ASVALUE);
+    // note_exec_count_current_policy =
+    //     (void *) new note("exec_count_current_policy", CALI_ATTR_ASVALUE);
 
     model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
-
     model->configure("");
 
     apollo->regions.insert({name, this});
@@ -105,20 +109,20 @@ Apollo::Region::~Region()
         name = NULL;
     }
 
-    note *nobj;
-    nobj = (note *) note_region_name; delete nobj;
-    nobj = (note *) note_current_step; delete nobj;
-    nobj = (note *) note_current_policy; delete nobj;
-    nobj = (note *) note_exec_count_total; delete nobj;
-    nobj = (note *) note_exec_count_current_step; delete nobj;
-    nobj = (note *) note_exec_count_current_policy; delete nobj;
-    nobj = NULL;
-    note_region_name = NULL;
-    note_current_step = NULL;
-    note_current_policy = NULL;
-    note_exec_count_total = NULL;
-    note_exec_count_current_step = NULL;
-    note_exec_count_current_policy = NULL;
+    // note *nobj;
+    // nobj = (note *) note_region_name; delete nobj;
+    // nobj = (note *) note_current_step; delete nobj;
+    // nobj = (note *) note_current_policy; delete nobj;
+    // nobj = (note *) note_exec_count_total; delete nobj;
+    // nobj = (note *) note_exec_count_current_step; delete nobj;
+    // nobj = (note *) note_exec_count_current_policy; delete nobj;
+    // nobj = NULL;
+    // note_region_name = NULL;
+    // note_current_step = NULL;
+    // note_current_policy = NULL;
+    // note_exec_count_total = NULL;
+    // note_exec_count_current_step = NULL;
+    // note_exec_count_current_policy = NULL;
 
     return;
 }
@@ -146,14 +150,14 @@ Apollo::Region::begin(int for_experiment_time_step) {
     exec_count_total++;
     exec_count_current_step++;
 
-    std::cout << "region->begin();" << std::endl;
+    // ((note *)note_current_step)->begin(current_step);
+    // ((note *)note_current_policy)->begin(current_policy);
+    // ((note *)note_region_name)->begin(name);
+    // ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
+    // ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
+    // ((note *)note_exec_count_total)->begin(exec_count_total);
 
-    ((note *)note_current_step)->begin(current_step);
-    ((note *)note_current_policy)->begin(current_policy);
-    ((note *)note_region_name)->begin(name);
-    ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
-    ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
-    ((note *)note_exec_count_total)->begin(exec_count_total);
+    SOS_TIME(current_step_time_begin);
 
     return;  
 }
@@ -170,16 +174,79 @@ Apollo::Region::end(void) {
 
     currently_inside_region = false;
 
-    std::cout << "region->end();" << std::endl;
+    SOS_TIME(current_step_time_end);
+    auto *time = &policyTimers[current_policy];
+    time->exec_count++;
+    time->last = current_step_time_end - current_step_time_begin;
+    time->min = std::min(time->min, time->last);
+    time->max = std::max(time->max, time->last);
+    time->avg -= (time->avg  / time->exec_count);   // simple rolling average.
+    time->avg += (time->last / time->exec_count);   // (naively accumulates error)
 
-    ((note *)note_current_step)->end();
-    ((note *)note_current_policy)->end();
-    ((note *)note_region_name)->end();
-    ((note *)note_exec_count_current_step)->end();
-    ((note *)note_exec_count_current_policy)->end();
-    ((note *)note_exec_count_total)->end();
+    // ((note *)note_current_step)->end();
+    // ((note *)note_current_policy)->end();
+    // ((note *)note_region_name)->end();
+    // ((note *)note_exec_count_current_step)->end();
+    // ((note *)note_exec_count_current_policy)->end();
+    // ((note *)note_exec_count_total)->end();
+
     return;
 }
+
+
+void
+Apollo::Region::flushMeasurements(int assign_to_step) {
+    note *t_flush =      (note *) Apollo::instance()->note_time_flush;
+    note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
+    note *t_for_policy = (note *) Apollo::instance()->note_time_for_policy;
+    note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
+    note *t_exec_count = (note *) Apollo::instance()->note_time_exec_count;
+    note *t_last =       (note *) Apollo::instance()->note_time_last;
+    note *t_min =        (note *) Apollo::instance()->note_time_min;
+    note *t_max =        (note *) Apollo::instance()->note_time_max;
+    note *t_avg =        (note *) Apollo::instance()->note_time_avg;
+
+    int pol_max = getModel()->getPolicyCount();
+
+    for (int pol_idx = 0; pol_idx < pol_max; pol_idx++) {
+        auto && t = policyTimers[pol_idx];
+
+        if (t.exec_count > 0) {
+            t_flush->begin(0);
+            t_for_region->begin(name);
+            t_for_policy->begin(pol_idx);
+            t_for_step->begin(assign_to_step);
+            t_exec_count->begin(t.exec_count);
+            t_last->begin(t.last);
+            t_min->begin(t.min);
+            t_max->begin(t.max);
+            t_avg->begin(t.avg);
+
+            t_flush->end(); // Triggers the consumption of our annotation stack
+            //              // by the Caliper service
+            t_for_region->end();
+            t_for_policy->end();
+            t_for_step->end();
+            t_exec_count->end();
+            t_last->end();
+            t_min->end();
+            t_max->end();
+            t_avg->end();
+        
+            // Clear out the summary now that we've flushed it, that way
+            // this will only generate new traffic if this policy of this
+            // region gets executed at least once, in the future:
+            t.exec_count = 0;
+            t.max  = 0.0;
+            t.avg  = 0.0;
+            t.last = 0.0;
+            t.min  = 9999999.99999;
+        }
+    }
+
+    return;
+}
+
 
 
 void

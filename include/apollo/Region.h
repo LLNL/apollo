@@ -38,7 +38,17 @@ class Apollo::Region {
         void caliSetString(const char *name, const char *value);
         //
         char          *name;
- 
+
+        typedef struct {
+            int    exec_count;
+            double min;
+            double max;
+            double avg;
+            double last;
+        } PolicyMeasures;
+        std::vector<Apollo::Region::PolicyMeasures> policyTimers;
+        void flushMeasurements(int assign_to_step);
+
     private:
         //
         Apollo        *apollo;
@@ -51,6 +61,9 @@ class Apollo::Region {
         int            exec_count_total;
         int            exec_count_current_step;
         int            exec_count_current_policy;
+        //
+        double         current_step_time_begin;
+        double         current_step_time_end;
         //
         // cali::Annotation *
         void          *note_region_name;

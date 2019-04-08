@@ -23,6 +23,7 @@ class Apollo::ModelWrapper {
         //
         std::string  getName(void);
         uint64_t     getGuid(void);
+        int          getPolicyCount(void);
         bool         isTraining(void);
 
     private:

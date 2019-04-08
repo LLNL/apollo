@@ -16,7 +16,7 @@ fi
 export SOS_CMD_PORT=22500
 export SOS_BASE=$HOME/src/sos_flow
 export SOS_BUILD_DIR=$SOS_BASE/build
-export SOS_WORK="/tmp"
+export SOS_WORK="/g/g17/wood67/experiments/apollo"
 export SOS_EVPATH_MEETUP=$SOS_WORK
 export SOS_OPTIONS_FILE=""
 export SOS_SHUTDOWN="FALSE"

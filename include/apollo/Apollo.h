@@ -105,6 +105,8 @@ class Apollo
         bool        isOnline();
         std::string uniqueRankIDText(void);
         //
+        void flushAllRegionMeasurements(int assign_to_step);
+        //
         int  sosPack(const char *name, int val);
         int  sosPackRelated(long relation_id, const char *name, int val);
         void sosPublish();
@@ -117,6 +119,17 @@ class Apollo
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
         std::list<Apollo::Feature *> features;
+        //
+        // cali::Annotation *
+        void *note_time_flush;
+        void *note_time_for_region;
+        void *note_time_for_policy;
+        void *note_time_for_step;
+        void *note_time_exec_count;
+        void *note_time_last;
+        void *note_time_min;
+        void *note_time_max;
+        void *note_time_avg;
         //
         void *getContextHandle();
         bool  ynConnectedToSOS;

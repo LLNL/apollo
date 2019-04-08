@@ -25,6 +25,8 @@ using json = nlohmann::json;
 SOS_runtime *sos;
 SOS_pub     *pub;
 
+typedef cali::Annotation note; 
+
 void 
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
@@ -158,7 +160,24 @@ Apollo::Apollo()
     
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
 
-    //baseRegion = new Apollo::Region(this, "APOLLO", 0);
+    note_time_flush =
+        (void *) new note("APOLLO_time_flush", CALI_ATTR_ASVALUE);
+    note_time_for_region =
+        (void *) new note("time_for_region", CALI_ATTR_ASVALUE);
+    note_time_for_policy =
+        (void *) new note("time_for_policy", CALI_ATTR_ASVALUE);
+    note_time_for_step =
+        (void *) new note("time_for_step", CALI_ATTR_ASVALUE);
+    note_time_exec_count =
+        (void *) new note("time_exec_count", CALI_ATTR_ASVALUE);
+    note_time_last = 
+        (void *) new note("time_last", CALI_ATTR_ASVALUE);
+    note_time_min =
+        (void *) new note("time_min", CALI_ATTR_ASVALUE);
+    note_time_max =
+        (void *) new note("time_max", CALI_ATTR_ASVALUE);
+    note_time_avg =
+        (void *) new note("time_avg", CALI_ATTR_ASVALUE);
 
     apollo_log(1, "Initialized.\n");
 
@@ -171,8 +190,29 @@ Apollo::~Apollo()
         SOS_finalize(sos);
         sos = NULL;
     }
-    //delete baseRegion;
+    delete (note *) note_time_flush;
+    delete (note *) note_time_for_region;
+    delete (note *) note_time_for_policy;
+    delete (note *) note_time_for_step;
+    delete (note *) note_time_exec_count;
+    delete (note *) note_time_last;
+    delete (note *) note_time_min;
+    delete (note *) note_time_max;
+    delete (note *) note_time_avg;
+
 }
+
+void
+Apollo::flushAllRegionMeasurements(int assign_to_step) {
+    auto it = regions.begin();
+    while (it != regions.end()) {
+        Apollo::Region *reg = it->second;
+        reg->flushMeasurements(assign_to_step);
+        it++;
+    }
+    return;
+}
+
 
 Apollo::Feature
 Apollo::defineFeature(
