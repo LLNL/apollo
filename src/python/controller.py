@@ -99,67 +99,40 @@ def generateRegressionTree(data, region_names):
 
 
 def generateDecisionTree(data, region_names): 
-    #print "numpy.__version__   == " + str(np.__version__)
-    #print "pandas.__version__  == " + str(pd.__version__)
-    #print "sklearn.__version__ == " + str(skl.__version__)
-
-    # TODO: Label the data (mark the winning KernelVariant as 1, else 0)
-    #
-    # If (iteration % 10) is some "GroupID" then we find the fastest variant
-    # for that group. Maybe make the operation weight a function of iteration
-    # within that GroupId. This lets us pretend different iteration groupings 
-    # have different behavior.
-
-    # NOTE: For tree 2, we need to do something about sets of unique X's producing
-    #           different t_totals.
-    #           IDEAS:  Random Drop
-    #                   Recency Drop
-
-    # CONCEPT #2
-    #   Swap in the new model for n% of iterations and see if it is better
-    #      (some form of A/B testing)
-
-    # CONCEPT #3 (TREE 2)
-    #    t_total        Y   <-- bin this into ranges/stddev's?
-    #    kern_selected  X
-    #    t_op           X
-    #    op_count       X
-    #    op_weight      X
-
-    # CONCEPT #4
-    #     Show that features are evolving over time, "zoom in on the ones that matter"
-    #     This means keeping the old data around.
-    #   -- show different architectures
-    #   -- vectorized vs. non-vectorized (RAJA kernel variants?)
-    #   -- show debug vs. optimized build options
-
     
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
-    # Example of value binning (up to 50 bins, dropping any bins with duplicated edge values):
+    # NOTE: How to create a column of binned values for a column:
     #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
-    #grp_data = data\
-    #        .sort_values("t_op_avg")\
-    #        .groupby(["op_count_binned"], as_index=False)\
-    #        .first()
 
-    # NOTE: We use t_op_avg instead of t_total because there will be different numbers of operations
-    #       as we sweep through different dimensions/configs. We don't want to be picking some kernel
-    #       just because it got a super low time doing only 1 operation.  We want best on average.
+    # NOTE: We use time_avg instead of time_min/max/last because there will be
+    #       different numbers of operations as we sweep through different
+    #       dimensions/configs. We don't want to be picking some kernel
+    #       just because it got a super low time doing only 1 operation.
+    #       We want best on average.
     grp_data = data\
-            .sort_values("t_op_avg")\
-            .groupby(["vector_size"], as_index=False, sort=False)\
+            .sort_values("time_avg")\
+            .groupby(["region_name", "policy_index"], as_index=False, sort=False)\
             .first()
 
-
+    # Available fields:
+    #        region_name,
+    #        policy_index,
+    #        step,
+    #        exec_count,
+    #        time_last,
+    #        time_min,
+    #        time_max,
+    #        time_avg
     drop_fields =[
-            "frame",
-            "loop",
-            "loop_id",
             "policy_index",
-            "t_op_avg",
-            "t_total"
+            "step",
+            "exec_count",
+            "time_last",
+            "time_min",
+            "time_max",
+            "time_avg"
         ] 
     
     y = grp_data["policy_index"].astype(int)
@@ -181,7 +154,6 @@ def generateDecisionTree(data, region_names):
                  presort=False, random_state=None, splitter='best'))]
     model = Pipeline(pipe)
 
-
     # NOTE: Cross-Validation doesn't work well with the simplified/conditioned data.
     #if (VERBOSE and x.shape[0] > 2):
     #    warnings.filterwarnings("ignore")
@@ -200,7 +172,6 @@ def generateDecisionTree(data, region_names):
     if (VERBOSE): print "== CONTROLLER:  Encoding rules..."
     rules_json = tree_to_json(trained_model, feature_names) + "\n"
     rules_code = tree_to_code(trained_model, feature_names)
-
 
     dotfile = open("model.dot", 'w')
     from sklearn import tree as _tree
@@ -221,7 +192,7 @@ def generateDecisionTree(data, region_names):
     model_def['features']['names'] = feature_names
     model_def['driver'] = {}
     model_def['driver']['format'] = "json"
-    model_def['driver']['rules'] = rules_json #json.dumps(trained_model, sort_keys=False, indent=4)  
+    model_def['driver']['rules'] = rules_json
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
 
@@ -365,17 +336,15 @@ def getTrainingData(sos_host, sos_port, row_limit):
     sql_string = """\
         SELECT
             region_name,
-            current_step,
-            time_duration,
-            current_policy,
-            exec_count_current_step,
-            exec_count_current_policy,
-            exec_count_total
+            policy_index,
+            step,
+            exec_count,
+            time_last,
+            time_min,
+            time_max,
+            time_avg
         FROM
             viewApollo
-        ORDER BY
-            region_name,
-            current_step 
         """
 
     if (row_limit < 1):

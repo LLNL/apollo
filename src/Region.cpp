@@ -9,7 +9,6 @@
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
-#include "apollo/Feature.h"
 
 #include "caliper/cali.h"
 #include "caliper/Annotation.h"
@@ -77,19 +76,6 @@ Apollo::Region::Region(
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
-    // note_region_name =
-    //     (void *) new note("region_name", CALI_ATTR_ASVALUE);
-    // note_current_step =
-    //     (void *) new note("current_step", CALI_ATTR_ASVALUE);
-    // note_current_policy =
-    //     (void *) new note("current_policy", CALI_ATTR_ASVALUE);
-    // note_exec_count_total =
-    //     (void *) new note("exec_count_total", CALI_ATTR_ASVALUE);
-    // note_exec_count_current_step =
-    //     (void *) new note("exec_count_current_step", CALI_ATTR_ASVALUE);
-    // note_exec_count_current_policy =
-    //     (void *) new note("exec_count_current_policy", CALI_ATTR_ASVALUE);
-
     model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
     model->configure("");
 
@@ -109,27 +95,18 @@ Apollo::Region::~Region()
         name = NULL;
     }
 
-    // note *nobj;
-    // nobj = (note *) note_region_name; delete nobj;
-    // nobj = (note *) note_current_step; delete nobj;
-    // nobj = (note *) note_current_policy; delete nobj;
-    // nobj = (note *) note_exec_count_total; delete nobj;
-    // nobj = (note *) note_exec_count_current_step; delete nobj;
-    // nobj = (note *) note_exec_count_current_policy; delete nobj;
-    // nobj = NULL;
-    // note_region_name = NULL;
-    // note_current_step = NULL;
-    // note_current_policy = NULL;
-    // note_exec_count_total = NULL;
-    // note_exec_count_current_step = NULL;
-    // note_exec_count_current_policy = NULL;
-
     return;
 }
 
 
-
-
+// NOTE: the parameter to begin() should be the time step
+//       of the broader experimental context that this
+//       region is being invoked to service. It may get
+//       invoked several times for that time step, that is fine,
+//       all invocations are automatically tracked internally.
+//       If you do not know or have access to that time step,
+//       passing in (and incrementing) a static int from the
+//       calling context is typical.
 void
 Apollo::Region::begin(int for_experiment_time_step) {
     if (currently_inside_region) {
@@ -149,13 +126,6 @@ Apollo::Region::begin(int for_experiment_time_step) {
 
     exec_count_total++;
     exec_count_current_step++;
-
-    // ((note *)note_current_step)->begin(current_step);
-    // ((note *)note_current_policy)->begin(current_policy);
-    // ((note *)note_region_name)->begin(name);
-    // ((note *)note_exec_count_current_step)->begin(exec_count_current_step);
-    // ((note *)note_exec_count_current_policy)->begin(exec_count_current_policy);
-    // ((note *)note_exec_count_total)->begin(exec_count_total);
 
     SOS_TIME(current_step_time_begin);
 
@@ -183,13 +153,6 @@ Apollo::Region::end(void) {
     time->avg -= (time->avg  / time->exec_count);   // simple rolling average.
     time->avg += (time->last / time->exec_count);   // (naively accumulates error)
 
-    // ((note *)note_current_step)->end();
-    // ((note *)note_current_policy)->end();
-    // ((note *)note_region_name)->end();
-    // ((note *)note_exec_count_current_step)->end();
-    // ((note *)note_exec_count_current_policy)->end();
-    // ((note *)note_exec_count_total)->end();
-
     return;
 }
 
@@ -207,6 +170,9 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
     note *t_avg =        (note *) Apollo::instance()->note_time_avg;
 
     int pol_max = getModel()->getPolicyCount();
+
+    //TODO: Iterate all the compound keys (beginning their annotations)
+    //      before encoding their timer set.
 
     for (int pol_idx = 0; pol_idx < pol_max; pol_idx++) {
         auto && t = policyTimers[pol_idx];
@@ -249,33 +215,36 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
 
 
 
-void
-Apollo::Region::caliSetInt(const char *name, int value) {
-    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetInt(%s, %d) called."
-    //                " This function is likely to be deprecated due to"
-    //                " the performance impacts of its frequent use.\n",
-    //                name, value);
-    //fflush(stderr);
-    cali_set_int_byname(name, value); 
-    return;
-}
-
-void
-Apollo::Region::caliSetString(const char *name, const char *value) {
-    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetString(%s, %s) called."
-    //                " This function is likely to be deprecated due to"
-    //                " the performance impacts of its frequent use.\n",
-    //                name, value);
-    //fflush(stderr);
-    cali_set_string_byname(name, value); 
-    return;
-}
-
-
 Apollo::ModelWrapper *
 Apollo::Region::getModel(void) {
     return model;
 }
 
+
+
+
+
+
+//void
+//Apollo::Region::caliSetInt(const char *name, int value) {
+//    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetInt(%s, %d) called."
+//    //                " This function is likely to be deprecated due to"
+//    //                " the performance impacts of its frequent use.\n",
+//    //                name, value);
+//    //fflush(stderr);
+//    cali_set_int_byname(name, value); 
+//    return;
+//}
+
+//void
+//Apollo::Region::caliSetString(const char *name, const char *value) {
+//    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetString(%s, %s) called."
+//    //                " This function is likely to be deprecated due to"
+//    //                " the performance impacts of its frequent use.\n",
+//    //                name, value);
+//    //fflush(stderr);
+//    cali_set_string_byname(name, value); 
+//    return;
+//}
 
 
