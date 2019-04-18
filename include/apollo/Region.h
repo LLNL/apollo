@@ -24,12 +24,6 @@ class Apollo::Region {
         } Explorable;
 
         typedef struct {
-            std::string    name;
-            std::string    value;
-            void          *note_obj; // cali::Annotation *
-        } Feature;
-
-        typedef struct {
             int       exec_count;
             double    min;
             double    max;
@@ -44,11 +38,9 @@ class Apollo::Region {
         Apollo::ModelWrapper *getModel(void);
         int                   getPolicyIndex(void);
 
-        std::vector<Feature>
-            features;
-
-        std::unordered_map<std::vector<Feature>, Measure>
-            measures;
+        std::unordered_map<
+                std::pair<std::vector<Apollo::Feature>, int>,
+                Measure> measures;
 
         void flushMeasurements(int assign_to_step);
 

@@ -160,7 +160,7 @@ Apollo::Apollo()
     
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
 
-    note_time_flush =
+    note_flush =
         (void *) new note("APOLLO_time_flush", CALI_ATTR_ASVALUE);
     note_time_for_region =
         (void *) new note("time_for_region", CALI_ATTR_ASVALUE);
@@ -190,7 +190,7 @@ Apollo::~Apollo()
         SOS_finalize(sos);
         sos = NULL;
     }
-    delete (note *) note_time_flush;
+    delete (note *) note_flush;
     delete (note *) note_time_for_region;
     delete (note *) note_time_for_policy;
     delete (note *) note_time_for_step;
@@ -203,7 +203,8 @@ Apollo::~Apollo()
 }
 
 void
-Apollo::flushAllRegionMeasurements(int assign_to_step) {
+Apollo::flushAllRegionMeasurements(int assign_to_step)
+{
     auto it = regions.begin();
     while (it != regions.end()) {
         Apollo::Region *reg = it->second;
@@ -214,22 +215,48 @@ Apollo::flushAllRegionMeasurements(int assign_to_step) {
 }
 
 
-Apollo::Feature
-Apollo::defineFeature(
-        const char    *featureName,
-        Apollo::Goal   goal,
-        Apollo::Unit   unit,
-        void          *objPtr)
-{
-    return Apollo::Feature(
-            this,
-            featureName,
-            Apollo::Hint::INDEPENDENT,
-            goal,
-            unit,
-            objPtr);
 
+void
+Apollo::setFeature(std::string set_name, double set_value)
+{
+    //TODO
+
+    // 1. Loop through features:
+    //      1.a If feature exists, stop here and update it then return.
+    // 2. If loop ends and feature doesn't exist:
+    //      2.a push back new set_name and set_value pair
+    //      2.b create new feature_notes annotation for caliper (don't begin it)
+    //
+    //    typedef struct {
+    //        std::string    name;
+    //        double         value;
+    //    } Feature;
+    //    //
+    //    std::vector<Feature>                     features;
+    //    std::unordered_map<std::string, void *>  feature_notes; // cali::Annotation *
+ 
+    return;
 }
+
+
+double
+Apollo::getFeature(std::string req_name)
+{
+    double retval = 0.0;
+    std::vector<Apollo::Feature>& apollo_features =
+        Apollo::instance()->features;
+
+    for(Apollo::Feature&& ft : apollo_features) {
+        if (ft.name == req_name) {
+            retval = ft.value;
+            break;
+        }
+    };
+
+    return retval;
+}
+
+
 
 Apollo::Region *
 Apollo::region(const char *regionName)

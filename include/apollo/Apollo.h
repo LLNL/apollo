@@ -38,9 +38,15 @@ extern "C" {
                    int msg_size,
                    void *data);
 
-    // Used to call Apollo functions from the C code:
+    // Used to call Apollo functions from the above C code:
     void call_Apollo_attachModel(void *apollo, const char *def);
 }
+
+// Implemented in src/Region.cpp:
+extern int
+getApolloPolicyChoice(Apollo::Region *reg);
+
+
 
 class Apollo
 {
@@ -75,30 +81,23 @@ class Apollo
 
         // Forward declarations:
         class Region;
-        class Feature;
         class Model;
         class ModelObject;
         class ModelWrapper;
-        //...
+
+
+        typedef struct {
+            std::string    name;
+            double         value;
+        } Feature;
+        //
+        std::vector<Feature>                     features;
+        std::unordered_map<std::string, void *>  feature_notes; // cali::Annotation *
+        //
+        void    setFeature(std::string ft_name, double ft_val);
+        double  getFeature(std::string ft_name);
 
         Apollo::Region *region(const char *regionName);
-
-        std::list<Apollo::Feature *> getFeatures(void);
-        std::list<Apollo::Feature *> getFeatures(
-                Apollo::Hint getAllMatchingThisHint);
-        //
-        Apollo::Feature defineFeature(
-                const char *featureName,
-                Apollo::Goal goal,
-                Apollo::Unit unit,
-                void *ptr_to_var); 
-        //
-        void defineAdvancedFeature(const char *featureName,
-                Apollo::Hint hint,
-                Apollo::Goal goal,
-                Apollo::Unit unit,
-                void *ptr_to_var); //NOTE: Safe to call multiple times.
-        //                                 (re-call will update `ptr_to_var`)
         //
         void attachModel(const char *modelEncoding);
         // 
@@ -118,10 +117,9 @@ class Apollo
         Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
-        std::list<Apollo::Feature *> features;
-        //
+
         // cali::Annotation *
-        void *note_time_flush;
+        void *note_flush; // <-- caliper's SOS service triggering event
         void *note_time_for_region;
         void *note_time_for_policy;
         void *note_time_for_step;
@@ -136,18 +134,8 @@ class Apollo
 
 }; //end: Apollo
 
-//Found in: src/Region.cpp
-extern int getApolloPolicyChoice(Apollo::Region *reg);
 
-
-// C++14 version of template that converts enum classes into
-// their underlying type, i.e. an int:
-//template <typename E>
-//constexpr auto to_underlying(E e) noexcept
-//{
-//    return static_cast<std::underlying_type_t<E>>(e);
-//}
-
+// 
 template <typename E>
 constexpr typename std::underlying_type<E>::type to_underlying(E e) {
     return static_cast<typename std::underlying_type<E>::type>(e);

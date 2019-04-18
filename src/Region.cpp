@@ -159,7 +159,7 @@ Apollo::Region::end(void) {
 
 void
 Apollo::Region::flushMeasurements(int assign_to_step) {
-    note *t_flush =      (note *) Apollo::instance()->note_time_flush;
+    note *t_flush =      (note *) Apollo::instance()->note_flush;
     note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
     note *t_for_policy = (note *) Apollo::instance()->note_time_for_policy;
     note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
@@ -174,6 +174,15 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
     //TODO: Iterate all the compound keys (beginning their annotations)
     //      before encoding their timer set.
 
+    //TODO: region->measures is an unordered_map of vec_feat, meas_struct
+
+    //TODO: Remember, when we flush all measures, we can DELETE
+    //      them from the region to avoid accumulating unlimited
+    //      prior measurements if there is some asymptotically increasing
+    //      counter beign stored in the feature vector (key to measures)
+    //      such that the measure struct is never getting used more than once
+    //      and doesn't need to be retained after flushing.
+
     for (int pol_idx = 0; pol_idx < pol_max; pol_idx++) {
         auto && t = policyTimers[pol_idx];
 
@@ -187,6 +196,12 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
             t_min->begin(t.min);
             t_max->begin(t.max);
             t_avg->begin(t.avg);
+
+            // TODO: insert auto f : Apollo.features
+            //
+            // REAL TODO:
+            // Walk the *Caliper* context tree and insert everything it is
+            // aware of...
 
             t_flush->end(); // Triggers the consumption of our annotation stack
             //              // by the Caliper service
