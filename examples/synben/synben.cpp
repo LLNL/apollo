@@ -37,7 +37,6 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
-#include "apollo/Feature.h"
 
 void configureKernelVariants(void);
 int  syntheticKernelVariantRecommendation(int op_count);

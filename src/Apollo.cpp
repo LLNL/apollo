@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <cstring>
 #include <typeinfo>
+#include <unordered_map>
+#include <algorithm>
+
 
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
@@ -12,7 +15,6 @@ using json = nlohmann::json;
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
 #include "apollo/ModelWrapper.h"
-#include "apollo/Feature.h"
 //
 #include "util/Debug.h"
 //
@@ -60,7 +62,7 @@ handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
             //      errors.
             //NOTE: Trace the ownership of the string, make sure it gets copied in
             //      somewhere else so we can free it after this function returns.
-            
+
             char *cleanstr = (char *) calloc(msg_size + 1, sizeof(char));
             strncpy(cleanstr, (const char *)data, msg_size);
             call_Apollo_attachModel((struct ApolloDec *)apollo_ref, (char *) cleanstr);
@@ -164,8 +166,6 @@ Apollo::Apollo()
         (void *) new note("APOLLO_time_flush", CALI_ATTR_ASVALUE);
     note_time_for_region =
         (void *) new note("time_for_region", CALI_ATTR_ASVALUE);
-    note_time_for_policy =
-        (void *) new note("time_for_policy", CALI_ATTR_ASVALUE);
     note_time_for_step =
         (void *) new note("time_for_step", CALI_ATTR_ASVALUE);
     note_time_exec_count =
@@ -192,7 +192,6 @@ Apollo::~Apollo()
     }
     delete (note *) note_flush;
     delete (note *) note_time_for_region;
-    delete (note *) note_time_for_policy;
     delete (note *) note_time_for_step;
     delete (note *) note_time_exec_count;
     delete (note *) note_time_last;
@@ -209,7 +208,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     while (it != regions.end()) {
         Apollo::Region *reg = it->second;
         reg->flushMeasurements(assign_to_step);
-        it++;
+        ++it;
     }
     return;
 }
@@ -219,34 +218,37 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
 void
 Apollo::setFeature(std::string set_name, double set_value)
 {
-    //TODO
+    bool found = false;
 
-    // 1. Loop through features:
-    //      1.a If feature exists, stop here and update it then return.
-    // 2. If loop ends and feature doesn't exist:
-    //      2.a push back new set_name and set_value pair
-    //      2.b create new feature_notes annotation for caliper (don't begin it)
-    //
-    //    typedef struct {
-    //        std::string    name;
-    //        double         value;
-    //    } Feature;
-    //    //
-    //    std::vector<Feature>                     features;
-    //    std::unordered_map<std::string, void *>  feature_notes; // cali::Annotation *
- 
+    for (int i = 0; i < features.size(); ++i) {
+        Apollo::Feature f = features[i];
+        if (f.name == set_name) {
+            found = true;
+            f.value = set_value;
+            break;
+        }
+    }
+
+    if (not found) {
+        Apollo::Feature f;
+        f.name  = set_name;
+        f.value = set_value;
+        
+        features.push_back(std::move(f));
+
+        note *n = new note(set_name.c_str(), CALI_ATTR_ASVALUE);
+        feature_notes.insert({set_name, (void *) n}); 
+    }
+
     return;
 }
-
 
 double
 Apollo::getFeature(std::string req_name)
 {
     double retval = 0.0;
-    std::vector<Apollo::Feature>& apollo_features =
-        Apollo::instance()->features;
 
-    for(Apollo::Feature&& ft : apollo_features) {
+    for(Apollo::Feature ft : features) {
         if (ft.name == req_name) {
             retval = ft.value;
             break;
@@ -255,6 +257,38 @@ Apollo::getFeature(std::string req_name)
 
     return retval;
 }
+
+
+
+void
+Apollo::noteBegin(std::string &name, double with_value) {
+    note *feat_annotation = (note *) getNote(name);
+    if (feat_annotation != nullptr) {
+        feat_annotation->begin(with_value);
+    }
+    return;
+}
+
+void
+Apollo::noteEnd(std::string &name) {
+    note *feat_annotation = (note *) getNote(name);
+    if (feat_annotation != nullptr) {
+        feat_annotation->end();
+    }
+    return;
+}
+
+
+void *
+Apollo::getNote(std::string &name) {
+    auto iter_feature = feature_notes.find(name);
+    if (iter_feature != feature_notes.end()) {
+        return (void *) iter_feature->second;
+    } else {
+        return nullptr;
+    }
+}
+
 
 
 

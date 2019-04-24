@@ -6,7 +6,7 @@ import time
 import cStringIO
 import warnings
 import numpy   as np
-import pandas  as pd    
+import pandas  as pd
 import sklearn as skl
 from sklearn.preprocessing   import StandardScaler
 from sklearn.tree            import DecisionTreeClassifier
@@ -14,12 +14,12 @@ from sklearn.tree            import DecisionTreeRegressor
 from sklearn.pipeline        import Pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
-from ssos import SSOS 
+from ssos import SSOS
 
 VERBOSE = False
-DEBUG   = True
-FRAME_INTERVAL = 500 
-SOS = SSOS() 
+DEBUG   = False
+FRAME_INTERVAL = 500
+SOS = SSOS()
 
 def serializeRegressor(tree):
     """ Convert a sklearn.tree.DecisionTreeRegressor into a JSON-compatible format """
@@ -52,8 +52,8 @@ def generateRegressionTree(data, region_names):
             "loop_id",
             "t_op_avg",
             "t_total"
-        ] 
-    
+        ]
+
     y = data["t_total"].astype(float)
     x = data.drop(drop_fields, axis="columns").values.astype(float)
 
@@ -98,8 +98,8 @@ def generateRegressionTree(data, region_names):
 
 
 
-def generateDecisionTree(data, region_names): 
-    
+def generateDecisionTree(data, region_names):
+
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
@@ -133,8 +133,8 @@ def generateDecisionTree(data, region_names):
             "time_min",
             "time_max",
             "time_avg"
-        ] 
-    
+        ]
+
     y = grp_data["policy_index"].astype(int)
     x = grp_data.drop(drop_fields, axis="columns").values.astype(float)
 
@@ -142,23 +142,23 @@ def generateDecisionTree(data, region_names):
     raw_names = grp_data.drop(drop_fields, axis="columns").columns
     for name in raw_names:
         feature_names.append(name)
- 
-    
+
+
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
-    
+
     pipe = [('estimator',   DecisionTreeClassifier(
                  class_weight=None, criterion='gini', max_depth=7,
                  max_features=len(feature_names), max_leaf_nodes=None,
                  min_impurity_split=1e-07, min_samples_leaf=1,
                  min_samples_split=2, min_weight_fraction_leaf=0.0,
                  presort=False, random_state=None, splitter='best'))]
-    
+
     model = Pipeline(pipe)
 
     # NOTE: Cross-Validation doesn't work well with the simplified/conditioned data.
     #if (VERBOSE and x.shape[0] > 2):
     #    warnings.filterwarnings("ignore")
-    #    cv_folds = 10 
+    #    cv_folds = 10
     #    print "== CONTROLLER:  Cross-validation... (" + str(cv_folds) + "-fold)"
     #    scores = cross_val_score(model, x, y, cv=cv_folds)
     #    print("\n".join([("    " + str(score)) for score in scores]))
@@ -179,9 +179,9 @@ def generateDecisionTree(data, region_names):
     _tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
     dotfile.close()
 
-    model_def = {} 
+    model_def = {}
     model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid() 
+    model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "DecisionTree"
     model_def['region_names'] = []
     for n in region_names:
@@ -216,7 +216,7 @@ def main():
     while (True):
         prior_frame_max    = waitForMoreRows(sos_host, sos_port, prior_frame_max)
         data, region_names = getTrainingData(sos_host, sos_port, row_limit=0);
-   
+
         model_def = ""
         model_len = 0
 
@@ -228,7 +228,7 @@ def main():
         # REGRESSIONTREE
         model_def = generateRegressionTree(data, region_names)
         model_len = len(model_def)
-        
+
         quit()
 
         # STATIC
@@ -245,7 +245,7 @@ def main():
 
             if (VERBOSE): print "== CONTROLLER:  Clearing prior training data..."
             wipeTrainingData(sos_host, sos_port, prior_frame_max)
-            
+
             if (VERBOSE):
                 print "== CONTROLLER:  Sending >>> RANDOMSEARCH <<< to SOS for Apollo..."
                 print "== CONTROLLER:    ..."
@@ -272,7 +272,7 @@ def main():
 def waitForMoreRows(sos_host, sos_port, prior_frame_max):
     max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
-    
+
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
         sys.stdout.write("== CONTROLLER:  Waiting for data. " \
             + "[" + progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
@@ -298,7 +298,7 @@ def waitForMoreRows(sos_host, sos_port, prior_frame_max):
 def tablePrint(results):
     # Print out the results in a pretty column-aligned way:
     widths = [max(map(len, str(col))) for col in zip(*results)]
-    for row in results: 
+    for row in results:
         print "  ".join((val.ljust(width) for val, width in zip(row, widths)))
     #
     return
@@ -307,7 +307,7 @@ def tablePrint(results):
 def wipeTrainingData(sos_host, sos_port, prior_frame_max):
     sql_string =  "DELETE FROM tblVals "
     sql_string += "WHERE tblVals.frame < " + str(prior_frame_max) + ";"
-    region_names, col_names = SOS.query(sql_string, sos_host, sos_port) 
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
     return
 
 
@@ -324,7 +324,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
     sql_string = "SELECT DISTINCT region_name FROM viewApollo;"
     if (VERBOSE):
         print "== CONTROLLER:  Retrieving list of unique loops being measured."
-    region_names, col_names = SOS.query(sql_string, sos_host, sos_port) 
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
     if (VERBOSE):
         print "== CONTROLLER:  Loop name list received:"
         for row in region_names:
@@ -363,9 +363,9 @@ def getTrainingData(sos_host, sos_port, row_limit):
     return data, region_names
 
 def generateRandomModel(data, region_names):
-    model_def = {} 
+    model_def = {}
     model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid() 
+    model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "Random"
     model_def['region_names'] = []
     for n in region_names:
@@ -373,17 +373,17 @@ def generateRandomModel(data, region_names):
             model_def['region_names'].append(nm)
     model_def['features'] = {}
     model_def['features']['count'] = 0
-    model_def['features']['names'] = [] 
+    model_def['features']['names'] = []
     model_def['driver'] = {}
     model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1" 
-    
+    model_def['driver']['rules'] = "1"
+
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
             ensure_ascii=True) + "\n"
     return model_as_json
 
 def generateStaticModel(data, region_names):
-    model_def = {} 
+    model_def = {}
     model_def['type'] = {}
     model_def['type']['guid'] = SOS.get_guid()
     model_def['type']['name'] = "Static"
@@ -393,11 +393,11 @@ def generateStaticModel(data, region_names):
             model_def['region_names'].append(nm)
     model_def['features'] = {}
     model_def['features']['count'] = 0
-    model_def['features']['names'] = [] 
+    model_def['features']['names'] = []
     model_def['driver'] = {}
     model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1" 
-    
+    model_def['driver']['rules'] = "1"
+
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
             ensure_ascii=True) + "\n"
     return model_as_json
@@ -414,22 +414,22 @@ def progressBar(amount, total, length, fill='='):
 from sklearn.tree import _tree
 def tree_to_json(decision_tree, feature_names=None):
     from warnings import warn
- 
+
     js = ""
- 
+
     def node_to_str(tree, node_id, criterion):
         if not isinstance(criterion, skl.tree.tree.six.string_types):
             criterion = "impurity"
- 
+
         value = tree.value[node_id]
         if tree.n_outputs == 1:
             value = value[0, :]
- 
+
         jsonValue = ', '.join([str(x) for x in value])
- 
+
         if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
             return '"id": "%s", "criterion": "%s", "impurity": "%s", "samples": "%s", "value": [%s]' \
-                         % (node_id, 
+                         % (node_id,
                                 criterion,
                                 tree.impurity[node_id],
                                 tree.n_node_samples[node_id],
@@ -439,34 +439,34 @@ def tree_to_json(decision_tree, feature_names=None):
                 feature = feature_names[tree.feature[node_id]]
             else:
                 feature = tree.feature[node_id]
- 
+
             if "=" in feature:
                 ruleType = "="
                 ruleValue = "false"
             else:
                 ruleType = "<="
                 ruleValue = "%.4f" % tree.threshold[node_id]
- 
+
             return '"id": "%s", "rule": "%s %s %s", "%s": "%s", "samples": "%s"' \
-                         % (node_id, 
+                         % (node_id,
                                 feature,
                                 ruleType,
                                 ruleValue,
                                 criterion,
                                 tree.impurity[node_id],
                                 tree.n_node_samples[node_id])
- 
+
     def recurse(tree, node_id, criterion, parent=None, depth=0):
         tabs = "    " * depth
         js = ""
- 
+
         left_child = tree.children_left[node_id]
         right_child = tree.children_right[node_id]
- 
+
         js = js + "\n" + \
                  tabs + "{\n" + \
                  tabs + "    " + node_to_str(tree, node_id, criterion)
- 
+
         if left_child != skl.tree._tree.TREE_LEAF:
             js = js + ",\n" + \
                      tabs + '    "left": ' + \
@@ -481,17 +481,17 @@ def tree_to_json(decision_tree, feature_names=None):
                                      criterion=criterion, \
                                      parent=node_id,
                                      depth=depth + 1)
- 
+
         js = js + tabs + "\n" + \
                  tabs + "}"
- 
+
         return js
- 
+
     if isinstance(decision_tree, skl.tree.tree.Tree):
         js = js + recurse(decision_tree, 0, criterion="impurity")
     else:
         js = js + recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
- 
+
     return js
 
 def tree_to_string(tree, feature_names):
@@ -570,37 +570,11 @@ def _byteify(data, ignore_dicts = False):
     return data
 
 def createApolloView(sos_host, sos_port):
-    sql_cmd = """
-        CREATE VIEW viewApollo AS
-            SELECT
-                  tblVals.frame AS frame,
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_region"
-                                  THEN tblVals.val END) AS "region_name", 
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_policy"
-                                  THEN CAST(tblVals.val AS INTEGER) END) AS "policy_index",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_step"
-                                  THEN CAST(tblVals.val AS INTEGER) END) AS "step",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_exec_count"
-                                  THEN tblVals.val END) AS "exec_count",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
-                                  THEN tblVals.val END) AS "time_last",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_min"
-                                  THEN tblVals.val END) AS "time_min",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_max"
-                                  THEN tblVals.val END) AS "time_max",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_avg"
-                                  THEN tblVals.val END) AS "time_avg"
-            FROM   tblPubs 
-                  LEFT OUTER JOIN tblData 
-                               ON tblPubs.guid = tblData.pub_guid 
-                  LEFT OUTER JOIN tblVals 
-                               ON tblData.guid = tblVals.guid 
-            GROUP BY
-                tblVals.meta_relation_id,
-                tblPubs.guid
-        ;
-    """
-    ret_rows, ret_cols = SOS.query(sql_cmd, sos_host, sos_port)
+    with open("SQL.CREATE.apolloView", "r") as sql_file:
+        # Load in the SQL instructions for view creation
+        sql_cmd = sql_file.read()
+        # Send the SQL to SOS to be processed:
+        ret_rows, ret_cols = SOS.query(sql_cmd, sos_host, sos_port)
     return
 
 if __name__ == "__main__":

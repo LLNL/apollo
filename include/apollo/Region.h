@@ -8,6 +8,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
 
+
 class Apollo::Region {
     public:
         Region( Apollo       *apollo,
@@ -38,11 +39,13 @@ class Apollo::Region {
         Apollo::ModelWrapper *getModel(void);
         int                   getPolicyIndex(void);
 
-        std::unordered_map<
-                std::pair<std::vector<Apollo::Feature>, int>,
-                Measure> measures;
+        std::unordered_map<std::vector<Apollo::Feature>, Apollo::Region::Measure *>
+            measures;
 
         void flushMeasurements(int assign_to_step);
+
+        void caliSetInt(const char *name, int value);
+        void caliSetString(const char *name, const char *value);
 
     private:
         //
@@ -67,8 +70,6 @@ class Apollo::Region {
         uint64_t       parent_id;
         char           CURRENT_BINDING_GUID[256];
         //
-        //void caliSetInt(const char *name, int value);
-        //void caliSetString(const char *name, const char *value);
         //
 }; //end: Apollo::Region
 

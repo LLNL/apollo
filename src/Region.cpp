@@ -1,5 +1,7 @@
 #include <iostream>
 #include <mutex>
+#include <unordered_map>
+#include <algorithm>
 
 #include "assert.h"
 
@@ -24,9 +26,9 @@ typedef cali::Annotation note;
     //if (apollo->isOnline()) {
     //    guid = SOS_uid_next(sos->uid.my_guid_pool);
     //}
-    
+
 int
-Apollo::Region::getPolicyIndex(void) 
+Apollo::Region::getPolicyIndex(void)
 {
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
@@ -40,7 +42,7 @@ Apollo::Region::getPolicyIndex(void)
     assert (model != NULL);
 
     int choice = model->requestPolicyIndex();
-   
+
     if (choice != current_policy) {
         exec_count_current_policy = 1;
         current_policy = choice;
@@ -59,15 +61,6 @@ Apollo::Region::Region(
 {
     apollo = apollo_ptr;
     name   = strdup(regionName);
-
-    policyTimers.resize(numAvailablePolicies);
-    for (auto && t: policyTimers) {
-        t.exec_count = 0;
-        t.max  = 0.0;
-        t.avg  = 0.0;
-        t.last = 0.0;
-        t.min  = 9999999.99999;
-    }
 
     current_step              = -1;
     current_policy            = -1;
@@ -129,7 +122,7 @@ Apollo::Region::begin(int for_experiment_time_step) {
 
     SOS_TIME(current_step_time_begin);
 
-    return;  
+    return;
 }
 
 void
@@ -145,13 +138,33 @@ Apollo::Region::end(void) {
     currently_inside_region = false;
 
     SOS_TIME(current_step_time_end);
-    auto *time = &policyTimers[current_policy];
+    Apollo::Region::Measure *time = nullptr;
+
+    apollo->setFeature("policy_index", (double) current_policy);
+
+    auto iter = measures.find(apollo->features);
+    if (iter == measures.end()) {
+        time = new Apollo::Region::Measure;
+        time->exec_count = 0;
+        time->last = 0.0;
+        time->min  = 9999999.99999;
+        time->max  = 0.0;
+        time->avg  = 0.0;
+    } else {
+        time = iter->second;
+    }
+
     time->exec_count++;
     time->last = current_step_time_end - current_step_time_begin;
     time->min = std::min(time->min, time->last);
     time->max = std::max(time->max, time->last);
     time->avg -= (time->avg  / time->exec_count);   // simple rolling average.
     time->avg += (time->last / time->exec_count);   // (naively accumulates error)
+
+    if (iter == measures.end()) {
+        std::vector<Apollo::Feature> feat_copy = apollo->features;
+        measures.insert({std::move(feat_copy), time});
+    }
 
     return;
 }
@@ -161,7 +174,6 @@ void
 Apollo::Region::flushMeasurements(int assign_to_step) {
     note *t_flush =      (note *) Apollo::instance()->note_flush;
     note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
-    note *t_for_policy = (note *) Apollo::instance()->note_time_for_policy;
     note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
     note *t_exec_count = (note *) Apollo::instance()->note_time_exec_count;
     note *t_last =       (note *) Apollo::instance()->note_time_last;
@@ -169,60 +181,46 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
     note *t_max =        (note *) Apollo::instance()->note_time_max;
     note *t_avg =        (note *) Apollo::instance()->note_time_avg;
 
-    int pol_max = getModel()->getPolicyCount();
+    for (auto iter_measure = measures.begin();
+             iter_measure != measures.end();    ) {
 
-    //TODO: Iterate all the compound keys (beginning their annotations)
-    //      before encoding their timer set.
+        const std::vector<Apollo::Feature>& these_features = iter_measure->first;
+        Apollo::Region::Measure                  *time_set = iter_measure->second;
 
-    //TODO: region->measures is an unordered_map of vec_feat, meas_struct
-
-    //TODO: Remember, when we flush all measures, we can DELETE
-    //      them from the region to avoid accumulating unlimited
-    //      prior measurements if there is some asymptotically increasing
-    //      counter beign stored in the feature vector (key to measures)
-    //      such that the measure struct is never getting used more than once
-    //      and doesn't need to be retained after flushing.
-
-    for (int pol_idx = 0; pol_idx < pol_max; pol_idx++) {
-        auto && t = policyTimers[pol_idx];
-
-        if (t.exec_count > 0) {
+        if (time_set->exec_count > 0) {
             t_flush->begin(0);
             t_for_region->begin(name);
-            t_for_policy->begin(pol_idx);
             t_for_step->begin(assign_to_step);
-            t_exec_count->begin(t.exec_count);
-            t_last->begin(t.last);
-            t_min->begin(t.min);
-            t_max->begin(t.max);
-            t_avg->begin(t.avg);
+            t_exec_count->begin(time_set->exec_count);
+            t_last->begin(time_set->last);
+            t_min->begin(time_set->min);
+            t_max->begin(time_set->max);
+            t_avg->begin(time_set->avg);
 
-            // TODO: insert auto f : Apollo.features
-            //
-            // REAL TODO:
-            // Walk the *Caliper* context tree and insert everything it is
-            // aware of...
+            for (Apollo::Feature ft : these_features) {
+                apollo->noteBegin(ft.name, ft.value);
+            }
 
             t_flush->end(); // Triggers the consumption of our annotation stack
             //              // by the Caliper service
+
+            for (Apollo::Feature ft : these_features) {
+                apollo->noteEnd(ft.name);
+            }
+
             t_for_region->end();
-            t_for_policy->end();
             t_for_step->end();
             t_exec_count->end();
             t_last->end();
             t_min->end();
             t_max->end();
             t_avg->end();
-        
-            // Clear out the summary now that we've flushed it, that way
-            // this will only generate new traffic if this policy of this
-            // region gets executed at least once, in the future:
-            t.exec_count = 0;
-            t.max  = 0.0;
-            t.avg  = 0.0;
-            t.last = 0.0;
-            t.min  = 9999999.99999;
+
         }
+
+        delete time_set;
+        measures.erase(iter_measure);
+        iter_measure = measures.begin();
     }
 
     return;
@@ -240,26 +238,26 @@ Apollo::Region::getModel(void) {
 
 
 
-//void
-//Apollo::Region::caliSetInt(const char *name, int value) {
-//    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetInt(%s, %d) called."
-//    //                " This function is likely to be deprecated due to"
-//    //                " the performance impacts of its frequent use.\n",
-//    //                name, value);
-//    //fflush(stderr);
-//    cali_set_int_byname(name, value); 
-//    return;
-//}
+void
+Apollo::Region::caliSetInt(const char *name, int value) {
+    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetInt(%s, %d) called."
+    //                " This function is likely to be deprecated due to"
+    //                " the performance impacts of its frequent use.\n",
+    //                name, value);
+    //fflush(stderr);
+    cali_set_int_byname(name, value);
+    return;
+}
 
-//void
-//Apollo::Region::caliSetString(const char *name, const char *value) {
-//    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetString(%s, %s) called."
-//    //                " This function is likely to be deprecated due to"
-//    //                " the performance impacts of its frequent use.\n",
-//    //                name, value);
-//    //fflush(stderr);
-//    cali_set_string_byname(name, value); 
-//    return;
-//}
+void
+Apollo::Region::caliSetString(const char *name, const char *value) {
+    //fprintf(stderr, "== APOLLO: [WARNING] region->caliSetString(%s, %s) called."
+    //                " This function is likely to be deprecated due to"
+    //                " the performance impacts of its frequent use.\n",
+    //                name, value);
+    //fflush(stderr);
+    cali_set_string_byname(name, value);
+    return;
+}
 
 

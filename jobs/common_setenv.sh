@@ -11,6 +11,41 @@ if [ "x$SOS_ENV_SET" == "x1" ] ; then
     echo ""
     kill -INT $$
 fi
+echo " .-- Initializing SPACK environment..."
+export SPACK_ROOT='/g/g17/wood67/src/spack'
+export PATH=$SPACK_ROOT/bin:$PATH
+. $SPACK_ROOT/share/spack/setup-env.sh
+echo " |   Loading Spack packages:"
+echo " |"
+echo " |   gcc"
+spack load gcc
+echo " |   python"
+spack load python
+spack load py-scipy
+spack load py-scikit-learn
+spack load py-numpy
+spack load py-pandas
+spack load py-pip
+spack load py-cffi
+echo " |   dyninst"
+spack load dyninst
+echo " |   vim"
+spack load vim
+echo " |   cmake"
+spack load cmake
+echo " |   libevpath"
+spack load libevpath
+echo " |   libffs"
+spack load libffs
+echo " |   gtkorvo-atl"
+spack load gtkorvo-atl
+echo " |   raja"
+spack load raja
+echo " |   java (jdk)"
+spack load jdk
+echo " |"
+echo " \\__ done."
+
 
 # Runtime options
 export SOS_CMD_PORT=22500

@@ -1,14 +1,18 @@
 #!/bin/bash
+#SBATCH -N 2 
+#SBATCH -p pdebug
+#SBATCH -A lc 
+#SBATCH -t 30
 
 export LAUNCHED_FROM_PATH=`pwd`
-export EXPERIMENT_JOB_TITLE="09.lulesh.interactive"
+export EXPERIMENT_JOB_TITLE="002.lulesh"
 export EXPERIMENT_BASE="/g/g17/wood67/experiments/apollo"
 
-echo ""
-echo "Killing all existing 'srun' invocations..."
-killall -q srun
-echo ""
-sleep 2
+#echo ""
+#echo "Killing all existing 'srun' invocations..."
+#killall -q srun
+#echo ""
+#sleep 2
 
 ####
 #
@@ -20,10 +24,10 @@ source $LAUNCHED_FROM_PATH/common_setenv.sh
 source $LAUNCHED_FROM_PATH/configure_clean_env.sh
 #
 export SOS_EVPATH_MEETUP="/g/g17/wood67/experiments/apollo/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
+export SOS_WORK="${SOS_EVPATH_MEETUP}"
 mkdir -p $SOS_WORK
 #
-# Because we're running interactively, clear this out:
-export SOS_BATCH_ENVIRONMENT=""
+export SOS_BATCH_ENVIRONMENT="TRUE"
 #
 if [ "x$SOS_ENV_SET" == "x" ] ; then
 	echo "Please set up your SOS environment first."
@@ -51,14 +55,14 @@ echo "    SOS_WORK=$SOS_WORK"
 echo ""
 #
 #
-SOS_DAEMON_TOTAL="9"
+SOS_DAEMON_TOTAL="2"
 #
 #
-srun -N 1 -n 1 -r 0 ${SOS_BUILD_DIR}/bin/sosd -k 0 -r aggregator -l 8 -a 1 -w ${SOS_WORK} & 
+srun -N 1 -n 1 -r 0 ${SOS_BUILD_DIR}/bin/sosd -k 0 -r aggregator -l 1 -a 1 -w ${SOS_WORK} & 
 echo "   ... aggregator(0) srun submitted."
-for LISTENER_RANK in $(seq 1 8)
+for LISTENER_RANK in $(seq 1 1)
 do
-    srun -N 1 -n 1 -r $LISTENER_RANK ${SOS_BUILD_DIR}/bin/sosd -k $LISTENER_RANK -r listener   -l 8 -a 1 -w ${SOS_WORK} &
+    srun -N 1 -n 1 -r $LISTENER_RANK ${SOS_BUILD_DIR}/bin/sosd -k $LISTENER_RANK -r listener   -l 1 -a 1 -w ${SOS_WORK} &
     echo "   ... listener($LISTENER_RANK) srun submitted."
 done
 #
@@ -118,33 +122,44 @@ echo ""
 #
 # Example:   srun -N 1 -n 8 -r 1 $SOS_BUILD_DIR/bin/demo_app -i 1 -p 5 -m 25
 #
-export CONTROLLER_COMMAND="-N 1 -n 1 -r 0 ./bin/controller.py"
-export JOB_LAUNCH_COMMAND="-N 8 -n 128 -r 1 mpirun ./bin/lulesh-apollo -q -s 100 -i 100 -b 1 -c 1"
+export CONTROLLER_COMMAND="       -N 1 -n 1  -r 0  python ./bin/controller.py"
+export BASELINE_LAUNCH_COMMAND="  -N 1 -n 32 -r 1  ./bin/lulesh-v2.0-RAJA-seq.exe -q -s 100 -i 10 -b 1 -c 1"
+export APOLLO_LAUNCH_COMMAND="    -N 1 -n 32 -r 1  ./bin/lulesh-apollo            -q -s 100 -i 10 -b 1 -c 1"
+export SOS_SHUTDOWN_COMMAND="     -N 2 -n 2  -r 0  ./bin/sosd_stop"
 
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.
 mkdir -p $SOS_WORK/bin
 mkdir -p $SOS_WORK/lib
 #
-cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-apollo $SOS_WORK/bin
-cp /g/g17/wood67/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe $SOS_WORK/bin
-cp /g/g17/wood67/src/sos_flow/src/python/ssos.py $SOS_WORK/bin
+cp $HOME/src/raja-proxies/build/bin/lulesh-apollo               $SOS_WORK/bin
+cp $HOME/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe    $SOS_WORK/bin
+cp $HOME/src/sos_flow/build/bin/sosd                            $SOS_WORK/bin
+cp $HOME/src/sos_flow/build/bin/sosd_stop                       $SOS_WORK/bin
+cp $HOME/src/sos_flow/src/python/ssos.py                        $SOS_WORK/bin
+cp $HOME/src/apollo/src/python/controller.py                    $SOS_WORK/bin
+cp $HOME/src/apollo/src/python/SQL.CREATE.apolloView            $SOS_WORK
 #
-cp /g/g17/wood67/src/apollo/install/lib/libapollo.so $SOS_WORK/lib
-cp /g/g17/wood67/src/sos_flow/build/lib/libsos.so $SOS_WORK/lib
-cp /g/g17/wood67/src/sos_flow/build/lib/ssos_python.so $SOS_WORK/lib
-cp /g/g17/wood67/src/caliper/install/lib64/libcaliper.so $SOS_WORK/lib
+cp $HOME/src/apollo/install/lib/libapollo.so                    $SOS_WORK/lib
+cp $HOME/src/sos_flow/build/lib/libsos.so                       $SOS_WORK/lib
+cp $HOME/src/sos_flow/build/lib/ssos_python.so                  $SOS_WORK/lib
+cp $HOME/src/caliper/install/lib64/libcaliper.so                $SOS_WORK/lib
 #
 export PYTHONPATH=$SOS_WORK/lib:$PYTHONPATH
 #
 # Make an archive of this script and the environment config script:
-echo "srun $JOB_LAUNCH_COMMAND" > $SOS_WORK/COMMAND_JOB_LAUNCH
-echo "srun $CONTROLLER_COMMAND" > $SOS_WORK/COMMAND_CONTROLLER
-cp /g/g17/wood67/setenv.sh $SOS_WORK/ENV_USR
-cp $LAUNCHED_FROM_PATH/common_setenv.sh $SOS_WORK/ENV_SOS_SET
-cp $LAUNCHED_FROM_PATH/common_unsetenv.sh $SOS_WORK/ENV_SOS_UNSET
-cp $LAUNCHED_FROM_PATH/configure_clean_env.sh $SOS_WORK/ENV_JOB
-cp $BASH_SOURCE $SOS_WORK/SLURM_BASH_SCRIPT
+echo "srun ${CONTROLLER_COMMAND}"       > $SOS_WORK/CMD_CONTROLLER_COMMAND
+echo "srun ${BASELINE_LAUNCH_COMMAND}"  > $SOS_WORK/CMD_BASELINE_LAUNCH_COMMAND
+echo "srun ${APOLLO_LAUNCH_COMMAND}"    > $SOS_WORK/CMD_APOLLO_LAUNCH_COMMAND
+echo "srun ${SOS_SHUTDOWN_COMMAND}"     > $SOS_WORK/CMD_SOS_SHUTDOWN_COMMAND
+#
+# Only for interactive jobs:
+#   cp /g/g17/wood67/setenv.sh                      $SOS_WORK/ENV_USR
+#
+cp $LAUNCHED_FROM_PATH/common_setenv.sh         $SOS_WORK/ENV_SOS_SET
+cp $LAUNCHED_FROM_PATH/common_unsetenv.sh       $SOS_WORK/ENV_SOS_UNSET
+cp $LAUNCHED_FROM_PATH/configure_clean_env.sh   $SOS_WORK/ENV_JOB
+cp $BASH_SOURCE                                 $SOS_WORK/SLURM_BASH_SCRIPT
 
 # Go into this location, so that any files created will be stored alongside
 # the databases for archival/reproducibility purposes.
@@ -157,7 +172,12 @@ export CALI_SERVICES_ENABLE="sos,timestamp"
 export CALI_TIMER_SNAPSHOT_DURATION="false"
 export CALI_SOS_ITER_PER_PUBLISH="1"
 
-srun $JOB_LAUNCH_COMMAND
+srun $CONTROLLER_COMMAND &
+echo -n "lulesh-raja   "
+/usr/bin/time -f %e -- srun $BASELINE_LAUNCH_COMMAND
+echo -n "lulesh-apollo " 
+/usr/bin/time -f %e -- srun $APOLLO_LAUNCH_COMMAND
+srun $SOS_SHUTDOWN_COMMAND
 
 #
 #^
@@ -178,13 +198,13 @@ echo "\$SOS_WORK directory listing:"
 tree $SOS_WORK
 echo "" > PARTING_INSTRUCTIONS
 echo "--------------------------------------------------------------------------------"
-echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> PARTING_INSTRUCTIONS
+#echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> PARTING_INSTRUCTIONS
 echo "" >> PARTING_INSTRUCTIONS 
 echo "You are now in the \$SOS_WORK directory with your RESULTS and SCRIPTS!" >> PARTING_INSTRUCTIONS 
 echo "                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >> PARTING_INSTRUCTIONS 
 echo "" >> PARTING_INSTRUCTIONS 
 echo "        To RETURN to your code ..: $ cd \$LAUNCHED_FROM_PATH" >> PARTING_INSTRUCTIONS 
-echo "        To SHUT DOWN SOS ........: \$ srun -N 8 -n 8 -r 1 \$SOS_BUILD_DIR/bin/sosd_stop    (OR: \$ killall srun)" >> PARTING_INSTRUCTIONS 
+#echo "        To SHUT DOWN SOS ........: \$ srun -N 8 -n 8 -r 1 \$SOS_BUILD_DIR/bin/sosd_stop    (OR: \$ killall srun)" >> PARTING_INSTRUCTIONS 
 echo "" >> PARTING_INSTRUCTIONS
 cat PARTING_INSTRUCTIONS
 #

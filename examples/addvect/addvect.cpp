@@ -7,7 +7,6 @@
 #include "RAJA/RAJA.hpp"
 //
 #include "apollo/Apollo.h"
-#include "apollo/Feature.h"
 //
 #include "addvectLoops.h"
 

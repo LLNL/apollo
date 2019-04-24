@@ -31,7 +31,7 @@ class Apollo::Model {
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
                                                  "        \"guid\": 0,\n"                \
-                                                 "        \"name\": \"Static\"\n"        \
+                                                 "        \"name\": \"Random\"\n"        \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \
