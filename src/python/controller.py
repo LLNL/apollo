@@ -16,9 +16,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 from ssos import SSOS
 
-VERBOSE = False
-DEBUG   = False
-FRAME_INTERVAL = 500
+VERBOSE = True 
+DEBUG   = True 
+FRAME_INTERVAL = 100 
 SOS = SSOS()
 
 def serializeRegressor(tree):

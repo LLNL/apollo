@@ -11,21 +11,29 @@ if [ "x$SOS_ENV_SET" == "x1" ] ; then
     echo ""
     kill -INT $$
 fi
-echo " .-- Initializing SPACK environment..."
+echo ""
+echo " .-- Initializing Spack environment..."
 export SPACK_ROOT='/g/g17/wood67/src/spack'
 export PATH=$SPACK_ROOT/bin:$PATH
 . $SPACK_ROOT/share/spack/setup-env.sh
-echo " |   Loading Spack packages:"
 echo " |"
-echo " |   gcc"
+echo " |-- gcc"
 spack load gcc
-echo " |   python"
+echo " |-- python"
 spack load python
+echo " |      |-- py-subprocess32"
+spack load py-subprocess32
+echo " |      |-- py-scipy"
 spack load py-scipy
+echo " |      |-- py-scikit-learn"
 spack load py-scikit-learn
+echo " |      |-- py-numpy"
 spack load py-numpy
+echo " |      |-- py-pandas"
 spack load py-pandas
+echo " |      |-- py-pip"
 spack load py-pip
+echo " |      ^-- py-cffi"
 spack load py-cffi
 echo " |   dyninst"
 spack load dyninst

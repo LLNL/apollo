@@ -10,3 +10,5 @@ sosd.*.key
 *.swp
 .gdb_history
 examples/caliper-examples
+CMakeCache.txt
+CMakeFiles/
