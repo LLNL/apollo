@@ -9,8 +9,8 @@ export EXPERIMENT_BASE="/g/g17/wood67/experiments/apollo"
 export RETURN_PATH=`pwd`
 
 echo ""
-echo "EXPERIMENT_JOB_TITLE: ${EXPERIMENT_JOB_TITLE}"
-echo "EXPERIMENT_BASE:      ${EXPERIMENT_BASE}"
+echo "  JOB TITLE.....: ${EXPERIMENT_JOB_TITLE}"
+echo "  WORKING PATH..: ${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
 echo ""
 
 ####
@@ -19,11 +19,13 @@ echo ""
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
+#source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
 export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 mkdir -p ${SOS_WORK}
+mkdir -p ${SOS_WORK}/output
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
 #
@@ -35,6 +37,9 @@ mkdir -p ${SOS_WORK}/lib
 #
 cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/build/bin/sosd_probe                      ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.apolloView            ${SOS_WORK}
@@ -143,15 +148,20 @@ echo ""
 #vvv  --- SPECIFIC EXPERIMENT CODE HERE ---
 #vv
 #v
+#
+#  Launch an interactive terminal within the allocation:
+#
+xterm -fg grey -bg black -geometry 116x60 &
+#
 
-export CONTROLLER_COMMAND="       -N 1 -n 1  -r 0  xterm -e python ./bin/controller.py"
-export BASELINE_LAUNCH_COMMAND="  -N 1 -n 32 -r 1  ./bin/lulesh-v2.0-RAJA-seq.exe -q -s 100 -i 10 -b 1 -c 1"
-export APOLLO_LAUNCH_COMMAND="    -N 1 -n 32 -r 1  ./bin/lulesh-apollo-base       -q -s 100 -i 10 -b 1 -c 1"
+export CONTROLLER_COMMAND="       -o ./output/controller.out      -N 1 -n 1  -r 0  python ./bin/controller.py"
+export BASELINE_LAUNCH_COMMAND="  -o ./output/lulesh-baseline.out -N 1 -n 32 -r 1  ./bin/lulesh-v2.0-RAJA-seq.exe -p -s 45 -b 1 -c 1"
+export APOLLO_LAUNCH_COMMAND="    -o ./output/lulesh-apollo.out   -N 1 -n 32 -r 1  ./bin/lulesh-apollo            -p -s 45 -b 1 -c 1"
 export SOS_SHUTDOWN_COMMAND="     -N 2 -n 2  -r 0  ./bin/sosd_stop"
 #
 #  Copy the applications into the experiment path:
 #
-cp ${HOME}/src/raja-proxies/build/bin/lulesh-apollo-base          ${SOS_WORK}/bin
+cp ${HOME}/src/raja-proxies/build/bin/lulesh-apollo               ${SOS_WORK}/bin
 cp ${HOME}/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe    ${SOS_WORK}/bin
 #
 #  Configure Caliper settings for this run:
@@ -165,11 +175,11 @@ export CALI_SOS_ITER_PER_PUBLISH="1"
 #
 cd ${SOS_WORK}
 #
-echo ""
-echo ">>>> Launching Apollo controller..."
-echo ""
-srun ${CONTROLLER_COMMAND} &
-sleep 1
+#echo ""
+#echo ">>>> Launching Apollo controller..."
+#echo ""
+#srun ${CONTROLLER_COMMAND} &
+#sleep 1
 #
 echo ""
 echo ">>>> Launching experiment codes..."
@@ -203,7 +213,9 @@ echo "You are now in the \$SOS_WORK directory with your RESULTS and SCRIPTS!" >>
 echo "                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >> ${PARTING_NOTE} 
 echo "" >> ${PARTING_NOTE} 
 echo "        To RETURN to your code ..: $ cd \$RETURN_PATH" >> ${PARTING_NOTE}
-echo "        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: \$ killall srun)" >> ${PARTING_NOTE} 
+echo "        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: \$ killall srun)" >> ${PARTING_NOTE}
+echo "" >> ${PARTING_NOTE}
+echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
 echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh

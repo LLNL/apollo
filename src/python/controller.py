@@ -211,25 +211,29 @@ def main():
     step = 0
     prior_frame_max = 0
 
-    createApolloView(sos_host, sos_port)
+    if (VERBOSE): print "== CONTROLLER: Online."
 
+    #print ("== CONTROLLER: wipeTrainingData")
+    #wipeTrainingData(sos_host, sos_port, prior_frame_max)
     while (True):
         prior_frame_max    = waitForMoreRows(sos_host, sos_port, prior_frame_max)
+
+        print ("== CONTROLLER: createApolloView")
+        createApolloView(sos_host, sos_port)
+
         data, region_names = getTrainingData(sos_host, sos_port, row_limit=0);
 
         model_def = ""
         model_len = 0
 
         # DECISIONTREE
-        #model_def, rules_code = generateDecisionTree(data, region_names)
-        #model_len = len(model_def)
-        #print rules_code
+        model_def, rules_code = generateDecisionTree(data, region_names)
+        model_len = len(model_def)
+        print rules_code
 
         # REGRESSIONTREE
-        model_def = generateRegressionTree(data, region_names)
-        model_len = len(model_def)
-
-        quit()
+        #model_def = generateRegressionTree(data, region_names)
+        #model_len = len(model_def)
 
         # STATIC
         #model_def = generateStaticModel(data, region_names)
@@ -252,8 +256,6 @@ def main():
             model_def = generateRandomModel(data, region_names)
             model_len = len(model_def)
             SOS.trigger("APOLLO_MODELS", model_len, model_def)
-            # Reset the frame max to so we give the controller new random stuff to learn on
-            # TODO: We need to ignore data from the previous optimal run...
             prior_frame_max, pub_titles, col_names = \
                 SOS.request_pub_manifest("", sos_host, sos_port)
         else:
@@ -570,11 +572,37 @@ def _byteify(data, ignore_dicts = False):
     return data
 
 def createApolloView(sos_host, sos_port):
-    with open("SQL.CREATE.apolloView", "r") as sql_file:
-        # Load in the SQL instructions for view creation
-        sql_cmd = sql_file.read()
-        # Send the SQL to SOS to be processed:
-        ret_rows, ret_cols = SOS.query(sql_cmd, sos_host, sos_port)
+    sql_cmd = """
+        CREATE VIEW IF NOT EXISTS viewApollo AS
+            SELECT
+                  tblVals.frame AS frame,
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_region"
+                                  THEN tblVals.val END) AS "region_name",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policy_index"
+                                  THEN CAST(tblVals.val AS INTEGER) END) AS "policy_index",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_step"
+                                  THEN CAST(tblVals.val AS INTEGER) END) AS "step",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_exec_count"
+                                  THEN tblVals.val END) AS "exec_count",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
+                                  THEN tblVals.val END) AS "time_last",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_min"
+                                  THEN tblVals.val END) AS "time_min",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_max"
+                                  THEN tblVals.val END) AS "time_max",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_avg"
+                                  THEN tblVals.val END) AS "time_avg"
+            FROM   tblPubs
+                  LEFT OUTER JOIN tblData
+                               ON tblPubs.guid = tblData.pub_guid
+                  LEFT OUTER JOIN tblVals
+                               ON tblData.guid = tblVals.guid
+            GROUP BY
+                tblVals.meta_relation_id,
+                tblPubs.guid
+        ;
+    """
+    ret_rows, ret_cols = SOS.query(sql_cmd, sos_host, sos_port)
     return
 
 if __name__ == "__main__":

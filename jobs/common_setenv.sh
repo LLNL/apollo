@@ -11,49 +11,6 @@ if [ "x$SOS_ENV_SET" == "x1" ] ; then
     echo ""
     kill -INT $$
 fi
-echo ""
-echo " .-- Initializing Spack environment..."
-export SPACK_ROOT='/g/g17/wood67/src/spack'
-export PATH=$SPACK_ROOT/bin:$PATH
-. $SPACK_ROOT/share/spack/setup-env.sh
-echo " |"
-echo " |-- gcc"
-spack load gcc
-echo " |-- python"
-spack load python
-echo " |      |-- py-subprocess32"
-spack load py-subprocess32
-echo " |      |-- py-scipy"
-spack load py-scipy
-echo " |      |-- py-scikit-learn"
-spack load py-scikit-learn
-echo " |      |-- py-numpy"
-spack load py-numpy
-echo " |      |-- py-pandas"
-spack load py-pandas
-echo " |      |-- py-pip"
-spack load py-pip
-echo " |      ^-- py-cffi"
-spack load py-cffi
-echo " |   dyninst"
-spack load dyninst
-echo " |   vim"
-spack load vim
-echo " |   cmake"
-spack load cmake
-echo " |   libevpath"
-spack load libevpath
-echo " |   libffs"
-spack load libffs
-echo " |   gtkorvo-atl"
-spack load gtkorvo-atl
-echo " |   raja"
-spack load raja
-echo " |   java (jdk)"
-spack load jdk
-echo " |"
-echo " \\__ done."
-
 
 # Runtime options
 export SOS_CMD_PORT=22500
@@ -68,7 +25,7 @@ export SOS_UDP_ENABLED="FALSE"
 export SOS_DB_DISABLED="FALSE"
 export SOS_UPDATE_LATEST_FRAME="TRUE"
 export SOS_IN_MEMORY_DATABASE="TRUE"
-export SOS_EXPORT_DB_AT_EXIT="TRUE"
+export SOS_EXPORT_DB_AT_EXIT="VERBOSE"
 export SOS_PUB_CACHE_DEPTH="0"
 export SOS_SYSTEM_MONITOR_ENABLED="FALSE"
 export SOS_SYSTEM_MONITOR_FREQ_USEC="0"

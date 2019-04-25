@@ -70,16 +70,14 @@ class SSOS:
         lib.SSOS_pack(entry_name, entry_type, entry_addr)
 
     def request_pub_manifest(self, pub_title_filter, target_host, target_port):
-        res_manifest_addr     = ffi.new("SSOS_query_results**");
+        res_manifest          = ffi.new("SSOS_query_results*");
         res_max_frame_overall = ffi.new("int*");
         res_pub_title_filter  = ffi.new("char[]", pub_title_filter.encode('ascii'));
         res_target_host       = ffi.new("char[]", target_host.encode('ascii'));
         res_target_port       = ffi.new("int*", int(target_port));
 
-        lib.SSOS_request_pub_manifest(res_manifest_addr, res_max_frame_overall, \
+        lib.SSOS_request_pub_manifest(res_manifest, res_max_frame_overall, \
                 res_pub_title_filter, res_target_host, res_target_port[0])
-
-        res_manifest = ffi.new("SSOS_query_results*", res_manifest_addr[0])
 
         results = []
         for row in range(res_manifest.row_count):
@@ -142,7 +140,7 @@ class SSOS:
         res_port = ffi.new("int*", int(port))
 
         # Send out the query...
-        print ("Sending the query...")
+        print ("== SSOS.PY: Sending the query...")
         lib.SSOS_query_exec(res_sql, res_host, res_port[0])
         # Grab the next available result.
         # NOTE: For queries submitted in a thread pool, this may not
@@ -150,12 +148,14 @@ class SSOS:
         #       Use of a thread pool requires that the results returned
         #       can be processed independently, for now.
         #print "Claiming the results..."
+        print ("== SSOS.PY: Claiming the results...")
         lib.SSOS_result_claim(res_obj);
 
         #print "Results received!"
         #print "   row_count = " + str(res_obj.row_count)
         #print "   col_count = " + str(res_obj.col_count)
 
+        print ("== SSOS.PY: Converting results to Python objects...")
         results = []
         for row in range(res_obj.row_count):
             thisrow = []
@@ -168,8 +168,13 @@ class SSOS:
         col_names = []
         for col in range(0, res_obj.col_count):
             col_names.append(ffi.string(res_obj.col_names[col]).decode('ascii'))
+        print ("== SSOS.PY:     len(results)   == " + str(len(results)))
+        print ("== SSOS.PY:     len(col_names) == " + str(len(col_names)))
 
+        print ("== SSOS.PY: Destroying the SOS results object...")
         lib.SSOS_result_destroy(res_obj)
+
+        print ("== SSOS.PY: Returning Python-formatted results to calling function.")
         return (results, col_names)
 
 
