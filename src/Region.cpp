@@ -112,6 +112,16 @@ Apollo::Region::begin(int for_experiment_time_step) {
     }
     currently_inside_region = true;
 
+
+    // TODO [optimize]: We probably don't need this (int) any more because
+    //                  the apollo->features unordered_map is our key.
+    //                  BUT: We need to grab the current timestep from the
+    //                  map so we know if we're still accruing things to
+    //                  this time step counter and shouldn't shed-off an
+    //                  update to the averages we're leaving behind.
+    //
+    //                  QUESTION: Do we care about exec_count_current_step ?
+    //                  REASON: If we have to look it up, it's not free.
     if (for_experiment_time_step != current_step) {
         exec_count_current_step = 0;
         current_step = for_experiment_time_step;
@@ -172,14 +182,14 @@ Apollo::Region::end(void) {
 
 void
 Apollo::Region::flushMeasurements(int assign_to_step) {
-    note *t_flush =      (note *) Apollo::instance()->note_flush;
-    note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
-    note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
-    note *t_exec_count = (note *) Apollo::instance()->note_time_exec_count;
-    note *t_last =       (note *) Apollo::instance()->note_time_last;
-    note *t_min =        (note *) Apollo::instance()->note_time_min;
-    note *t_max =        (note *) Apollo::instance()->note_time_max;
-    note *t_avg =        (note *) Apollo::instance()->note_time_avg;
+    //note *t_flush =      (note *) Apollo::instance()->note_flush;
+    //note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
+    //note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
+    //note *t_exec_count = (note *) Apollo::instance()->note_time_exec_count;
+    //note *t_last =       (note *) Apollo::instance()->note_time_last;
+    //note *t_min =        (note *) Apollo::instance()->note_time_min;
+    //note *t_max =        (note *) Apollo::instance()->note_time_max;
+    //note *t_avg =        (note *) Apollo::instance()->note_time_avg;
 
     for (auto iter_measure = measures.begin();
              iter_measure != measures.end();    ) {
@@ -188,36 +198,38 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
         Apollo::Region::Measure                  *time_set = iter_measure->second;
 
         if (time_set->exec_count > 0) {
-            t_flush->begin(0);
-            t_for_region->begin(name);
-            t_for_step->begin(assign_to_step);
-            t_exec_count->begin(time_set->exec_count);
-            t_last->begin(time_set->last);
-            t_min->begin(time_set->min);
-            t_max->begin(time_set->max);
-            t_avg->begin(time_set->avg);
-
+            //t_flush->begin(0);
+            //t_for_region->begin(name);
+            //t_for_step->begin(assign_to_step);
+            //t_exec_count->begin(time_set->exec_count);
+            //t_last->begin(time_set->last);
+            //t_min->begin(time_set->min);
+            //t_max->begin(time_set->max);
+            //t_avg->begin(time_set->avg);
+            // TODO: Turn all of this into an SOS_pack_related(...) call...
             for (Apollo::Feature ft : these_features) {
-                apollo->noteBegin(ft.name, ft.value);
+                //apollo->noteBegin(ft.name, ft.value);
             }
 
-            t_flush->end(); // Triggers the consumption of our annotation stack
-            //              // by the Caliper service
+            // TODO [optimize]: All of this can go away now.
+            //     //t_flush->end(); // Triggers the consumption of our annotation stack
+            //     //              // by the Caliper service
 
-            for (Apollo::Feature ft : these_features) {
-                apollo->noteEnd(ft.name);
-            }
+            //     for (Apollo::Feature ft : these_features) {
+            //         //apollo->noteEnd(ft.name);
+            //     }
 
-            t_for_region->end();
-            t_for_step->end();
-            t_exec_count->end();
-            t_last->end();
-            t_min->end();
-            t_max->end();
-            t_avg->end();
+            //     //t_for_region->end();
+            //     //t_for_step->end();
+            //     //t_exec_count->end();
+            //     //t_last->end();
+            //     //t_min->end();
+            //     //t_max->end();
+            //     //t_avg->end();
 
         }
 
+        // TODO [optimize]: This can maybe stay?
         delete time_set;
         measures.erase(iter_measure);
         iter_measure = measures.begin();

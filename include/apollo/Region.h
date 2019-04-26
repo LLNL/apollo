@@ -39,6 +39,9 @@ class Apollo::Region {
         Apollo::ModelWrapper *getModel(void);
         int                   getPolicyIndex(void);
 
+        // TODO [optimize]: If we set the current policy_index as a feature, this
+        //                  section can be allowed to stay, and is compliant with
+        //                  the existing flush functions..
         std::unordered_map<std::vector<Apollo::Feature>, Apollo::Region::Measure *>
             measures;
 

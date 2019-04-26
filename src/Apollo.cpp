@@ -259,25 +259,26 @@ Apollo::getFeature(std::string req_name)
 }
 
 
+//
+//void
+//Apollo::noteBegin(std::string &name, double with_value) {
+//    note *feat_annotation = (note *) getNote(name);
+//    if (feat_annotation != nullptr) {
+//        feat_annotation->begin(with_value);
+//    }
+//    return;
+//}
+//
+//void
+//Apollo::noteEnd(std::string &name) {
+//    note *feat_annotation = (note *) get0Note(name);
+//    if (feat_annotation != nullptr) {
+//        feat_annotation->end();
+//    }
+//    return;
+//}
 
-void
-Apollo::noteBegin(std::string &name, double with_value) {
-    note *feat_annotation = (note *) getNote(name);
-    if (feat_annotation != nullptr) {
-        feat_annotation->begin(with_value);
-    }
-    return;
-}
-
-void
-Apollo::noteEnd(std::string &name) {
-    note *feat_annotation = (note *) getNote(name);
-    if (feat_annotation != nullptr) {
-        feat_annotation->end();
-    }
-    return;
-}
-
+// TODO: Add setNote method that places value in an unordered_map
 
 void *
 Apollo::getNote(std::string &name) {
