@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS indexApollo ON tblVals(meta_relation_id);

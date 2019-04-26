@@ -1,0 +1,1 @@
+SELECT region_name, policy_index, AVG(time_avg) AS time_avg_for_policy FROM viewApollo GROUP BY region_name, policy_index;
