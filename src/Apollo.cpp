@@ -210,6 +210,9 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
         reg->flushMeasurements(assign_to_step);
         ++it;
     }
+    note *t_flush = (note *) note_flush;
+    t_flush->begin(1);
+    t_flush->end();
     return;
 }
 

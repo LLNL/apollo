@@ -20,7 +20,7 @@ echo ""
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-#source ${RETURN_PATH}/common_spack.sh
+source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -194,6 +194,7 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
+
 export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
 export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
 export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
@@ -210,13 +211,13 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-#${SOS_WORK}/ALL.lulesh_variants.sh
+${SOS_WORK}/ALL.lulesh_variants.sh
 #
-echo -n "lulesh-raja,   " 
-/usr/bin/time -f %e -- srun ${SRUN_LULESH_BASELINE}
+#echo -n "lulesh-raja,   " 
+#/usr/bin/time -f %e -- srun ${SRUN_LULESH_BASELINE}
 #
-echo -n "lulesh-apollo, "
-/usr/bin/time -f %e -- srun ${SRUN_LULESH_APOLLO}
+#echo -n "lulesh-apollo, "
+#/usr/bin/time -f %e -- srun ${SRUN_LULESH_APOLLO}
 #
 #
 #^
@@ -250,8 +251,8 @@ cat ${PARTING_NOTE}
 echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_MONITOR_STOP}"    >> ${SOS_WORK}/sosd_stop.sh
 chmod +x ${SOS_WORK}/sosd_stop.sh
-#sleep 480
-#${SOS_WORK}/sosd_stop.sh
-#sleep 60
+sleep 480
+${SOS_WORK}/sosd_stop.sh
+sleep 60
 #
 ####
