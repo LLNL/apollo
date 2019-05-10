@@ -14,7 +14,8 @@ cd build
 #        -DRAJA_DIR=$(spack location -i raja) \
 #        -DCALIPER_DIR=$HOME/src/caliper/install \
 #        ..
-cmake -DCMAKE_INSTALL_PREFIX=../install \
+cmake   \
+        -DCMAKE_INSTALL_PREFIX=../install \
         -DCMAKE_BUILD_TYPE=ReleaseWDebInfo \
         -DSOS_DIR=$HOME/src/sos_flow/build \
         -DRAJA_DIR=$HOME/src/raja-proxies/tpl/RAJA/include \

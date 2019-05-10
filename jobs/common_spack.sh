@@ -1,5 +1,11 @@
 #!/bin/bash
-
+echo "module swap intel/18.0.1 gcc/4.9.3"
+module swap intel/18.0.1 gcc/4.9.3
+echo ""
+echo "Compiler path: '$(which gcc)'"
+echo "Compiler version:"
+gcc --version
+echo ""
 # Absolute path this script is in:
 export SETENV_SCRIPT_PATH="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
 
@@ -12,49 +18,45 @@ if [ "x$SOS_ENV_SET" == "x1" ] ; then
     kill -INT $$
 fi
 echo ""
-echo " .-- Initializing Spack environment..."
+echo " .-- Processing ~/setenv.sh ..."
+echo " |"
+echo " |-- Initializing Spack environment..."
 export SPACK_ROOT='/g/g17/wood67/src/spack'
 export PATH=$SPACK_ROOT/bin:$PATH
 . $SPACK_ROOT/share/spack/setup-env.sh
-echo " |"
-echo " |-- gcc"
-spack load gcc
-echo " |-- python"
+echo " |-- Loading Spack packages..."
+echo " |    |-- python"
 spack load python
-echo " |    |-- py-subprocess32"
-spack load py-subprocess32
-echo " |    |-- py-scipy"
+echo " |    |    |-- py-scipy"
 spack load py-scipy
-echo " |    |-- py-scikit-learn"
+echo " |    |    |-- py-scikit-learn"
 spack load py-scikit-learn
-echo " |    |-- py-numpy"
-spack load py-numpy
-echo " |    |-- py-pandas"
+echo " |    |    |-- py-pandas"
 spack load py-pandas
-echo " |    |-- py-pip"
-spack load py-pip
-echo " |    ^-- py-cffi"
+echo " |    |    |-- py-numpy"
+spack load py-numpy
+echo " |    |    |-- py-cffi"
 spack load py-cffi
-echo " |-- dyninst"
-spack load dyninst
+echo " |    |    \\_"
+echo " |    \\_"
 echo " |-- vim"
 spack load vim
 echo " |-- cmake"
 spack load cmake
+echo " |-- libnl"
+spack load libnl
 echo " |-- libevpath"
 spack load libevpath
 echo " |-- libffs"
 spack load libffs
 echo " |-- gtkorvo-atl"
 spack load gtkorvo-atl
-echo " |-- raja"
-spack load raja
-echo " |-- java (jdk)"
-spack load jdk
-echo " |"
-echo " \\__ done."
-
-
+echo " |-- gtkorvo-dill"
+spack load gtkorvo-dill
+echo " |-- htop"
+spack load htop
+echo " \\_"
+echo ""
 
 #  NOTE: If we decide to set these paths for experiments...
 #        ...it makes unsetting the environment a bit trickier.

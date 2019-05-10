@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -N 2
-#SBATCH -n 36
+#SBATCH -n 31
 #SBATCH -p pbatch
 #SBATCH -A lc
-#SBATCH -t 120
+#SBATCH -t 120 
 
-export EXPERIMENT_JOB_TITLE="002_0027_lulesh"
+export EXPERIMENT_JOB_TITLE="SCALE.0027.lulesh"
 export EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
 export RETURN_PATH=`pwd`
 
@@ -58,11 +58,10 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
 #
 # Make an archive of this script and the environment config script:
 #
-cp ${RETURN_PATH}/ALL.lulesh_variants.sh  ${SOS_WORK}
-cp ${RETURN_PATH}/common_spack.sh         ${SOS_WORK}/launch/COMMON_SPACK.sh
-cp ${RETURN_PATH}/common_setenv.sh        ${SOS_WORK}/launch/COMMON_SETENV.sh
-cp ${RETURN_PATH}/common_unsetenv.sh      ${SOS_WORK}/launch/COMMON_UNSETENV.sh
-cp ${BASH_SOURCE}                         ${SOS_WORK}/launch/JOB_OVERALL_BASH_SCRIPT.sh
+cp ${RETURN_PATH}/common_spack.sh           ${SOS_WORK}/launch/COMMON_SPACK.sh
+cp ${RETURN_PATH}/common_setenv.sh          ${SOS_WORK}/launch/COMMON_SETENV.sh
+cp ${RETURN_PATH}/common_unsetenv.sh        ${SOS_WORK}/launch/COMMON_UNSETENV.sh
+cp ${BASH_SOURCE}                           ${SOS_WORK}/launch/BATCH_JOB_SCRIPT.sh
 #
 export SOS_BATCH_ENVIRONMENT="TRUE"
 #
@@ -168,6 +167,9 @@ export SRUN_SQL_EXEC="         -o /dev/null                    -N 2 -n 2  -r 0  
 export SOS_MONITOR_START="     -o ./daemons/monitor.%n.csv     -N 2 -n 2  -r 0  ./bin/sosd_probe -header on -l 1000000"
 export SOS_MONITOR_STOP="                                      -N 2 -n 2  -r 0  killall -9 sosd_probe"
 export SOS_SHUTDOWN_COMMAND="                                  -N 2 -n 2  -r 0  ./bin/sosd_stop"
+export SQL_DELETE_VALS="DELETE FROM tblVals;"
+export SQL_DELETE_DATA="DELETE FROM tblData;"
+export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 echo "srun ${SRUN_LULESH_BASELINE}"  > ${SOS_WORK}/launch/SRUN_LULESH_BASELINE
@@ -198,7 +200,7 @@ echo ""
 export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
 export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
 export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
-srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
+#srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
 #
 #echo ""
@@ -211,14 +213,31 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-${SOS_WORK}/ALL.lulesh_variants.sh
+echo ""
+printf "\t%4s, %4s, %4s, %-30s, time(sec)\n" "proc" "size" "iter" "application"
 #
-#echo -n "lulesh-raja,   " 
-#/usr/bin/time -f %e -- srun ${SRUN_LULESH_BASELINE}
+# NOTE: Only the 2-node script scales PROC like this, the rest are one process
+#       count per batch file, since they're requesting more nodes per count.
 #
-#echo -n "lulesh-apollo, "
-#/usr/bin/time -f %e -- srun ${SRUN_LULESH_APOLLO}
-#
+for PROC in $(seq 1 1 3)
+do
+    for SIZE in $(seq 45 45 45)
+    do
+        for ITER in $(seq 300 300 1500)
+        do
+            NUM_RANKS="$((${PROC} ** 3))"
+            for LULESH_VARIANT in $(ls ${SOS_WORK}/bin/lulesh*)
+            do
+                printf "\t%4s, %4s, %4s, %-30s, " ${NUM_RANKS} ${SIZE}  ${ITER} $(basename -- ${LULESH_VARIANT}) 
+                /usr/bin/time -f %e -- srun -N 1 -n ${NUM_RANKS} -r 1 ${LULESH_VARIANT} -q -s ${SIZE} -i ${ITER} -b 1 -c 1
+                sleep 20
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
+            done
+        done
+    done
+done
 #
 #^
 #^^
@@ -251,8 +270,8 @@ cat ${PARTING_NOTE}
 echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_MONITOR_STOP}"    >> ${SOS_WORK}/sosd_stop.sh
 chmod +x ${SOS_WORK}/sosd_stop.sh
-sleep 480
+sleep 120 
 ${SOS_WORK}/sosd_stop.sh
-sleep 60
+sleep 120
 #
 ####
