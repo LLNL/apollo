@@ -1,0 +1,69 @@
+Cleverleaf {
+    dim = 2
+    field_summary_interval=1
+    vis_dump_interval=1
+    DEV_check_result = TRUE
+
+    states {
+        num_states = 2
+
+        state0 {
+            density = 0.2e0
+            energy = 1.e0
+        }
+
+        state1 {
+            geometry = "RECTANGLE"
+            min = 0.e0, 0.e0
+            max = 5.e0, 2.e0
+
+            density = 1.e0
+            energy = 2.5e0
+        }
+    }
+}
+
+CartesianGeometry {
+    domain_boxes = [ (1,1), (10,4) ]
+    x_lo         = 0.e0, 0.e0
+    x_up         = 10.e0, 2.e0
+}
+
+PatchHierarchy {
+    max_levels = 3
+
+    ratio_to_coarser {
+        level_1 = 2,2
+    }
+    
+    largest_patch_size {
+        level_0 = -1,-1
+    }
+
+    smallest_patch_size {
+        level_0 = 4,4
+    }
+}
+
+LagrangianEulerianPatchStrategy{}
+LagrangianEulerianLevelIntegrator{}
+
+StandardTagAndInitialize {
+    tagging_method = "GRADIENT_DETECTOR"
+}
+
+LoadBalancer {
+    //
+}
+
+GriddingAlgorithm {
+    efficiency_tolerance = 0.75e0
+    combine_efficiency = 0.85e0
+}
+
+LagrangianEulerianIntegrator {
+    start_time = 0.e0
+    end_time = 3.e0
+    grow_dt = 1.5e0
+    initial_dt = 0.04e0
+}
