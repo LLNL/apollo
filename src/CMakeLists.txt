@@ -25,6 +25,7 @@ set(APOLLO_HEADERS
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
     ../include/apollo/models/Static.h
+    ../include/apollo/models/RoundRobin.h
     ../include/apollo/models/DecisionTree.h
     )
 
@@ -35,6 +36,7 @@ set(APOLLO_SOURCES
     models/Random.cpp
     models/Sequential.cpp
     models/Static.cpp
+    models/RoundRobin.cpp
     models/DecisionTree.cpp
     )
 

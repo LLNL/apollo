@@ -16,27 +16,27 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
 from ssos import SSOS
 
-VERBOSE = True 
-DEBUG   = True 
-FRAME_INTERVAL = 100 
+VERBOSE = True
+DEBUG   = True
+FRAME_INTERVAL = 10
 SOS = SSOS()
 
-def serializeRegressor(tree):
-    """ Convert a sklearn.tree.DecisionTreeRegressor into a JSON-compatible format """
-    LEAF_ATTRIBUTES = ['children_left', 'children_right', 'threshold', 'value',
-                       'feature', 'impurity', 'weighted_n_node_samples']
-    TREE_ATTRIBUTES = ['n_classes_', 'n_features_', 'n_outputs_']
-    encoded = {
-        'nodes': {},
-        'tree': {},
-        'n_leaves': len(tree.tree_.threshold),
-        'params': tree.get_params()
-    }
-    for attr in LEAF_ATTRIBUTES:
-        encoded['nodes'][attr] = getattr(tree.tree_, attr).tolist()
-    for attr in TREE_ATTRIBUTES:
-        encoded['tree'][attr] = getattr(tree, attr)
-    return encoded
+# def serializeRegressor(tree):
+#     """ Convert a sklearn.tree.DecisionTreeRegressor into a JSON-compatible format """
+#     LEAF_ATTRIBUTES = ['children_left', 'children_right', 'threshold', 'value',
+#                        'feature', 'impurity', 'weighted_n_node_samples']
+#     TREE_ATTRIBUTES = ['n_classes_', 'n_features_', 'n_outputs_']
+#     encoded = {
+#         'nodes': {},
+#         'tree': {},
+#         'n_leaves': len(tree.tree_.threshold),
+#         'params': tree.get_params()
+#     }
+#     for attr in LEAF_ATTRIBUTES:
+#         encoded['nodes'][attr] = getattr(tree.tree_, attr).tolist()
+#     for attr in TREE_ATTRIBUTES:
+#         encoded['tree'][attr] = getattr(tree, attr)
+#     return encoded
 
 
 def generateRegressionTree(data, region_names):
@@ -100,8 +100,8 @@ def generateRegressionTree(data, region_names):
 
 def generateDecisionTree(data, region_names):
 
-    data["loop"] = pd.Categorical(data["loop"])
-    data["loop_id"] = data["loop"].cat.codes
+    data["region_name"] = pd.Categorical(data["region_name"])
+    data["region_name_id"] = data["region_name"].cat.codes
 
     # NOTE: How to create a column of binned values for a column:
     #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
@@ -113,7 +113,7 @@ def generateDecisionTree(data, region_names):
     #       We want best on average.
     grp_data = data\
             .sort_values("time_avg")\
-            .groupby(["region_name", "policy_index"], as_index=False, sort=False)\
+            .groupby(["region_name_id", "policy_index"], as_index=False, sort=False)\
             .first()
 
     # Available fields:
@@ -126,6 +126,7 @@ def generateDecisionTree(data, region_names):
     #        time_max,
     #        time_avg
     drop_fields =[
+            "region_name",
             "policy_index",
             "step",
             "exec_count",
@@ -323,14 +324,14 @@ def getTrainingData(sos_host, sos_port, row_limit):
     #        We do grab the list of region names so we can append it to
     #        the encoding of the model, for now.
     #
-    sql_string = "SELECT DISTINCT region_name FROM viewApollo;"
+    sql_string = "SELECT DISTINCT region_name FROM viewApollo WHERE region_name IS NOT NULL;"
     if (VERBOSE):
         print "== CONTROLLER:  Retrieving list of unique loops being measured."
     region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
-    if (VERBOSE):
-        print "== CONTROLLER:  Loop name list received:"
-        for row in region_names:
-            print "    " + str(row[0])
+    # if (VERBOSE):
+    #     print "== CONTROLLER:  Loop name list received:"
+    #     for row in region_names:
+    #         print "    " + str(row[0])
     #
     ###
     #
@@ -348,6 +349,8 @@ def getTrainingData(sos_host, sos_port, row_limit):
             time_avg
         FROM
             viewApollo
+        WHERE
+            region_name IS NOT NULL
         """
 
     if (row_limit < 1):
@@ -360,7 +363,7 @@ def getTrainingData(sos_host, sos_port, row_limit):
 
     if (VERBOSE):
         print "== CONTROLLER:  Received training data from SOS..."
-        tablePrint(results)
+        #tablePrint(results)
 
     return data, region_names
 

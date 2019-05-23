@@ -1,8 +1,16 @@
 #!/bin/bash
-#SBATCH -N 2
-#SBATCH -n 31
 #SBATCH -p pbatch
 #SBATCH -A lc
+#SBATCH --mail-user=wood67@llnl.gov
+#SBATCH --mail-type=ALL
+#SBATCH --wait=0
+#SBATCH --kill-on-bad-exit=0
+#SBATCH --requeue
+#SBATCH --exclusive
+#
+#SBATCH --job-name="APOLLO:SCALE.27.lulesh"
+#SBATCH -N 2
+#SBATCH -n 31
 #SBATCH -t 120 
 
 export EXPERIMENT_JOB_TITLE="SCALE.0027.lulesh"
@@ -202,6 +210,32 @@ export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
 export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
 #srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
+#
+export APOLLO_INIT_MODEL="
+    {
+        \"driver\": {
+            \"format\": \"int\",
+            \"rules\": \"1\"
+        },
+        \"type\": {
+            \"guid\": 0,
+            \"name\": \"RoundRobin\"
+        },
+        \"region_names\": [
+             \"none\"
+        ],
+        \"features\": {
+            \"count\": 0,
+            \"names\": [
+                \"none\"
+            ]
+        }
+    }"
+echo ">>>> Default Apollo model..."
+echo ""
+echo "${APOLLO_INIT_MODEL}"
+echo ""
+
 #
 #echo ""
 #echo ">>>> Launching Apollo controller..."

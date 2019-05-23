@@ -12,6 +12,7 @@ class Apollo::Model {
         class Random       ; // : public ModelObject;
         class Sequential   ; // : public ModelObject;
         class Static       ; // : public ModelObject;
+        class RoundRobin   ; // : public ModelObject;
         class DecisionTree ; // : public ModelObject;
 
         class Type {
@@ -20,7 +21,8 @@ class Apollo::Model {
                 static constexpr int Random       = 1;
                 static constexpr int Sequential   = 2;
                 static constexpr int Static       = 3;
-                static constexpr int DecisionTree = 4;
+                static constexpr int RoundRobin   = 4;
+                static constexpr int DecisionTree = 5;
 
                 // Default configuration JSON:
                 const char *DefaultConfigJSON =  "\n"                                    \
@@ -31,7 +33,7 @@ class Apollo::Model {
                                                  "    },\n"                              \
                                                  "    \"type\": {\n"                     \
                                                  "        \"guid\": 0,\n"                \
-                                                 "        \"name\": \"Random\"\n"        \
+                                                 "        \"name\": \"RoundRobin\"\n"    \
                                                  "    },\n"                              \
                                                  "    \"region_names\": [\n"             \
                                                  "         \"none\"\n"                   \

@@ -1,27 +1,41 @@
 #!/bin/bash
-#SBATCH -N 2 
-#SBATCH -n 12
 #SBATCH -p pbatch
 #SBATCH -A lc
+#SBATCH --mail-user=wood67@llnl.gov
+#SBATCH --mail-type=ALL
+#SBATCH --wait=0
+#SBATCH --kill-on-bad-exit=0
+#SBATCH --requeue
+#SBATCH --exclusive
+#
+#  The following items will need updating at different scales:
+#
+#SBATCH --job-name="APOLLO:GUIDE.8.cleverleaf"
+#SBATCH -N 2 
+#SBATCH -n 12
 #SBATCH -t 120
 #
-export EXPERIMENT_JOB_TITLE="GUIDE.0008.cleverleaf"
-export EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
+export EXPERIMENT_JOB_TITLE="GUIDE.0008.cleverleaf"  # <-- creates output path!
 #
-export APPLICATION_RANKS="8"
-export SOS_AGGREGATOR_COUNT="1"
-export EXPERIMENT_NODE_COUNT="2"     # <-- including extra node for agg./controller
-
+export APPLICATION_RANKS="8"         # ^__ make sure to change SBATCH node counts!
+export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
+export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. node
+#
 ###################################################################################
 #
 #  NOTE: Everything below here will get automatically calculated if the above
 #        variables are set correctly.
 #
-
+#
+export  EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
+#
 echo ""
 echo "  JOB TITLE.....: ${EXPERIMENT_JOB_TITLE}"
 echo "  WORKING PATH..: ${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
 echo ""
+#
+####
+
 
 export RETURN_PATH=`pwd`
 
@@ -31,7 +45,7 @@ export RETURN_PATH=`pwd`
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-#source ${RETURN_PATH}/common_spack.sh
+source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -190,7 +204,8 @@ export CALI_TIMER_SNAPSHOT_DURATION="false"
 export CALI_SOS_ITER_PER_PUBLISH="1"
 #
 env | grep CALI > ${SOS_WORK}/launch/CALIPER_SETTINGS
-
+#
+#  Set up the commands we'll use for this experiment kit:
 #
 let    WORK_NODE_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
 #
@@ -234,10 +249,8 @@ export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop"
 export SQL_DELETE_VALS="DELETE FROM tblVals;"
 export SQL_DELETE_DATA="DELETE FROM tblData;"
 export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
-
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
-#
 #
 #  Copy the applications into the experiment path:
 #
@@ -269,6 +282,32 @@ export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
 #srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
 #
+export APOLLO_INIT_MODEL="
+    {
+        \"driver\": {
+            \"format\": \"int\",
+            \"rules\": \"1\"
+        },
+        \"type\": {
+            \"guid\": 0,
+            \"name\": \"RoundRobin\"
+        },
+        \"region_names\": [
+             \"none\"
+        ],
+        \"features\": {
+            \"count\": 0,
+            \"names\": [
+                \"none\"
+            ]
+        }
+    }"
+
+echo ">>>> Default Apollo model..."
+echo ""
+echo "${APOLLO_INIT_MODEL}"
+echo ""
+#
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
@@ -299,21 +338,26 @@ echo ""
     echo ""
 
     cd output
-    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_test.in
+    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in
     cd ${SOS_WORK}
 
-        ############################
-        #srun ${SRUN_CONTROLLER_STOP}
-        #sleep 5
-        
-        #############
-        #  If we want to wipe out the SOS databases between runs,
-        #  we can do so like this. Let's attempt to keep them for now
-        #  so we can plot things like latency or do offline ML later.
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
-        #############
+    
+    ############################
+    #
+    # NOTE: Unused example code...
+    #
+    #srun ${SRUN_CONTROLLER_STOP}
+    #sleep 5
+    #
+    # NOTE: If we want to wipe out the SOS databases between runs,
+    #       we can do so like this. Let's attempt to keep them for now
+    #       so we can plot things like latency or do offline ML later.
+    #
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
+    #
+    #############
 #
 #^
 #^^
@@ -328,8 +372,8 @@ echo "    DONE!"
 echo ""
 echo "\$SOS_WORK = ${SOS_WORK}"
 echo ""
-#echo "\$SOS_WORK directory listing:"
-#tree ${SOS_WORK}
+tree ${SOS_WORK}/daemons
+ls ${SOS_WORK}/output
 echo "" > ${PARTING_NOTE}
 echo "--------------------------------------------------------------------------------"
 echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
@@ -343,11 +387,29 @@ echo "" >> ${PARTING_NOTE}
 echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
-echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh
-echo "srun ${SOS_MONITOR_STOP}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"Bringing down SOS:\""      > ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_SHUTDOWN_COMMAND}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh 
+echo "echo \"Killing SOS monitors:\""  >> ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_MONITOR_STOP}"        >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"OK!\""                    >> ${SOS_WORK}/sosd_stop.sh
 chmod +x ${SOS_WORK}/sosd_stop.sh
-#sleep 120 
-#${SOS_WORK}/sosd_stop.sh
-#sleep 120
+# So that 'cd -' takes you back to the launch path...
+cd ${RETURN_PATH}
+cd ${SOS_WORK}
+echo ""
+echo " >>>>"
+echo " >>>>"
+echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
+echo " >>>>"
+read -t 120 -p " >>>> "
+echo ""
+echo " *OK* Shutting down interactive experiment environment..."
+echo ""
+${SOS_WORK}/sosd_stop.sh
+echo ""
+echo ""
+sleep 20
+echo "--- Done! End of job script. ---"
 #
-####
+# EOF
