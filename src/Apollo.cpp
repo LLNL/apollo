@@ -165,11 +165,11 @@ Apollo::Apollo()
     note_flush =
         (void *) new note("APOLLO_time_flush", CALI_ATTR_ASVALUE);
     note_time_for_region =
-        (void *) new note("time_for_region", CALI_ATTR_ASVALUE);
+        (void *) new note("region_name", CALI_ATTR_ASVALUE);
     note_time_for_step =
-        (void *) new note("time_for_step", CALI_ATTR_ASVALUE);
+        (void *) new note("step", CALI_ATTR_ASVALUE);
     note_time_exec_count =
-        (void *) new note("time_exec_count", CALI_ATTR_ASVALUE);
+        (void *) new note("exec_count", CALI_ATTR_ASVALUE);
     note_time_last = 
         (void *) new note("time_last", CALI_ATTR_ASVALUE);
     note_time_min =

@@ -1,13 +1,13 @@
         CREATE VIEW viewApollo AS
             SELECT
                   tblVals.frame AS frame,
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_region"
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "region_name"
                                   THEN tblVals.val END) AS "region_name", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policy_index"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "policy_index",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_step"
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "step"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "step",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_exec_count"
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "exec_count"
                                   THEN tblVals.val END) AS "exec_count",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
                                   THEN tblVals.val END) AS "time_last",

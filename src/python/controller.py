@@ -126,31 +126,30 @@ def generateDecisionTree(data, region_names):
     #        time_max,
     #        time_avg
     drop_fields =[
-            "region_name",
             "policy_index",
-            "step",
-            "exec_count",
             "time_last",
             "time_min",
             "time_max",
             "time_avg"
         ]
 
+    if (VERBOSE): print "== CONTROLLER:  Extracting Y-values..."
     y = grp_data["policy_index"].astype(int)
+
+    if (VERBOSE): print "== CONTROLLER:  Extracting X-values..."
     x = grp_data.drop(drop_fields, axis="columns").values.astype(float)
 
+    if (VERBOSE): print "== CONTROLLER:  Extracting raw feature names..."
     feature_names = []
     raw_names = grp_data.drop(drop_fields, axis="columns").columns
     for name in raw_names:
         feature_names.append(name)
-
-
+    if (VERBOSE): print "== CONTROLLER:      " + str(feature_names)
     if (VERBOSE): print "== CONTROLLER:  Initializing model..."
-
     pipe = [('estimator',   DecisionTreeClassifier(
                  class_weight=None, criterion='gini', max_depth=7,
                  max_features=len(feature_names), max_leaf_nodes=None,
-                 min_impurity_split=1e-07, min_samples_leaf=1,
+                 min_impurity_decrease=1e-07, min_samples_leaf=1,
                  min_samples_split=2, min_weight_fraction_leaf=0.0,
                  presort=False, random_state=None, splitter='best'))]
 
@@ -166,7 +165,7 @@ def generateDecisionTree(data, region_names):
     #    print "    score.mean == " + str(np.mean(scores))
     #    warnings.resetwarnings()
 
-    if (VERBOSE): print "== CONTROLLER:  Training model..."
+    if (VERBOSE): print "== CONTROLLER:  Running model.fit(x, y) ..."
     model.fit(x, y)
 
     trained_model = model.named_steps['estimator']
