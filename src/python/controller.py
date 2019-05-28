@@ -113,7 +113,7 @@ def generateDecisionTree(data, region_names):
     #       We want best on average.
     grp_data = data\
             .sort_values("time_avg")\
-            .groupby(["region_name_id", "policy_index"], as_index=False, sort=False)\
+            .groupby(["region_name_id", "policy_index", "step"], as_index=False, sort=False)\
             .first()
 
     # Available fields:

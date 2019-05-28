@@ -65,13 +65,14 @@ Apollo::ModelWrapper::configure(
     }
 
     if (model_type == MT.Default) {
-        model_def  = MT.DefaultConfigJSON;
-        apollo_log(2, "Using the default model for initialization.\n");
-    }
+        if (getenv("APOLLO_INIT_MODEL") != NULL) {
+            model_def = getenv("APOLLO_INIT_MODEL");
+            apollo_log(2, "Using ${APOLLO_INIT_MODEL} for region initialization.\n");
+        } else {
 
-    if (getenv("APOLLO_INIT_MODEL") != NULL) {
-        model_def = getenv("APOLLO_INIT_MODEL");
-        apollo_log(2, "Using ${APOLLO_INIT_MODEL} for region initialization.\n");
+            model_def  = MT.DefaultConfigJSON;
+            apollo_log(2, "Using the default model for initialization.\n");
+        }
     }
 
     apollo_log(9, "Model definition:\n%s\n", model_def);

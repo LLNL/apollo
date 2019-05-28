@@ -311,15 +311,10 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-        
-        #printf "== CONTROLLER: START\n" >> ./output/controller.out
-        #printf "== CONTROLLER: START for " >> ./output/controller.out
-        #printf "SIZE:%s and ITER:%s\n" ${PROBLEM_SIZE} ${PROBLEM_ITER} \
-        #    >> ./output/controller.out
-        #printf "== CONTROLLER: START\n" >> ./output/controller.out
-        #############################
-        #srun ${SRUN_CONTROLLER_START} &
-        #sleep 5
+    echo "Launching controller and waiting 10 seconds for it to come online..."
+    printf "== CONTROLLER: START\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_START} &
+    sleep 10
 
     # DEBUG
     # export OMP_NUM_THREADS="1"
@@ -333,11 +328,11 @@ echo ""
     export SRUN_CLEVERLEAF+=" ${CLEVERLEAF_BINARY} "
 
     echo "Launch command for cleverleaf:"
-    echo "    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_test.in"
+    echo "    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in"
     echo ""
 
     cd output
-    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_test.in
+    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in
     cd ${SOS_WORK}
 
     
