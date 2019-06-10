@@ -7,7 +7,7 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelWrapper.h"
-
+#include "apollo/Explorable.h"
 
 class Apollo::Region {
     public:
@@ -41,6 +41,8 @@ class Apollo::Region {
 
         std::unordered_map<std::vector<Apollo::Feature>, Apollo::Region::Measure *>
             measures;
+
+        std::vector<Apollo::Explorable> explorables;
 
         void flushMeasurements(int assign_to_step);
 

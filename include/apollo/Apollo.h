@@ -81,7 +81,7 @@ class Apollo
         class Model;
         class ModelObject;
         class ModelWrapper;
-
+        class Explorable;
 
         class Feature
 		{
