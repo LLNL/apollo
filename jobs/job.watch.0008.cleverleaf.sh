@@ -1,25 +1,23 @@
 #!/bin/bash
 #SBATCH -p pbatch
-#SBATCH -A lc
+#SBATCH -A asccasc
 #SBATCH --mail-user=wood67@llnl.gov
 #SBATCH --mail-type=ALL
-#SBATCH --wait=0
-#SBATCH --kill-on-bad-exit=0
 #SBATCH --requeue
 #SBATCH --exclusive
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.128.cleverleaf.tript"
-#SBATCH -N 5 
-#SBATCH -n 180
-#SBATCH -t 120
+#SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
+#SBATCH -N 2 
+#SBATCH -n 12
+#SBATCH -t 15 
 #
-export EXPERIMENT_JOB_TITLE="WATCH.0128.cleverleaf.tript"  # <-- creates output path!
+export EXPERIMENT_JOB_TITLE="WATCH.0008.cleverleaf.test"  # <-- creates output path!
 #
-export APPLICATION_RANKS="128"       # ^__ make sure to change SBATCH node counts!
+export APPLICATION_RANKS="8"         # ^__ make sure to change SBATCH node counts!
 export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
-export EXPERIMENT_NODE_COUNT="5"     # <-- is SBATCH -N count, incl/extra agg. node
+export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. node
 #
 ###################################################################################
 #
@@ -45,7 +43,7 @@ export RETURN_PATH=`pwd`
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-source ${RETURN_PATH}/common_spack.sh
+#source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -68,7 +66,10 @@ cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bi
 cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/scripts/showdb                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
+#
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
+mkdir -p ${SOS_WORK}/bin/apollo
+cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -302,26 +303,19 @@ export APOLLO_INIT_MODEL="
             ]
         }
     }"
-
 echo ">>>> Default Apollo model..."
 echo ""
 echo "${APOLLO_INIT_MODEL}"
 echo ""
 
-#
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-        
-        #printf "== CONTROLLER: START\n" >> ./output/controller.out
-        #printf "== CONTROLLER: START for " >> ./output/controller.out
-        #printf "SIZE:%s and ITER:%s\n" ${PROBLEM_SIZE} ${PROBLEM_ITER} \
-        #    >> ./output/controller.out
-        #printf "== CONTROLLER: START\n" >> ./output/controller.out
-        #############################
-        #srun ${SRUN_CONTROLLER_START} &
-        #sleep 5
+    #echo "Launching controller and waiting 10 seconds for it to come online..."
+    #printf "== CONTROLLER: START\n" >> ./output/controller.out
+    #srun ${SRUN_CONTROLLER_START} &
+    #sleep 10
 
     # DEBUG
     # export OMP_NUM_THREADS="1"
@@ -343,12 +337,14 @@ echo ""
     cd ${SOS_WORK}
 
     
+    #srun ${SRUN_CONTROLLER_STOP}
+    #sleep 5
+    
+    
     ############################
     #
     # NOTE: Unused example code...
     #
-    #srun ${SRUN_CONTROLLER_STOP}
-    #sleep 5
     #
     # NOTE: If we want to wipe out the SOS databases between runs,
     #       we can do so like this. Let's attempt to keep them for now
@@ -410,7 +406,7 @@ echo ""
 ${SOS_WORK}/sosd_stop.sh
 echo ""
 echo ""
-sleep 240
+sleep 20
 echo "--- Done! End of job script. ---"
 #
 # EOF

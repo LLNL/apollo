@@ -224,10 +224,9 @@ Apollo::setFeature(std::string set_name, double set_value)
     bool found = false;
 
     for (int i = 0; i < features.size(); ++i) {
-        Apollo::Feature f = features[i];
-        if (f.name == set_name) {
+        if (features[i].name == set_name) {
             found = true;
-            f.value = set_value;
+            features[i].value = set_value;
             break;
         }
     }

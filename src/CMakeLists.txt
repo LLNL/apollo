@@ -21,6 +21,7 @@ set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
     ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
+    ../include/apollo/Explorable.h
     ../include/apollo/Model.h
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
@@ -32,6 +33,7 @@ set(APOLLO_HEADERS
 set(APOLLO_SOURCES
     Apollo.cpp
     Region.cpp
+    Explorable.cpp
     ModelWrapper.cpp
     models/Random.cpp
     models/Sequential.cpp

@@ -63,7 +63,7 @@ Apollo::Region::Region(
     name   = strdup(regionName);
 
     current_step              = -1;
-    current_policy            = -1;
+    current_policy            = 0;
     exec_count_total          = 0;
     exec_count_current_step   = 0;
     exec_count_current_policy = 0;

@@ -5,7 +5,7 @@ Cleverleaf {
     restart_interval = 0
 
     states {
-        num_states = 3 
+        num_states = 5
 
         // State 0 is the background state, should always be defined.
         state0 {
@@ -31,6 +31,23 @@ Cleverleaf {
             energy = 0.3125e0
         }
 
+        state3 {
+            geometry = "RECTANGLE"
+            min = 2.e0, 0.5e0
+            max = 6.0e0, 2.2e0
+
+            density = 0.75e0
+            energy = 0.43e0
+        }
+
+        state4 {
+            geometry = "RECTANGLE"
+            min = 1.e0, 2.5e0
+            max = 3.0e0, 1.0e0
+
+            density = 0.1e0
+            energy = 3.0e0
+        }
     }
 }
 
@@ -96,8 +113,8 @@ GriddingAlgorithm {
 
 LagrangianEulerianIntegrator {
     start_time = 0.e0
-    end_time = 25.e0
+    end_time = 2.5e0
     grow_dt = 1.5e0
-    max_integrator_steps=200
+    max_integrator_steps=20
     regrid_interval=10
 }

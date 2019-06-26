@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p pbatch
-#SBATCH -A lc
+#SBATCH -A asccasc 
 #SBATCH --mail-user=wood67@llnl.gov
 #SBATCH --mail-type=ALL
 #SBATCH --wait=0
@@ -8,19 +8,36 @@
 #SBATCH --requeue
 #SBATCH --exclusive
 #
-#SBATCH --job-name="APOLLO:SCALE.27.lulesh"
-#SBATCH -N 2
-#SBATCH -n 31
-#SBATCH -t 120 
-
-export EXPERIMENT_JOB_TITLE="SCALE.0027.lulesh"
-export EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
-export RETURN_PATH=`pwd`
-
+#  The following items will need updating at different scales:
+#
+#SBATCH --job-name="APOLLO:WATCH.128.cleverleaf.tript"
+#SBATCH -N 5 
+#SBATCH -n 180
+#SBATCH -t 120
+#
+export EXPERIMENT_JOB_TITLE="WATCH.0128.cleverleaf.tript"  # <-- creates output path!
+#
+export APPLICATION_RANKS="128"       # ^__ make sure to change SBATCH node counts!
+export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
+export EXPERIMENT_NODE_COUNT="5"     # <-- is SBATCH -N count, incl/extra agg. node
+#
+###################################################################################
+#
+#  NOTE: Everything below here will get automatically calculated if the above
+#        variables are set correctly.
+#
+#
+export  EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
+#
 echo ""
 echo "  JOB TITLE.....: ${EXPERIMENT_JOB_TITLE}"
 echo "  WORKING PATH..: ${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
 echo ""
+#
+####
+
+
+export RETURN_PATH=`pwd`
 
 ####
 #
@@ -42,6 +59,7 @@ mkdir -p ${SOS_WORK}/daemons
 # where the output of the job is being stored.
 #
 mkdir -p ${SOS_WORK}/bin
+mkdir -p ${SOS_WORK}/bin/apollo
 mkdir -p ${SOS_WORK}/lib
 #
 cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
@@ -49,8 +67,11 @@ cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bi
 cp ${HOME}/src/sos_flow/build/bin/sosd_probe                      ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/scripts/showdb                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
+#
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
+cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -100,15 +121,32 @@ echo "    SOS_EVPATH_MEETUP=${SOS_EVPATH_MEETUP}"
 echo ""
 #
 #
-SOS_DAEMON_TOTAL="2"
+let SOS_LISTENER_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
+let SOS_DAEMON_TOTAL=$[$SOS_AGGREGATOR_COUNT + $SOS_LISTENER_COUNT]
 #
 #
-srun -N 1 -n 1 -r 0 ${SOS_WORK}/bin/sosd -k 0 -r aggregator -l 1 -a 1 -w ${SOS_WORK} &
-echo "   ... aggregator(0) srun submitted."
-for LISTENER_RANK in $(seq 1 1)
+for AGGREGATOR_RANK in $(seq 0 $[$SOS_AGGREGATOR_COUNT - 1])
 do
-    srun -N 1 -n 1 -r ${LISTENER_RANK} ${SOS_WORK}/bin/sosd -k ${LISTENER_RANK} -r listener   -l 1 -a 1 -w ${SOS_WORK} &
-    echo "   ... listener(${LISTENER_RANK}) srun submitted."
+    srun -N 1 -n 1 -r 0 \
+        ${SOS_WORK}/bin/sosd \
+        -k ${AGGREGATOR_RANK} \
+        -r aggregator \
+        -l ${SOS_LISTENER_COUNT} \
+        -a ${SOS_AGGREGATOR_COUNT} \
+        -w ${SOS_WORK} &
+    echo "  --> sosd.aggregator(${AGGREGATOR_RANK}) starting..."
+done
+for WORK_NODE_INDEX in $(seq 1 $[$EXPERIMENT_NODE_COUNT - 1])
+do
+    let LISTENER_RANK=$[$SOS_AGGREGATOR_COUNT - 1 + $WORK_NODE_INDEX]
+    srun -N 1 -n 1 -r ${WORK_NODE_INDEX} \
+        ${SOS_WORK}/bin/sosd \
+        -k ${LISTENER_RANK} \
+        -r listener \
+        -l ${SOS_LISTENER_COUNT} \
+        -a ${SOS_AGGREGATOR_COUNT} \
+        -w ${SOS_WORK} &
+    echo "  --> sosd.listener(${LISTENER_RANK}) starting..."
 done
 #
 #
@@ -168,27 +206,63 @@ export CALI_SERVICES_ENABLE="sos,timestamp"
 export CALI_TIMER_SNAPSHOT_DURATION="false"
 export CALI_SOS_ITER_PER_PUBLISH="1"
 #
-export SRUN_CONTROLLER="       -o ./output/controller.out      -N 1 -n 1  -r 0  python ./bin/controller.py"
-export SRUN_LULESH_BASELINE="  -o ./output/lulesh-baseline.out -N 1 -n 27 -r 1  ./bin/lulesh-v2.0-RAJA-seq.exe -p -s 45 -b 1 -c 1"
-export SRUN_LULESH_APOLLO="    -o ./output/lulesh-apollo.out   -N 1 -n 27 -r 1  ./bin/lulesh-apollo            -p -s 45 -b 1 -c 1"
-export SRUN_SQL_EXEC="         -o /dev/null                    -N 2 -n 2  -r 0  ./bin/demo_app --sql "
-export SOS_MONITOR_START="     -o ./daemons/monitor.%n.csv     -N 2 -n 2  -r 0  ./bin/sosd_probe -header on -l 1000000"
-export SOS_MONITOR_STOP="                                      -N 2 -n 2  -r 0  killall -9 sosd_probe"
-export SOS_SHUTDOWN_COMMAND="                                  -N 2 -n 2  -r 0  ./bin/sosd_stop"
+env | grep CALI > ${SOS_WORK}/launch/CALIPER_SETTINGS
+#
+#  Set up the commands we'll use for this experiment kit:
+#
+let    WORK_NODE_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
+#
+export SRUN_CONTROLLER_START=" "
+export SRUN_CONTROLLER_START+=" -o ./output/controller.out "
+export SRUN_CONTROLLER_START+=" --open-mode=append "
+export SRUN_CONTROLLER_START+=" -N 1 -n 1 -r 0 "
+export SRUN_CONTROLLER_START+=" python ./bin/controller.py "
+#
+export SRUN_CONTROLLER_STOP=" "
+export SRUN_CONTROLLER_STOP+=" -o /dev/null "
+export SRUN_CONTROLLER_STOP+=" -N 1 -n 1 -r 0 "
+export SRUN_CONTROLLER_STOP+=" killall -9 python "
+#
+export SRUN_SQL_EXEC=" "
+export SRUN_SQL_EXEC+=" -o /dev/null "
+export SRUN_SQL_EXEC+=" -N ${EXPERIMENT_NODE_COUNT} "
+export SRUN_SQL_EXEC+=" -n ${EXPERIMENT_NODE_COUNT} "
+export SRUN_SQL_EXEC+=" -r 0 "
+export SRUN_SQL_EXEC+=" ./bin/demo_app --sql "
+#
+export SOS_MONITOR_START=" "
+export SOS_MONITOR_START+=" -o ./daemons/monitor.%n.csv "
+export SOS_MONITOR_START+=" -N ${EXPERIMENT_NODE_COUNT} "
+export SOS_MONITOR_START+=" -n ${EXPERIMENT_NODE_COUNT} "
+export SOS_MONITOR_START+=" -r 0 "
+export SOS_MONITOR_START+=" ./bin/sosd_probe -header on -l 1000000 "
+#
+export SOS_MONITOR_STOP=" "
+export SOS_MONITOR_STOP+=" -N ${EXPERIMENT_NODE_COUNT} "
+export SOS_MONITOR_STOP+=" -n ${EXPERIMENT_NODE_COUNT} "
+export SOS_MONITOR_STOP+=" -r 0 "
+export SOS_MONITOR_STOP+=" killall -9 sosd_probe "
+#
+export SOS_SHUTDOWN_COMMAND=" "
+export SOS_SHUTDOWN_COMMAND+=" -N ${EXPERIMENT_NODE_COUNT} "
+export SOS_SHUTDOWN_COMMAND+=" -n ${EXPERIMENT_NODE_COUNT} "
+export SOS_SHUTDOWN_COMMAND+=" -r 0 "
+export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop"
+#
 export SQL_DELETE_VALS="DELETE FROM tblVals;"
 export SQL_DELETE_DATA="DELETE FROM tblData;"
 export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
-echo "srun ${SRUN_LULESH_BASELINE}"  > ${SOS_WORK}/launch/SRUN_LULESH_BASELINE
-echo "srun ${SRUN_LULESH_APOLLO}"    > ${SOS_WORK}/launch/SRUN_LULESH_APOLLO
-env | grep CALI                      > ${SOS_WORK}/launch/CALIPER_SETTINGS
-#
 #
 #  Copy the applications into the experiment path:
 #
-cp ${HOME}/src/raja-proxies/build/bin/lulesh-apollo              ${SOS_WORK}/bin
-cp ${HOME}/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe   ${SOS_WORK}/bin
+cp ${HOME}/src/cleverleaf/apollo-test/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin
+#
+#  Bring over the input deck[s]:
+cp ${HOME}/src/apollo/jobs/cleaf_test.in        ${SOS_WORK}
+cp ${HOME}/src/apollo/jobs/cleaf_triple_pt.in   ${SOS_WORK}
 #
 #  Launch an interactive terminal within the allocation:
 #
@@ -231,47 +305,63 @@ export APOLLO_INIT_MODEL="
             ]
         }
     }"
+
 echo ">>>> Default Apollo model..."
 echo ""
 echo "${APOLLO_INIT_MODEL}"
 echo ""
 
 #
-#echo ""
-#echo ">>>> Launching Apollo controller..."
-#echo ""
-#srun ${SRUN_CONTROLLER} &
-#sleep 1
-#
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-echo ""
-printf "\t%4s, %4s, %4s, %-30s, time(sec)\n" "proc" "size" "iter" "application"
-#
-# NOTE: Only the 2-node script scales PROC like this, the rest are one process
-#       count per batch file, since they're requesting more nodes per count.
-#
-for PROC in $(seq 1 1 3)
-do
-    for SIZE in $(seq 45 45 45)
-    do
-        for ITER in $(seq 300 300 1500)
-        do
-            NUM_RANKS="$((${PROC} ** 3))"
-            for LULESH_VARIANT in $(ls ${SOS_WORK}/bin/lulesh*)
-            do
-                printf "\t%4s, %4s, %4s, %-30s, " ${NUM_RANKS} ${SIZE}  ${ITER} $(basename -- ${LULESH_VARIANT}) 
-                /usr/bin/time -f %e -- srun -N 1 -n ${NUM_RANKS} -r 1 ${LULESH_VARIANT} -q -s ${SIZE} -i ${ITER} -b 1 -c 1
-                sleep 20
-                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
-                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
-                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
-            done
-        done
-    done
-done
+        
+        #printf "== CONTROLLER: START\n" >> ./output/controller.out
+        #printf "== CONTROLLER: START for " >> ./output/controller.out
+        #printf "SIZE:%s and ITER:%s\n" ${PROBLEM_SIZE} ${PROBLEM_ITER} \
+        #    >> ./output/controller.out
+        #printf "== CONTROLLER: START\n" >> ./output/controller.out
+        #############################
+        #srun ${SRUN_CONTROLLER_START} &
+        #sleep 5
+
+    # DEBUG
+    # export OMP_NUM_THREADS="1"
+
+    export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf "
+    export SRUN_CLEVERLEAF=" "
+    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.stdout "
+    export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
+    export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
+    export SRUN_CLEVERLEAF+=" -r 1 "
+    export SRUN_CLEVERLEAF+=" ${CLEVERLEAF_BINARY} "
+
+    echo "Launch command for cleverleaf:"
+    echo "    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in"
+    echo ""
+
+    cd output
+    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in
+    cd ${SOS_WORK}
+
+    
+    ############################
+    #
+    # NOTE: Unused example code...
+    #
+    #srun ${SRUN_CONTROLLER_STOP}
+    #sleep 5
+    #
+    # NOTE: If we want to wipe out the SOS databases between runs,
+    #       we can do so like this. Let's attempt to keep them for now
+    #       so we can plot things like latency or do offline ML later.
+    #
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
+    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
+    #
+    #############
 #
 #^
 #^^
@@ -286,26 +376,44 @@ echo "    DONE!"
 echo ""
 echo "\$SOS_WORK = ${SOS_WORK}"
 echo ""
-echo "\$SOS_WORK directory listing:"
-tree ${SOS_WORK}
+tree ${SOS_WORK}/daemons
+ls ${SOS_WORK}/output
 echo "" > ${PARTING_NOTE}
 echo "--------------------------------------------------------------------------------"
-#echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
-#echo "" >> ${PARTING_NOTE}
+echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
+echo "" >> ${PARTING_NOTE}
 echo "You are now in the \$SOS_WORK directory with your RESULTS and SCRIPTS!" >> ${PARTING_NOTE}
 echo "                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
 echo "        To RETURN to your code ..: $ cd \$RETURN_PATH" >> ${PARTING_NOTE}
 echo "        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: \$ killall srun)" >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
-#echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
-#echo "" >> ${PARTING_NOTE}
+echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
+echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
-echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh
-echo "srun ${SOS_MONITOR_STOP}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"Bringing down SOS:\""      > ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_SHUTDOWN_COMMAND}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh 
+echo "echo \"Killing SOS monitors:\""  >> ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_MONITOR_STOP}"        >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"OK!\""                    >> ${SOS_WORK}/sosd_stop.sh
 chmod +x ${SOS_WORK}/sosd_stop.sh
-sleep 120 
+# So that 'cd -' takes you back to the launch path...
+cd ${RETURN_PATH}
+cd ${SOS_WORK}
+echo ""
+echo " >>>>"
+echo " >>>>"
+echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
+echo " >>>>"
+read -t 120 -p " >>>> "
+echo ""
+echo " *OK* Shutting down interactive experiment environment..."
+echo ""
 ${SOS_WORK}/sosd_stop.sh
-sleep 120
+echo ""
+echo ""
+sleep 240
+echo "--- Done! End of job script. ---"
 #
-####
+# EOF

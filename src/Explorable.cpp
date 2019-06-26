@@ -21,7 +21,7 @@ Apollo::Explorable::Explorable(
     assert (set_target_var != NULL);
     assert (set_target_var != nullptr);
     assert (set_for_policies.size() > 0);
-    assert (set_possible_values.size() > 0);
+    assert (set_values.size() > 0);
 
     name         = set_name;
     target_var   = set_target_var;

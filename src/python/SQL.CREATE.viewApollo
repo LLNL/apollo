@@ -1,12 +1,15 @@
         CREATE VIEW viewApollo AS
             SELECT
                   tblVals.frame AS frame,
+                  tblPubs.comm_rank AS mpi_rank,
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "region_name"
                                   THEN tblVals.val END) AS "region_name", 
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policy_index"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "policy_index",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "step"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "step",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "num_elements"
+                                  THEN CAST(tblVals.val AS INTEGER) END) AS "num_elements",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "exec_count"
                                   THEN tblVals.val END) AS "exec_count",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
