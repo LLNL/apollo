@@ -34,15 +34,15 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     #        We do grab the list of region names so we can append it to
     #        the encoding of the model, for now.
     #
-    if (VERBOSE): print "== CONTROLLER:  Retrieving list of Apollo::Region names ..."
+    if (VERBOSE): print "== CONTROLLER:  Submitting SQL queries ..."
     sql_string = "SELECT DISTINCT region_name FROM viewApollo WHERE region_name IS NOT NULL;"
+    names_start = time.time()
     region_name_list, col_names = SOS.query(sql_string, sos_host, sos_port)
-
-    if (DEBUG):
-        print "== [[ DEBUG ]]  Retrieving list of DISTINCT tblData.name values ..."
-        sql_string = "SELECT DISTINCT tblData.name FROM tblData;"
-        field_names, col_names = SOS.query(sql_string, sos_host, sos_port)
-        utils.tablePrint(field_names)
+    names_elapsed = time.time() - names_start
+    if (VERBOSE):
+        print "== CONTROLLER:  Apollo::Region list (" + str(len(region_name_list))\
+                    + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
+                    + " seconds."
 
     region_names = []
     for nm in region_name_list:
@@ -63,15 +63,20 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     else:
         sql_string += "LIMIT " + str(row_limit) + ";"
 
-    if (VERBOSE):
-        #print "----------"
-        print "== CONTROLLER:  Requesting training data from SOS ..."
-
+    view_start = time.time()
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
-
+    view_elapsed = time.time() - view_start
     if (VERBOSE):
-        print "== CONTROLLER:  Converting to DataFrame ..."
+        print "== CONTROLLER:  viewApollo data (" + str(len(results))\
+                    + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
+                    + " seconds."
+
+    convert_start = time.time()
     data = pd.DataFrame.from_records(results, columns=col_names)
+    convert_elapsed = time.time() - convert_start
+    if (VERBOSE):
+        print "== CONTROLLER:  Converted to DataFrame in " + str(convert_elapsed) + " seconds."
+
 
     #if (VERBOSE):
     #    print "== CONTROLLER:  Data:"

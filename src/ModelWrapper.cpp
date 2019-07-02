@@ -19,6 +19,7 @@ using json = nlohmann::json;
 #include "apollo/models/Random.h"
 #include "apollo/models/Sequential.h"
 #include "apollo/models/Static.h"
+#include "apollo/models/RoundRobin.h"
 #include "apollo/models/DecisionTree.h"
 
 
@@ -92,7 +93,11 @@ Apollo::ModelWrapper::configure(
 
     apollo_log(3, "Attempting to parse model definition...\n");
     
-    // Validate and extract model components:
+    // Validate and extract model components
+
+    // == [type]
+    // == [type][guid]
+    // == [type][name]
     int model_errors = 0;
     apollo_log(3, "\t[type]\n");
     if (j.find("type") == j.end()) {
@@ -114,6 +119,8 @@ Apollo::ModelWrapper::configure(
             m_type_name = j["type"]["name"].get<string>();
         }
     }
+
+    // == [region_names]
     apollo_log(3, "\t[region_names]\n");
     if (j.find("region_names") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [region_names]\n");
@@ -122,7 +129,9 @@ Apollo::ModelWrapper::configure(
         m_region_names = j["region_names"].get<vector<string>>();
     }
     
-   
+    // == [features]
+    // == [features][count]
+    // == [features][names]
     apollo_log(3, "\t[features]\n");
     if (j.find("features") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [features]\n");
@@ -143,6 +152,11 @@ Apollo::ModelWrapper::configure(
             m_feat_names = j["features"]["names"].get<vector<string>>();
         }
     }
+
+    // == [driver]
+    // == [driver][format]
+    // == [driver][rules]
+    // == [driver][rules][*regname*] <-- Note the different behavior for initial models...
     apollo_log(3, "\t[driver]\n");
     if (j.find("driver") == j.end()) {
         apollo_log(1, "Invalid model_def: missing [driver]\n");
@@ -155,12 +169,35 @@ Apollo::ModelWrapper::configure(
         } else {
             m_drv_format = j["driver"]["format"].get<string>();
         }
+
+        // TODO [optimize]: This section could be handled outside of the configure
+        //                  method perhaps, to prevent multiple json deserializations
+        //                  and double-scans for the __ANY_REGION__ model.
+        //                  Let's look at that later though, it's still fairly fast
+        //                  and doesn't happen that often over the course of a run.
         apollo_log(3, "\t[driver][rules]\n");
         if (j["driver"].find("rules") == j["driver"].end()) {
-            apollo_log(1, "Invalid model_def: missing [driver][rules]\n");
+            apollo_log(1, "Invalid model_def: missing [driver][rules] section\n");
             model_errors++;
         } else {
-            m_drv_rules = j["driver"]["rules"].get<string>();
+            apollo_log(3, "\t[driver][rules]\n");
+            if (j["driver"]["rules"].find(region->name) == j["driver"]["rules"].end()) {
+                // We didn't find a model for this region.  Look for the "__ANY_REGION__"
+                // magic tag, if it exits, use that one, otherwise error.
+                if (j["driver"]["rules"].find("__ANY_REGION__") == j["driver"]["rules"].end()) {
+                    apollo_log(1, "Invalid model_def: missing [driver][rules][region->name]"
+                                  " for region->name == \"%s\" and model package"
+                                  " contains no __ANY_REGION__ default.\n", region->name);
+                    model_errors++;
+                } else {
+                    // We found a generic __ANY_REGION__ model
+                    m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"].get<string>();
+                }
+            } else {
+                // Best case! We DID find a specific model for this region
+                m_drv_rules = j["driver"]["rules"][region->name].get<string>();
+            }
+
         }
     }
 
@@ -173,9 +210,10 @@ Apollo::ModelWrapper::configure(
     if      (m_type_name == "Random")       { model_type = MT.Random; }
     else if (m_type_name == "Sequential")   { model_type = MT.Sequential; }
     else if (m_type_name == "Static")       { model_type = MT.Static; }
+    else if (m_type_name == "RoundRobin")   { model_type = MT.RoundRobin; }
     else if (m_type_name == "DecisionTree") { model_type = MT.DecisionTree; }
     else                                    { model_type = MT.Default; }
-
+ 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
     shared_ptr<Apollo::ModelObject> nm = nullptr;
 
@@ -193,6 +231,10 @@ Apollo::ModelWrapper::configure(
             apollo_log(2, "Applying new Apollo::Model::Static()\n");
             nm = make_shared<Apollo::Model::Static>();
             break;
+        case MT.RoundRobin:
+            apollo_log(2, "Applying new Apollo::Model::RoundRobin()\n");
+            nm = make_shared<Apollo::Model::RoundRobin>();
+            break;
         case MT.DecisionTree:
             apollo_log(2, "Applying new Apollo::Model::DecisionTree()\n");
             nm = make_shared<Apollo::Model::DecisionTree>();
@@ -208,13 +250,15 @@ Apollo::ModelWrapper::configure(
     Apollo::ModelObject *lnm = nm.get();
 
     switch (model_type) {
+            // Production models:
         case MT.Static:
         case MT.DecisionTree:
             lnm->training = false;
             break;
-            //
+            // Training/searching/bootstrapping models:
         case MT.Random:
         case MT.Sequential:
+        case MT.RoundRobin:
         default:
             lnm->training = true;
             break;
@@ -231,10 +275,12 @@ Apollo::ModelWrapper::configure(
 
 
 Apollo::ModelWrapper::ModelWrapper(
-        Apollo      *apollo_ptr,
-        int          numPolicies)
+        Apollo           *apollo_ptr,
+        Apollo::Region   *region_ptr,
+        int               numPolicies)
 {
     apollo = apollo_ptr;
+    region = region_ptr;
     num_policies = numPolicies;
 
     model_sptr = nullptr;

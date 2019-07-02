@@ -16,7 +16,7 @@
 #define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
 
 #ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE -1 
+#define APOLLO_VERBOSE 1 
 #endif
 
 #if (APOLLO_VERBOSE < 0)

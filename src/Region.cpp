@@ -69,7 +69,7 @@ Apollo::Region::Region(
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
-    model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
+    model = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
     model->configure("");
 
     apollo->regions.insert({name, this});

@@ -28,12 +28,14 @@ import utils
 
 
 
-
-
 def generateDecisionTree(SOS, data, region_names):
     if (VERBOSE): print "== CONTROLLER:  Creating categorical values for unique regions."
     data["region_name"] = pd.Categorical(data["region_name"])
     data["region_name_id"] = data["region_name"].cat.codes
+    if (VERBOSE): print "== CONTROLLER:  Generating name-swapping table."
+    name_swap = data[["region_name", "region_name_id"]]\
+            .groupby(["region_name_id"], as_index=False, sort=True)\
+            .first()
 
     # NOTE: How to create a column of binned values for a column:
     #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
@@ -43,16 +45,28 @@ def generateDecisionTree(SOS, data, region_names):
     #       dimensions/configs. We don't want to be picking some kernel
     #       just because it got a super low time doing only 1 operation.
     #       We want best on average.
-    if (VERBOSE): print "== CONTROLLER:  Sorting, grouping, and pruning data."
-    data.set_index(['region_name'])
+    if (VERBOSE): print "== CONTROLLER:  Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")"
 
-    grp_data = data\
-            .sort_values("time_avg")\
-            .groupby(["region_name", "num_elements"], as_index=False, sort=False)\
-            .first()\
-            .dropna()
+    #start = time.time()
+    #grp_data = data\
+    #        .sort_values("time_avg")\
+    #        .groupby(["region_name", "num_elements", "policy_index"], as_index=False, sort=False)\
+    #        .first()\
+    #        .dropna()
+    #elapsed_chain = time.time() - start
 
-    grp_data.set_index(['region_name'])
+    start = time.time()
+    grp_data = data.groupby(
+            ["region_name", "region_name_id", "num_elements", "policy_index"],
+            as_index=False).agg({'time_avg':min})
+    elapsed_agg = time.time() - start
+
+    #print ".chain took " + str(elapsed_chain) + " seconds."
+    if VERBOSE:
+        print "== CONTROLER: data.groupby.agg() took " + str(elapsed_agg) + " seconds."
+        #print type(grp_data)
+        #print grp_data.shape
+        #print grp_data.values.astype(str)
 
     #if (DEBUG):
     #    print "== [[ DEBUG ]]  Grouped data:"
@@ -61,11 +75,6 @@ def generateDecisionTree(SOS, data, region_names):
 
     # Get the translation table to go back and forth from categorical to actual
     # region name. We'll need this after doing the model.fit() step
-    if (VERBOSE): print "== CONTROLLER:  Generating name-swapping table."
-    name_swap = data[["region_name", "region_name_id"]]\
-            .groupby(["region_name_id"], as_index=False, sort=True)\
-            .first()\
-            .dropna()
     #if (DEBUG):
     #    print "== [[ DEBUG ]]  Name swapping table:"
     #    utils.tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
@@ -83,71 +92,73 @@ def generateDecisionTree(SOS, data, region_names):
     #        time_min,
     #        time_max,
     #        time_avg
-    drop_fields = [
-            "region_name",
-            "region_name_id",
-            "policy_index",
-            "mpi_rank",
-            "step",
-            "exec_count",
-            "frame",
-            "time_last",
-            "time_min",
-            "time_max",
-            "time_avg" ]
+    #drop_fields = [
+    #        "region_name",
+    #        "region_name_id",
+    #        "policy_index",
+    #        "mpi_rank",
+    #        "step",
+    #        "exec_count",
+    #        "frame",
+    #        "time_last",
+    #        "time_min",
+    #        "time_max",
+    #        "time_avg" ]
 
-    feature_names = []
-    raw_names = grp_data.drop(drop_fields, axis="columns").columns
-    for name in raw_names:
-        feature_names.append(name)
+    drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg"]
+
+    feature_names = [f for f in grp_data.columns if f not in drop_fields]
     if (VERBOSE):
 	print "== CONTROLLER:  Feature names: " + str(feature_names)
+        print "== CONTROLLER:  Creating a vector for regional data and models ..."
 
-    # TODO: Set up loop and start making models for each region.
-    print "== CONTROLLER:  Creating a vector for regional data and models ..."
+    model_count = 0
     all_rules_json = {}
     all_rules_code = {}
+    overall_start = time.time()
     for region in region_names:
+        model_count += 1
+        this_start = time.time()
         all_rules_json[region] = ""
         all_rules_code[region] = ""
+
         rd = grp_data[grp_data['region_name'] == region]
-        if (VERBOSE): print "== CONTROLLER:  Building a model for: " + str(region)
+
         y = rd["policy_index"].astype(int)
         x = rd.drop(drop_fields, axis="columns").values.astype(float)
-        #print str(feature_names)
-        #utils.tablePrint(x.astype(str))
 
-
-        if (VERBOSE): print "== CONTROLLER:  Initializing model..."
         pipe = [('estimator',   DecisionTreeClassifier(
                  class_weight=None, criterion='gini', max_depth=3,
-                 max_features=len(feature_names), max_leaf_nodes=None,
+                 max_features=x.shape[1], max_leaf_nodes=None,
                  min_impurity_decrease=1e-07, min_samples_leaf=1,
                  min_samples_split=2, min_weight_fraction_leaf=0.0,
                  presort=False, random_state=None, splitter='best'))]
         model = Pipeline(pipe)
 
-        if (VERBOSE):
-            print "== CONTROLLER:  Running model.fit(x" + str(x.shape) + ", y" + str(y.shape) + ")"
-
         model.fit(x, y)
-
-        if (VERBOSE):
-            #time_training = datetime.now() - time_start
-            time_training = -1
 
         trained_model = model.named_steps['estimator']
 
-        if (VERBOSE): print "== CONTROLLER:  Encoding rules..."
-
         all_rules_json[region] = tree_to_json(trained_model, feature_names, name_swap) + "\n"
         all_rules_code[region] = tree_to_code(trained_model, feature_names)
+
+        this_elapsed = time.time() - this_start
+
+        if (VERBOSE):
+            print "== CONTROLLER:  Built a model for region #" + str(model_count) + " \"" + str(region) \
+                    + "\" having x.shape == " + str(x.shape) + " in " + str(this_elapsed) \
+                    + " seconds."
 
         #dotfile = open("model.dot", 'w')
         #from sklearn import tree as _tree
         #_tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
         #dotfile.close()
 
+    overall_elapsed = time.time() - overall_start
+    if (VERBOSE):
+        print "== CONTROLLER:  Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds."
+
+    json_start = time.time()
     model_def = {}
     model_def['type'] = {}
     model_def['type']['guid'] = SOS.get_guid()
@@ -166,9 +177,10 @@ def generateDecisionTree(SOS, data, region_names):
         model_def['driver']['rules'][str(region)] = all_rules_json[region]
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
+    json_elapsed = time.time() - json_start
+    print "== CONTROLLER:  Serializing models into JSON took " + str(json_elapsed) + " seconds."
 
     return model_as_json, all_rules_code
-
 
     #  Keeping this here for an example.
     #  Cross-Validation doesn't work well with the simplified/conditioned data.

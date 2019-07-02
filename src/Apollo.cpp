@@ -85,7 +85,8 @@ call_Apollo_attachModel(void *apollo_ref, const char *def)
 void
 Apollo::attachModel(const char *def)
 {
-    int i;
+    int  i;
+    bool def_has_wildcard_model = false;
 
     if (def == NULL) {
         apollo_log(0, "[ERROR] apollo->attachModel() called with a"
@@ -99,21 +100,34 @@ Apollo::attachModel(const char *def)
         return;
     }
 
-    //__apollo_DEBUG_string(def, 5);
-
+    // Extract the list of region names for this "package of models"
     std::vector<std::string> region_names;
     json j = json::parse(std::string(def));
     if (j.find("region_names") != j.end()) {
         region_names = j["region_names"].get<std::vector<std::string>>();
     }
-    
+
+    if (std::find(std::begin(region_names), std::end(region_names),
+                "__ANY_REGION__") != std::end(region_names)) {
+        def_has_wildcard_model = true;
+    }
+
+    // Roll through the regions in this process, and if it this region is
+    // in the list of regions with a new model in the package, configure
+    // that region's modelwrapper.  (The def* points to the whole package
+    // of models, the configure() method will extract the specific model
+    // that applies to it)
     for (auto it : regions) {
-        Apollo::Region *region = it.second; 
-        Apollo::ModelWrapper *model = region->getModel();
-        //
-        if (std::find(std::begin(region_names), std::end(region_names),
-                    region->name) != std::end(region_names)) {
-            model->configure(def);
+        Apollo::Region *region = it.second;
+        if (def_has_wildcard_model) {
+            // Everyone will get either a specific model from the definintion, or
+            // the __ANY_REGION__ fallback.
+            region->getModel()->configure(def);
+        } else {
+            if (std::find(std::begin(region_names), std::end(region_names),
+                        region->name) != std::end(region_names)) {
+                region->getModel()->configure(def);
+            }
         }
     };
 

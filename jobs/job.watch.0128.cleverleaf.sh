@@ -58,9 +58,9 @@ mkdir -p ${SOS_WORK}/daemons
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.
 #
+mkdir -p ${SOS_WORK}/lib
 mkdir -p ${SOS_WORK}/bin
 mkdir -p ${SOS_WORK}/bin/apollo
-mkdir -p ${SOS_WORK}/lib
 #
 cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bin
@@ -72,6 +72,8 @@ cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bi
 #
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
+#
+cp ${HOME}/src/apollo/jobs/APOLLO.defaultModel                    ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -285,29 +287,10 @@ export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
 #srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
 #
-export APOLLO_INIT_MODEL="
-    {
-        \"driver\": {
-            \"format\": \"int\",
-            \"rules\": \"1\"
-        },
-        \"type\": {
-            \"guid\": 0,
-            \"name\": \"RoundRobin\"
-        },
-        \"region_names\": [
-             \"none\"
-        ],
-        \"features\": {
-            \"count\": 0,
-            \"names\": [
-                \"none\"
-            ]
-        }
-    }"
-
+echo ""
 echo ">>>> Default Apollo model..."
 echo ""
+export APOLLO_INIT_MODEL="$(cat APOLLO.defaultModel)"
 echo "${APOLLO_INIT_MODEL}"
 echo ""
 

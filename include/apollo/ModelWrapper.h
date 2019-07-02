@@ -11,7 +11,8 @@
 class Apollo::ModelWrapper {
     public:
         ModelWrapper(
-                Apollo      *apollo,
+                Apollo         *apollo_ptr,
+                Apollo::Region *region_ptr,
                 int          numPolicies);
         ~ModelWrapper();
 
@@ -21,15 +22,14 @@ class Apollo::ModelWrapper {
         //       direct model->getIndex() method.
         int          requestPolicyIndex(void);
         //
-        std::string  getName(void);
+        std::string  getName(void); //The name of the kind of model, i.e. "RoundRobin"
         uint64_t     getGuid(void);
         int          getPolicyCount(void);
         bool         isTraining(void);
 
     private:
-        Apollo *apollo;
-        //
-        Apollo::Region *baseRegion;  //Lowest-level context.  (automatic)
+        Apollo         *apollo;
+        Apollo::Region *region;  //What region this ModelWrapper is working for.
         //
         std::string     id;
         int             num_policies;

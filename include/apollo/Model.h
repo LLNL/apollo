@@ -25,25 +25,27 @@ class Apollo::Model {
                 static constexpr int DecisionTree = 5;
 
                 // Default configuration JSON:
-                const char *DefaultConfigJSON =  "\n"                                    \
-                                                 "{\n"                                   \
-                                                 "    \"driver\": {\n"                   \
-                                                 "        \"format\": \"int\",\n"        \
-                                                 "        \"rules\": \"1\"\n"            \
-                                                 "    },\n"                              \
-                                                 "    \"type\": {\n"                     \
-                                                 "        \"guid\": 0,\n"                \
-                                                 "        \"name\": \"RoundRobin\"\n"    \
-                                                 "    },\n"                              \
-                                                 "    \"region_names\": [\n"             \
-                                                 "         \"none\"\n"                   \
-                                                 "    ],\n"                              \
-                                                 "    \"features\": {\n"                 \
-                                                 "        \"count\": 0,\n"               \
-                                                 "        \"names\": [\n"                \
-                                                 "            \"none\"\n"                \
-                                                 "        ]\n"                           \
-                                                 "    }\n"                               \
+                const char *DefaultConfigJSON =  "\n"                                       \
+                                                 "{\n"                                      \
+                                                 "    \"driver\": {\n"                      \
+                                                 "        \"format\": \"int\",\n"           \
+                                                 "        \"rules\": {\n"                   \
+                                                 "            \"__ANY_REGION__\": \"1\"\n"  \
+                                                 "        },\n"                             \
+                                                 "    },\n"                                 \
+                                                 "    \"type\": {\n"                        \
+                                                 "        \"guid\": 0,\n"                   \
+                                                 "        \"name\": \"RoundRobin\"\n"       \
+                                                 "    },\n"                                 \
+                                                 "    \"region_names\": [\n"                \
+                                                 "         \"__ANY_REGION__\"\n"            \
+                                                 "    ],\n"                                 \
+                                                 "    \"features\": {\n"                    \
+                                                 "        \"count\": 0,\n"                  \
+                                                 "        \"names\": [\n"                   \
+                                                 "            \"none\"\n"                   \
+                                                 "        ]\n"                              \
+                                                 "    }\n"                                  \
                                                  "}\n";
         }; //end: class Model::Type
 
