@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
@@ -58,6 +59,8 @@ Apollo::ModelWrapper::configure(
 {
     Apollo::Model::Type MT;
     int model_type = -1;
+    
+    std::stringstream model_buffer; // Used only if reading model from file.
 
     if (model_def == NULL) {
         model_type = MT.Default;
@@ -67,11 +70,24 @@ Apollo::ModelWrapper::configure(
 
     if (model_type == MT.Default) {
         if (getenv("APOLLO_INIT_MODEL") != NULL) {
-            model_def = getenv("APOLLO_INIT_MODEL");
             apollo_log(2, "Using ${APOLLO_INIT_MODEL} for region initialization.\n");
+            const char *model_path = getenv("APOLLO_INIT_MODEL");
+            apollo_log(2, "Loading default model from file: %s\n", model_path);
+            std::ifstream model_file (model_path, std::ifstream::in);
+            if (model_file.fail()) {
+                fprintf(stderr, "== APOLLO: Error loading file specified in"
+                        " ${APOLLO_INIT_MODEL}:\n\t\t%s\n", model_path);
+                fprintf(stderr, "== APOLLO: Using MT.DefaultConfigJSON value:\n%s\n",
+                        MT.DefaultConfigJSON);
+                fflush(stderr);
+                model_def = MT.DefaultConfigJSON;
+            } else {
+                model_buffer << model_file.rdbuf();
+                model_def = model_buffer.str().c_str();
+                printf("== APOLLO: Using model_def:\n\n%s\n", model_def); fflush(stdout);
+            }
         } else {
-
-            model_def  = MT.DefaultConfigJSON;
+            model_def = MT.DefaultConfigJSON;
             apollo_log(2, "Using the default model for initialization.\n");
         }
     }

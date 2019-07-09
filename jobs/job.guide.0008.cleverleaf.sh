@@ -73,7 +73,7 @@ cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bi
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
 #
-cp ${HOME}/src/apollo/jobs/APOLLO.defaultModel                    ${SOS_WORK}
+cp ${HOME}/src/apollo/jobs/APOLLO.model*                          ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -290,7 +290,7 @@ srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
 echo ""
 echo ">>>> Default Apollo model..."
 echo ""
-export APOLLO_INIT_MODEL="$(cat APOLLO.defaultModel)"
+export APOLLO_INIT_MODEL="${SOS_WORK}/APOLLO.modelDefault"
 echo "${APOLLO_INIT_MODEL}"
 echo ""
 #

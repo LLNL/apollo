@@ -19,17 +19,6 @@
 #define APOLLO_VERBOSE 1 
 #endif
 
-#if (APOLLO_VERBOSE < 0)
-    // Nullify the variadic macro for production runs.
-    #define apollo_log(level, ...)
-#else
-    #define apollo_log(level, ...)                                      \
-    {   if (level <= APOLLO_VERBOSE) {                                  \
-            fprintf(stdout, "== APOLLO: ");                             \
-            fprintf(stdout, __VA_ARGS__);                               \
-            fflush(stdout);                                             \
-    }   };
-#endif
 
 extern "C" {
     // SOS will deliver triggers and query results here:
@@ -57,6 +46,17 @@ class Apollo
             static Apollo the_instance;
             return &the_instance;
         }
+
+        template <typename Arg, typename... Args>
+        void log(Arg&& arg, Args&&... args)
+        {
+            if (APOLLO_VERBOSDE < 1) return;
+            std::cout << "== SYNBEN: ";
+            std::cout << std::forward<Arg>(arg);
+            using expander = int[];
+            (void)expander{0, (void(std::cout << std::forward<Args>(args)), 0)...};
+            std::cout << std::endl;
+        };
 
         enum class Hint : int {
             INDEPENDENT,
