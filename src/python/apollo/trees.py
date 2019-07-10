@@ -29,10 +29,12 @@ import utils
 
 
 def generateDecisionTree(SOS, data, region_names):
-    if (VERBOSE): print "== CONTROLLER:  Creating categorical values for unique regions."
+    if (VERBOSE):
+        print "== CONTROLLER:  Creating categorical values for unique regions."
     data["region_name"] = pd.Categorical(data["region_name"])
     data["region_name_id"] = data["region_name"].cat.codes
-    if (VERBOSE): print "== CONTROLLER:  Generating name-swapping table."
+    if (VERBOSE):
+        print "== CONTROLLER:  Generating name-swapping table."
     name_swap = data[["region_name", "region_name_id"]]\
             .groupby(["region_name_id"], as_index=False, sort=True)\
             .first()
@@ -116,11 +118,10 @@ def generateDecisionTree(SOS, data, region_names):
     all_rules_json = {}
     all_rules_code = {}
     overall_start = time.time()
+
     for region in region_names:
         model_count += 1
         this_start = time.time()
-        all_rules_json[region] = ""
-        all_rules_code[region] = ""
 
         rd = grp_data[grp_data['region_name'] == region]
 
@@ -139,7 +140,7 @@ def generateDecisionTree(SOS, data, region_names):
 
         trained_model = model.named_steps['estimator']
 
-        all_rules_json[region] = tree_to_json(trained_model, feature_names, name_swap) + "\n"
+        all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
         all_rules_code[region] = tree_to_code(trained_model, feature_names)
 
         this_elapsed = time.time() - this_start
@@ -159,28 +160,28 @@ def generateDecisionTree(SOS, data, region_names):
         print "== CONTROLLER:  Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds."
 
     json_start = time.time()
-    model_def = {}
-    model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid()
-    model_def['type']['name'] = "DecisionTree"
-    model_def['region_names'] = []
-    for region in region_names:
-        model_def['region_names'].append(region)
-    model_def['features'] = {}
-    model_def['features']['count'] = len(feature_names)
-    model_def['features']['names'] = []
-    model_def['features']['names'] = feature_names
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "json"
-    model_def['driver']['rules'] = {}
-    for region in region_names:
-        model_def['driver']['rules'][str(region)] = all_rules_json[region]
+
+    model_def = {
+        "type": {
+            "guid": SOS.get_guid(),
+            "name": "DecisionTree",
+        },
+        "region_names": list(region_names),
+        "features": {
+            "count": len(feature_names),
+            "names": feature_names,
+        },
+        "driver": {
+            "format": "json",
+            "rules": all_rules_json,
+        }
+    }
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
     json_elapsed = time.time() - json_start
     print "== CONTROLLER:  Serializing models into JSON took " + str(json_elapsed) + " seconds."
 
-    return model_as_json, all_rules_code
+    return model_as_json
 
     #  Keeping this here for an example.
     #  Cross-Validation doesn't work well with the simplified/conditioned data.
@@ -241,16 +242,17 @@ def generateRegressionTree(SOS, data, region_names):
         comp += "\n"
     print comp
 
-    dotfile = open("regress.dot", 'w')
-    from sklearn import tree as _tree
-    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
-    dotfile.close()
+    with open("regress.dot", 'w') as dotfile:
+        from sklearn import tree as _tree
+        _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
 
     reg_tree = json.dumps(serializeRegressor(predictedTime))
-    regfile = open("regress.json", 'w')
-    regfile.write(reg_tree)
-    regfile.close()
+    with open("regress.json", 'w') as regfile:
+        regfile.write(reg_tree)
+
     return reg_tree
+
+
 
 
 # def serializeRegressor(tree):
@@ -355,79 +357,70 @@ def tree_to_json(decision_tree, feature_names=None, name_swap=None):
 
     return js
 
-def tree_to_string(tree, feature_names=None, name_swap=None):
-    result = cStringIO.StringIO()
-    tree_ = tree.tree_
-    feature_name = [
-        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
-        for i in tree_.feature ]
-    #Begin recursively encoding the decision tree:
-    def recurseSTR(result_str, node, depth):
-        offset = "    " * depth
-        if tree_.feature[node] != _tree.TREE_UNDEFINED:
-            name = feature_name[node]
-            threshold = tree_.threshold[node]
-            result_str.write("{} {}{} <= {}\n".format(depth, offset, name, threshold))
-            recurseSTR(result_str, tree_.children_left[node], depth + 1)
-            result_str.write("{} {}{} > {}\n".format(depth, offset, name, threshold))
-            recurseSTR(result_str, tree_.children_right[node], depth + 1)
+
+
+
+def tree_to_data(decision_tree, feature_names=None, name_swap=None):
+    def node_to_data(tree, node_id, criterion):
+        if not isinstance(criterion, skl.tree.tree.six.string_types):
+            criterion = "impurity"
+
+        value = tree.value[node_id]
+        if tree.n_outputs == 1:
+            value = value[0, :]
+
+        if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
+            return {
+                "id": node_id,
+                "criterion": criterion,
+                "impurity": tree.impurity[node_id],
+                "samples": tree.n_node_samples[node_id],
+                "value": list(value),
+            }
         else:
-            #result_str.write("INDEX EQ {}\n".format(tree_.value[node]))
-            result_val = tree_.value[node]
-            result_str.write("{} {}result = {}\n".format(depth, offset, result_val))
-    recurseSTR(result, 0, 1)
-    return result.getvalue()
+            if feature_names is not None:
+                feature = feature_names[tree.feature[node_id]]
+            else:
+                feature = tree.feature[node_id]
 
+            if "=" in feature:
+                ruleType = "="
+                ruleValue = "false"
+            else:
+                ruleType = "<="
+                ruleValue = "%.4f" % tree.threshold[node_id]
 
-def tree_to_code(tree, feature_names):
-    tree_ = tree.tree_
-    feature_name = [feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
-        for i in tree_.feature]
-    result = cStringIO.StringIO()
-    result.write("def tree({}):\n".format(", ".join(feature_names)))
+            return {
+                "id": node_id,
+                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
+                criterion: tree.impurity[node_id],
+                "samples": tree.n_node_samples[node_id],
+            }
 
-    def recurse(result_str, node, depth):
-        indent = "    " * depth
-        if tree_.feature[node] != _tree.TREE_UNDEFINED:
-            name = feature_name[node]
-            threshold = tree_.threshold[node]
-            result_str.write("{}if {} <= {}:\n".format(indent, name, threshold))
-            recurse(result_str, tree_.children_left[node], depth + 1)
-            result_str.write("{}else:  # if {} > {}\n".format(indent, name, threshold))
-            recurse(result_str, tree_.children_right[node], depth + 1)
-        else:
-            result_str.write("{}return {}\n".format(indent, tree_.value[node]))
+    def recurse(tree, node_id, criterion, parent=None, depth=0):
+        left_child = tree.children_left[node_id]
+        right_child = tree.children_right[node_id]
 
-    recurse(result, 0, 1)
-    return result.getvalue()
+        node = node_to_data(tree, node_id, criterion)
 
-def json_load_byteified(file_handle):
-    return _byteify(
-        json.load(file_handle, object_hook=_byteify),
-        ignore_dicts=True
-    )
+        if left_child != skl.tree._tree.TREE_LEAF:
+            node["left"] = recurse(tree,
+                                   left_child,
+                                   criterion=criterion,
+                                   parent=node_id,
+                                   depth=depth + 1)
+            node["right"] = recurse(tree,
+                                    right_child,
+                                    criterion=criterion,
+                                    parent=node_id,
+                                    depth=depth + 1)
 
-def json_loads_byteified(json_text):
-    return _byteify(
-        json.loads(json_text, object_hook=_byteify),
-        ignore_dicts=True
-    )
+        return node
 
-def _byteify(data, ignore_dicts = False):
-    # if this is a unicode string, return its string representation
-    if isinstance(data, unicode):
-        return data.encode('utf-8')
-    # if this is a list of values, return list of byteified values
-    if isinstance(data, list):
-        return [ _byteify(item, ignore_dicts=True) for item in data ]
-    # if this is a dictionary, return dictionary of byteified keys and values
-    # but only if we haven't already byteified it
-    if isinstance(data, dict) and not ignore_dicts:
-        return dict((_byteify(key,
-            ignore_dicts=True),
-            _byteify(value, ignore_dicts=True)) \
-                for key, value in data.iteritems())
-    # if it's anything else, return it in its original form
-    return data
+    if isinstance(decision_tree, skl.tree.tree.Tree):
+        return recurse(decision_tree, 0, criterion="impurity")
+    else:
+        return recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
+
 
 

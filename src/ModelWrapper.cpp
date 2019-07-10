@@ -15,6 +15,7 @@ using json = nlohmann::json;
 #include "sos_types.h"
 
 #include "apollo/Apollo.h"
+#include "apollo/Logging.h"
 #include "apollo/ModelWrapper.h"
 //
 #include "apollo/models/Random.h"
@@ -70,9 +71,9 @@ Apollo::ModelWrapper::configure(
 
     if (model_type == MT.Default) {
         if (getenv("APOLLO_INIT_MODEL") != NULL) {
-            apollo_log(2, "Using ${APOLLO_INIT_MODEL} for region initialization.\n");
+            log("Using ${APOLLO_INIT_MODEL} for region initialization.");
             const char *model_path = getenv("APOLLO_INIT_MODEL");
-            apollo_log(2, "Loading default model from file: %s\n", model_path);
+            log("Loading default model from file: ", model_path);
             std::ifstream model_file (model_path, std::ifstream::in);
             if (model_file.fail()) {
                 fprintf(stderr, "== APOLLO: Error loading file specified in"
@@ -84,15 +85,14 @@ Apollo::ModelWrapper::configure(
             } else {
                 model_buffer << model_file.rdbuf();
                 model_def = model_buffer.str().c_str();
-                printf("== APOLLO: Using model_def:\n\n%s\n", model_def); fflush(stdout);
             }
         } else {
             model_def = MT.DefaultConfigJSON;
-            apollo_log(2, "Using the default model for initialization.\n");
+            log("Using the default model for initialization.");
         }
     }
 
-    apollo_log(9, "Model definition:\n%s\n", model_def);
+    log("Model definition:\n", model_def);
 
     // Extract the various common elements from the model definition
     // and provide them to the configure method, independent of whatever
@@ -107,7 +107,7 @@ Apollo::ModelWrapper::configure(
     string         m_drv_format;
     string         m_drv_rules;
 
-    apollo_log(3, "Attempting to parse model definition...\n");
+    log("Attempting to parse model definition...");
     
     // Validate and extract model components
 
@@ -115,31 +115,31 @@ Apollo::ModelWrapper::configure(
     // == [type][guid]
     // == [type][name]
     int model_errors = 0;
-    apollo_log(3, "\t[type]\n");
     if (j.find("type") == j.end()) {
-        apollo_log(1, "Invalid model_def: missing [type]\n");
+        log("Invalid model_def: missing [type]");
         model_errors++;
     } else {
-        apollo_log(3, "\t[type][guid]\n");
+        log("\t[type]");
         if (j["type"].find("guid") == j["type"].end()) {
-            apollo_log(1, "Invalid model_def: missing [type][guid]\n");
+            log("Invalid model_def: missing [type][guid]");
             model_errors++;
         } else {
             m_type_guid = j["type"]["guid"].get<uint64_t>();
+            log("\t[type][guid] = ", m_type_guid);
         }
-        apollo_log(3, "\t[type][name]\n");
         if (j["type"].find("name") == j["type"].end()) {
-            apollo_log(1, "Invalid model_def: missing [type][name]\n");
+            log("Invalid model_def: missing [type][name]");
             model_errors++;
         } else {
             m_type_name = j["type"]["name"].get<string>();
+            log("\t[type][name] = ", m_type_name);
         }
     }
 
     // == [region_names]
-    apollo_log(3, "\t[region_names]\n");
+    log("\t[region_names]");
     if (j.find("region_names") == j.end()) {
-        apollo_log(1, "Invalid model_def: missing [region_names]\n");
+        log("Invalid model_def: missing [region_names]");
         model_errors++;
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
@@ -148,24 +148,26 @@ Apollo::ModelWrapper::configure(
     // == [features]
     // == [features][count]
     // == [features][names]
-    apollo_log(3, "\t[features]\n");
     if (j.find("features") == j.end()) {
-        apollo_log(1, "Invalid model_def: missing [features]\n");
+        log("Invalid model_def: missing [features]");
         model_errors++;
     } else {
-        apollo_log(3, "[features][count]\n");
+        log("\t[features]");
         if (j["features"].find("count") == j["features"].end()) {
-            apollo_log(1, "Invalid model_def: missing [features][count]\n");
+            log("Invalid model_def: missing [features][count]");
             model_errors++;
         } else {
             m_feat_count = j["features"]["count"].get<int>();
+            log("\t[features][count] = ", m_feat_count);
         }
-        apollo_log(3, "\t[features][names]\n");
         if (j["features"].find("names") == j["features"].end()) {
-            apollo_log(1, "Invalid model_def: missing [features][names]\n");
+            log("Invalid model_def: missing [features][names]");
             model_errors++;
         } else {
             m_feat_names = j["features"]["names"].get<vector<string>>();
+            std::string s;
+            for (const auto &elem : m_feat_names) s += elem;
+            log("\t[features][names] = ", s);
         }
     }
 
@@ -173,17 +175,17 @@ Apollo::ModelWrapper::configure(
     // == [driver][format]
     // == [driver][rules]
     // == [driver][rules][*regname*] <-- Note the different behavior for initial models...
-    apollo_log(3, "\t[driver]\n");
     if (j.find("driver") == j.end()) {
-        apollo_log(1, "Invalid model_def: missing [driver]\n");
+        log("Invalid model_def: missing [driver]");
         model_errors++;
     } else {
-        apollo_log(3, "\t[driver][format]\n");
+        log("\t[driver]");
         if (j["driver"].find("format") == j["driver"].end()) {
-            apollo_log(1, "Invalid model_def: missing [driver][format]\n");
+            log("Invalid model_def: missing [driver][format]");
             model_errors++;
         } else {
             m_drv_format = j["driver"]["format"].get<string>();
+            log("\t[driver][format] = ", m_drv_format);
         }
 
         // TODO [optimize]: This section could be handled outside of the configure
@@ -191,31 +193,34 @@ Apollo::ModelWrapper::configure(
         //                  and double-scans for the __ANY_REGION__ model.
         //                  Let's look at that later though, it's still fairly fast
         //                  and doesn't happen that often over the course of a run.
-        apollo_log(3, "\t[driver][rules]\n");
         if (j["driver"].find("rules") == j["driver"].end()) {
-            apollo_log(1, "Invalid model_def: missing [driver][rules] section\n");
+            log("Invalid model_def: missing [driver][rules] section");
             model_errors++;
         } else {
-            apollo_log(3, "\t[driver][rules]\n");
             if (j["driver"]["rules"].find(region->name) == j["driver"]["rules"].end()) {
                 // We didn't find a model for this region.  Look for the "__ANY_REGION__"
                 // magic tag, if it exits, use that one, otherwise error.
                 if (j["driver"]["rules"].find("__ANY_REGION__") == j["driver"]["rules"].end()) {
-                    apollo_log(1, "Invalid model_def: missing [driver][rules][region->name]"
-                                  " for region->name == \"%s\" and model package"
-                                  " contains no __ANY_REGION__ default.\n", region->name);
+                    log("Invalid model_def: missing [driver][rules][region->name]" 
+                                  " for region->name == \"", region->name,
+                                  "\" and model package contains no __ANY_REGION__"
+                                  " default.");
                     model_errors++;
                 } else {
                     // We found a generic __ANY_REGION__ model
                     m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"].get<string>();
+                    log("\t[driver][rules][__ANY_REGION__] = ", m_drv_rules);
                 }
             } else {
                 // Best case! We DID find a specific model for this region
                 m_drv_rules = j["driver"]["rules"][region->name].get<string>();
+                log("\t[driver][rules][", region->name, "] = ", m_drv_rules);
             }
 
         }
     }
+
+
 
     if (model_errors > 0) {
         fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"
@@ -236,23 +241,23 @@ Apollo::ModelWrapper::configure(
     switch (model_type) {
         //
         case MT.Random:
-            apollo_log(2, "Applying new Apollo::Model::Random()\n");
+            log("Applying new Apollo::Model::Random()");
             nm = make_shared<Apollo::Model::Random>();
             break;
         case MT.Sequential:
-            apollo_log(2, "Applying new Apollo::Model::Sequential()\n");
+            log("Applying new Apollo::Model::Sequential()");
             nm = make_shared<Apollo::Model::Sequential>();
             break;
         case MT.Static:
-            apollo_log(2, "Applying new Apollo::Model::Static()\n");
+            log("Applying new Apollo::Model::Static()");
             nm = make_shared<Apollo::Model::Static>();
             break;
         case MT.RoundRobin:
-            apollo_log(2, "Applying new Apollo::Model::RoundRobin()\n");
+            log("Applying new Apollo::Model::RoundRobin()");
             nm = make_shared<Apollo::Model::RoundRobin>();
             break;
         case MT.DecisionTree:
-            apollo_log(2, "Applying new Apollo::Model::DecisionTree()\n");
+            log("Applying new Apollo::Model::DecisionTree()");
             nm = make_shared<Apollo::Model::DecisionTree>();
             break;
         //
@@ -326,13 +331,13 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
         err_count++;
         lm_sptr.reset();
         if (err_count < 10) {
-            apollo_log(0, "[WARNING] requestPolicyIndex() called before model"
-                    " has been loaded. Returning index 0 (default).\n");
+            log("[WARNING] requestPolicyIndex() called before model" 
+                    " has been loaded. Returning index 0 (default).");
             return 0;
         } else if (err_count == 10) {
-            apollo_log(0, "[WARNING] requestPolicyIndex() called before model"
-                    " has been loaded. Returning index 0 (default) and suppressing"
-                    " additional identical error messages.\n");
+            log("[WARNING] requestPolicyIndex() called before model" 
+                    " has been loaded. Returning index 0 (default) and suppressing" 
+                    " additional identical error messages.");
             return 0;
         }
         return 0;

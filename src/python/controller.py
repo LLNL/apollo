@@ -40,16 +40,8 @@ def main():
         model_len = 0
 
         # DECISIONTREE
-        model_def, rules_code = trees.generateDecisionTree(SOS, data, region_names)
+        model_def = trees.generateDecisionTree(SOS, data, region_names)
         model_len = len(model_def)
-        #if (VERBOSE):
-        #    print "----------"
-        #    #print "== CONTROLLER:  model_def ="
-        #    #print model_def
-        #    print "== CONTROLLER:  rules_code ="
-        #    print rules_code
-        #    print "----------"
-
 
         # REGRESSIONTREE
         #model_def = trees.generateRegressionTree(SOS, data, region_names)
@@ -67,14 +59,8 @@ def main():
                 print "== CONTROLLER:  Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds."
 
             if (VERBOSE): print "== CONTROLLER:  Writing models to \"prev_model.json\" ..."
-            mf = open("prev_model.json", "w+")
-            mf.write(model_def)
-            mf.close()
-
-            if (VERBOSE): print "== CONTROLLER:  Writing rules to \"prev_rules.json\" ..."
-            rf = open("prev_rules.json", "w+")
-            rf.write(str(rules_code))
-            rf.close()
+            with open("prev_model.json", "w") as mf:
+                mf.write(model_def)
 
             if (ONCE_THEN_EXIT):
                 controller_elapsed = time.time() - controller_start

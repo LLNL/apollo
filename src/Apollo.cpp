@@ -13,6 +13,7 @@
 using json = nlohmann::json;
 
 #include "apollo/Apollo.h"
+#include "apollo/Logging.h"
 #include "apollo/Region.h"
 #include "apollo/ModelWrapper.h"
 //
@@ -32,40 +33,33 @@ typedef cali::Annotation note;
 void 
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
+    Apollo *apollo = Apollo::instance();
+
     SOS_msg_header header;
     int   offset = 0;
     char *tree;
     struct ApolloDec;
 
+
     switch (msg_type) {
         //
         case SOS_FEEDBACK_TYPE_QUERY:
-            apollo_log(1, "Query results received."
-                    "  (msg_size == %d)\n", msg_size);
+            log("Query results received. (msg_size == ", msg_size, ")");
             break;
         case SOS_FEEDBACK_TYPE_CACHE:
-            apollo_log(1, "Cache results received."
-                    "  (msg_size == %d)\n", msg_size);
+            log("Cache results received. (msg_size == ", msg_size, ")");
             break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
-            //apollo_log(1, "Trigger payload received."
-            //        "  (msg_size == %d, data == %s\n",
-            //        msg_size, (char *) data);
+            //log("Trigger payload received.  (msg_size == " << msg_size << ")");
+            //void *apollo_ref = SOS_reference_get(
+            //        (SOS_runtime *)sos_context,
+            //        "APOLLO_CONTEXT");
 
-            void *apollo_ref = SOS_reference_get(
-                    (SOS_runtime *)sos_context,
-                    "APOLLO_CONTEXT");
-
-            //TODO: The *data field needs to be strncpy'ed into a new patch of clean memory
-            //      because it is not getting null terminated and this is leading to parse
-            //      errors.
-            //NOTE: Trace the ownership of the string, make sure it gets copied in
-            //      somewhere else so we can free it after this function returns.
-
+            //NOTE: data may not be a null-terminated string, so we put it into one.
             char *cleanstr = (char *) calloc(msg_size + 1, sizeof(char));
             strncpy(cleanstr, (const char *)data, msg_size);
-            call_Apollo_attachModel((struct ApolloDec *)apollo_ref, (char *) cleanstr);
+            call_Apollo_attachModel(apollo, (char *) cleanstr);
             free(cleanstr);
             break;
     }
@@ -85,17 +79,19 @@ call_Apollo_attachModel(void *apollo_ref, const char *def)
 void
 Apollo::attachModel(const char *def)
 {
+    Apollo *apollo = Apollo::instance();
+
     int  i;
     bool def_has_wildcard_model = false;
 
     if (def == NULL) {
-        apollo_log(0, "[ERROR] apollo->attachModel() called with a"
+        log("[ERROR] apollo->attachModel() called with a" 
                     " NULL model definition. Doing nothing.");
         return;
     }
 
     if (strlen(def) < 1) {
-        apollo_log(0, "[ERROR] apollo->attachModel() called with an"
+        log("[ERROR] apollo->attachModel() called with an" 
                     " empty model definition. Doing nothing.");
         return;
     }
@@ -193,7 +189,7 @@ Apollo::Apollo()
     note_time_avg =
         (void *) new note("time_avg", CALI_ATTR_ASVALUE);
 
-    apollo_log(1, "Initialized.\n");
+    log("Initialized.");
 
     return;
 }

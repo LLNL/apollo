@@ -2,6 +2,8 @@
 #include <vector>
 #include "assert.h"
 
+#include "apollo/Apollo.h"
+#include "apollo/Logging.h"
 #include "apollo/Explorable.h"
 
 

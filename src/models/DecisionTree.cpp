@@ -110,6 +110,9 @@ Apollo::Model::DecisionTree::configure(
         return;
     }
 
+    log("DecisionTree::configure() called with the following model_definition: \n",
+            model_definition);
+
     model_def = model_definition;
    
     //std::cout << "----- BEFORE:" << std::endl;

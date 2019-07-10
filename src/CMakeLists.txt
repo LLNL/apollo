@@ -19,6 +19,7 @@ include_directories(
 
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
+    ../include/apollo/Logging.h
     ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
     ../include/apollo/Explorable.h
@@ -56,3 +57,6 @@ install(TARGETS apollo
     EXPORT apollo
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib)
+
+add_subdirectory(tools)
+

@@ -6,18 +6,15 @@
 #include <mutex>
 #include <map>
 #include <unordered_map>
-
+#include <iostream>
 #include <type_traits>
 #include <list>
 #include <vector>
 
+#include "apollo/Logging.h"
  
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
 #define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
-
-#ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE 1 
-#endif
 
 
 extern "C" {
@@ -46,17 +43,6 @@ class Apollo
             static Apollo the_instance;
             return &the_instance;
         }
-
-        template <typename Arg, typename... Args>
-        void log(Arg&& arg, Args&&... args)
-        {
-            if (APOLLO_VERBOSDE < 1) return;
-            std::cout << "== SYNBEN: ";
-            std::cout << std::forward<Arg>(arg);
-            using expander = int[];
-            (void)expander{0, (void(std::cout << std::forward<Args>(args)), 0)...};
-            std::cout << std::endl;
-        };
 
         enum class Hint : int {
             INDEPENDENT,

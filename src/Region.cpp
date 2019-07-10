@@ -9,6 +9,7 @@
 #include "sos_types.h"
 
 #include "apollo/Apollo.h"
+#include "apollo/Logging.h"
 #include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
 
