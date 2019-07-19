@@ -92,6 +92,9 @@ Apollo::ModelWrapper::configure(
             model_def = MT.DefaultConfigJSON;
             log("Using the default model for initialization.");
         }
+    } else {
+        log("Using the model supplied to the .configure() method.");
+        model_def = model_def_cstr;
     }
 
     log("Model definition:\n", model_def);
@@ -107,7 +110,7 @@ Apollo::ModelWrapper::configure(
     int            m_feat_count;
     vector<string> m_feat_names;
     string         m_drv_format;
-    string         m_drv_rules;
+    json           m_drv_rules;
 
     log("Attempting to parse model definition...");
 

@@ -141,7 +141,6 @@ def generateDecisionTree(SOS, data, region_names):
         trained_model = model.named_steps['estimator']
 
         all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
-        all_rules_code[region] = tree_to_code(trained_model, feature_names)
 
         this_elapsed = time.time() - this_start
 

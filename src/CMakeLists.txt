@@ -52,6 +52,7 @@ foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
 endforeach()
 
 install(FILES ${APOLLO_HEADERS} DESTINATION include/apollo)
+install(FILES ../include/external/nlohmann/json.hpp DESTINATION include/external/nlohmann)
 
 install(TARGETS apollo
     EXPORT apollo

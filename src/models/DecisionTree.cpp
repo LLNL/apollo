@@ -77,6 +77,12 @@ Apollo::Model::DecisionTree::getIndex(void)
     // values being evaluated wont change halfway through walking the tree:
     bool converted_ok = true;
     for (Feature *feat : tree_features) {
+        if (feat->cali_id == -1) {
+            feat->cali_id = cali_find_attribute(feat->name.c_str());
+            if (feat->cali_id == CALI_INV_ID) {
+                feat->cali_id = -1;
+            }
+        }
         feat->value_variant = cali_get(feat->cali_id);
         feat->value         = cali_variant_to_double(feat->value_variant, &converted_ok);
         if (not converted_ok) {
@@ -190,13 +196,23 @@ Apollo::Model::DecisionTree::nodeFromJson(
             // add it
             feat_id = cali_find_attribute(feat_name.c_str());
             if (feat_id == CALI_INV_ID) {
-                fprintf(stderr, "== APOLLO: "
-                "[ERROR] DecisionTree refers to features not present in Caliper data.\n"
-                "\tThis is likely due to an error in the Apollo Controller logic.\n");
-                fprintf(stderr, "== APOLLO: Referenced feature: \"%s\"\n",
-                        feat_name.c_str());
-                fflush(stderr);
-                exit(EXIT_FAILURE);
+                // NOTE: We don't want to error out here, in case we're loading a model trained
+                //       in a previous run, but don't yet have measurements of some feature the
+                //       model refers to.
+                //
+                //fprintf(stderr, "== APOLLO: "
+                //"[ERROR] DecisionTree refers to features not present in Caliper data.\n"
+                //"\tThis is likely due to an error in the Apollo Controller logic.\n");
+                //fprintf(stderr, "== APOLLO: Referenced feature: \"%s\"\n",
+                //        feat_name.c_str());
+                //fflush(stderr);
+                //exit(EXIT_FAILURE);
+                feat = new Feature();
+                // NOTE: feat->value_variant and feat->value are filled
+                //       before being used for traversal in getIndex()
+                feat->cali_id = -1;
+                feat->name    = feat_name;
+                tree_features.push_back(feat);
             } else {
                 feat = new Feature();
                 // NOTE: feat->value_variant and feat->value are filled

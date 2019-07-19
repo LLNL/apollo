@@ -104,22 +104,24 @@ def waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max):
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
-        sys.stdout.write("== CONTROLLER:  Waiting for data. " \
-            + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
-            + "( " + str(max_frame - prior_frame_max) + " of " \
-            + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-            + " total)\r")
-        sys.stdout.flush()
+        if (VERBOSE) :
+            sys.stdout.write("== CONTROLLER:  Waiting for data. " \
+                + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+                + "( " + str(max_frame - prior_frame_max) + " of " \
+                + str(FRAME_INTERVAL) + ", " + str(max_frame) \
+                + " total)\r")
+            sys.stdout.flush()
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     #####
-    sys.stdout.write("== CONTROLLER:  Waiting for data. " \
-        + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
-        + "( " + str(max_frame - prior_frame_max) + " of " \
-        + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-        + " total)\n")
+    if (VERBOSE):
+        sys.stdout.write("== CONTROLLER:  Waiting for data. " \
+            + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+            + "( " + str(max_frame - prior_frame_max) + " of " \
+            + str(FRAME_INTERVAL) + ", " + str(max_frame) \
+            + " total)\n")
     sys.stdout.flush()
     return max_frame
 
