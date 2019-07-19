@@ -6,3 +6,6 @@ regress.dot
 regress.json
 regress.png
 *.pyc
+sosd.*.id
+sosd.*.db
+sosd.*.key

@@ -65,7 +65,7 @@ Apollo::Model::DecisionTree::getIndex(void)
             fprintf(stderr, "[ERROR] DecisionTree::getIndex() has still not been"
                     " configured. Continuing default behavior without further"
                     " error messages.\n");
-        }        
+        }
         // Since we're not configured yet, return a default:
         choice = 0;
         return choice;
@@ -93,19 +93,18 @@ Apollo::Model::DecisionTree::getIndex(void)
 
 void
 Apollo::Model::DecisionTree::configure(
-        Apollo      *apollo_ptr,
-        int          numPolicies,
-        std::string  model_definition)
+        int  numPolicies,
+        json model_definition)
 {
 
-    apollo       = apollo_ptr;
+    apollo       = Apollo::instance();
     policy_count = numPolicies;
 
     // Construct a decisiontree for this model_definition.
-    if (model_definition == "") {
+    if ((model_definition == nullptr) || (model_definition == NULL)) {
         fprintf(stderr, "[WARNING] Cannot successfully configure"
                 " with a NULL or empty model definition.\n");
-        model_def = "";
+        model_def = nullptr;
         configured = false;
         return;
     }
@@ -114,34 +113,27 @@ Apollo::Model::DecisionTree::configure(
             model_definition);
 
     model_def = model_definition;
-   
-    //std::cout << "----- BEFORE:" << std::endl;
-    //std::cout << model_def;
-
-    //std::cout << "----- AFTER:" << std::endl;
-    //std::cout << model_scrubbed;
-
-    json j;
-    try {
-        j = json::parse(model_def);
-    } catch (json::parse_error& e) {
-        // output exception information
-        std::cout << "Error parsing JSON:\n\tmessage: " << e.what() << '\n'
-            << "\texception id: " << e.id << '\n'
-            << "\tbyte position of error: " << e.byte << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    // Recursive function that constructs tree from nested JSON:
-    tree_head = nodeFromJson(j, nullptr, 1);
 
     // ----------
-
-
-
-
+    // Recursive function that constructs tree from nested JSON:
+    tree_head = nodeFromJson(model_def, nullptr, 1);
     configured = true;
+
     return;
 }
+
+    // NOTE: Deprecated from prior incarnation of model as a string. It stays a JSON object now.
+    //json j;
+    //try {
+    //    j = json::parse(model_def);
+    //} catch (json::parse_error& e) {
+    //    // output exception information
+    //    std::cout << "Error parsing JSON:\n\tmessage: " << e.what() << '\n'
+    //        << "\texception id: " << e.id << '\n'
+    //        << "\tbyte position of error: " << e.byte << std::endl;
+    //    exit(EXIT_FAILURE);
+    //}
+
 
 Apollo::Model::DecisionTree::Node*
 Apollo::Model::DecisionTree::nodeFromJson(
@@ -156,7 +148,7 @@ Apollo::Model::DecisionTree::nodeFromJson(
     node->left_child    = nullptr;
     node->right_child   = nullptr;
     node->value_LEQ     = -1.0;
-    
+
     std::string indent = std::string(my_indent * 4, ' ');
 
     // [ ] IF there is a "rule", there are L/R children
@@ -177,12 +169,12 @@ Apollo::Model::DecisionTree::nodeFromJson(
         rule_split >> comparison_symbol;
         rule_split >> leq_val;
 
-        //std::cout << "feat_name == '" << feat_name << "'" << std::endl;
-        //std::cout << "comparison_symbol == '" << comparison_symbol << "'" << std::endl;
-        //std::cout << "leq_val == '" << leq_val << "'" << std::endl;
-        
+        //log("feat_name == '", feat_name, "'");
+        //log("comparison_symbol == '", comparison_symbol, "'");
+        //log("leq_val == '", leq_val, "'");
+
         node->value_LEQ = leq_val;
-            
+
         // Scan to see if we have this feature in our accelleration structure::
         bool found = false;
         Feature *feat;
@@ -215,15 +207,12 @@ Apollo::Model::DecisionTree::nodeFromJson(
             }
         }
         node->feature = feat;
-        if (APOLLO_VERBOSE >= 1) {
-            std::cout << indent << "if (" << feat_name << \
-                " <= " << node->value_LEQ << ")" << std::endl;
-        }
+
+        log(indent, "if (", feat_name, " <= ", node->value_LEQ, ")");
+
         // [ ] Recurse into the L/R children
         node->left_child = nodeFromJson(j["left"],   node, my_indent + 1);
-        if (APOLLO_VERBOSE >= 1) {
-            std::cout << indent << "else" << std::endl;
-        }
+        log(indent, "else");
         node->right_child = nodeFromJson(j["right"], node, my_indent + 1);
     } else {
         // [ ] We are a leaf, extract the values from the tree
@@ -263,14 +252,9 @@ Apollo::Model::DecisionTree::nodeFromJson(
         }
         //
         node->recommendation = max_pos;
-        if (APOLLO_VERBOSE >= 1) {
-            std::cout << indent << "use kernel_variant " << node->recommendation;
-            if (duplicate_maximums_exist || more_than_one_best_fit) {
-                if (more_than_one_best_fit)   { std::cout << " [>1 recc.]"; }
-                if (duplicate_maximums_exist) { std::cout << " [dupe.max]"; }
-            }
-            std::cout << std::endl;
-        }
+        log(indent, "use kernel_variant ", node->recommendation,
+                    (more_than_one_best_fit   ? " [>1 advised policy]" : ""),
+                    (duplicate_maximums_exist ? " [duplicate maximum]" : ""));
     }
 
     return node;
@@ -358,7 +342,7 @@ APOLLO_model_destroy_decisiontree(
         //
         // Either we are adding to an existing node, or a new one, either way
         // make 'node' point to the correct object instance.
-        if (tree_find == tree_nodes.end()) { 
+        if (tree_find == tree_nodes.end()) {
                 node = new Node(apollo, line_id, line_feat.c_str());
                 tree_nodes.emplace(line_id, node);
         } else {
@@ -378,7 +362,7 @@ APOLLO_model_destroy_decisiontree(
                     " tree model definition (bad operator"
                     " encountered).\n");
             configured = false;
-            return; 
+            return;
         } // end: if(node_op...)
 
         //...

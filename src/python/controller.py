@@ -67,23 +67,23 @@ def main():
                 print "== CONTROLLER:  Done.  Full cycle of controller took " + str(controller_elapsed) + "seconds."
                 return
 
-            if (VERBOSE): print "== CONTROLLER:  Pausing to allow new model to run for a fresh interval ..."
-            query.waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max);
+            #if (VERBOSE): print "== CONTROLLER:  Pausing to allow new model to run for a fresh interval ..."
+            #query.waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max);
 
             #if (VERBOSE): print "== CONTROLLER:  Clearing prior training data..."
             #query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
 
-            model_def = utils.generateRandomModel(SOS, data, region_names)
-            model_len = len(model_def)
+            #model_def = utils.generateRoundRobinModel(SOS, data, region_names)
+            #model_len = len(model_def)
 
-            trigger_start = time.time()
-            SOS.trigger("APOLLO_MODELS", model_len, model_def)
-            trigger_elapsed = time.time() - trigger_start
-            if (VERBOSE):
-                print "== CONTROLLER:  Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds."
+            #trigger_start = time.time()
+            #SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            #trigger_elapsed = time.time() - trigger_start
+            #if (VERBOSE):
+            #    print "== CONTROLLER:  Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds."
 
-            prior_frame_max, pub_titles, col_names = \
-                SOS.request_pub_manifest("", sos_host, sos_port)
+            #prior_frame_max, pub_titles, col_names = \
+            #    SOS.request_pub_manifest("", sos_host, sos_port)
         else:
             if (VERBOSE):
                 print "== CONTROLLER:  NOTICE: Model was not generated, nothing to send."

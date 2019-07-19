@@ -3,6 +3,9 @@
 #include <string>
 #include <cstring>
 
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
+
 #include "apollo/Apollo.h"
 #include "apollo/models/Static.h"
 
@@ -19,14 +22,13 @@ Apollo::Model::Static::getIndex(void)
 
 void
 Apollo::Model::Static::configure(
-        Apollo     *apollo_ptr,
-        int         num_policies,
-        std::string new_model_rule)
+        int  num_policies,
+        json new_model_rule)
 {
-    apollo        = apollo_ptr;
+    apollo        = Apollo::instance();
     policy_count  = num_policies;
     model_def     = new_model_rule;
-    policy_choice = std::stoi(new_model_rule);
+    policy_choice = model_def["rule"].get<int>();
 
     configured = true;
     return;

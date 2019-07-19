@@ -56,16 +56,18 @@ Apollo::ModelWrapper::isTraining(void)
 
 bool
 Apollo::ModelWrapper::configure(
-        const char           *model_def)
+        const char           *model_def_cstr)
 {
     Apollo::Model::Type MT;
     int model_type = -1;
-    
+
+    std::string model_def;
+
     std::stringstream model_buffer; // Used only if reading model from file.
 
-    if (model_def == NULL) {
+    if (model_def_cstr == nullptr) {
         model_type = MT.Default;
-    } else if (strlen(model_def) < 1) {
+    } else if (strlen(model_def_cstr) < 1) {
         model_type = MT.Default;
     }
 
@@ -84,7 +86,7 @@ Apollo::ModelWrapper::configure(
                 model_def = MT.DefaultConfigJSON;
             } else {
                 model_buffer << model_file.rdbuf();
-                model_def = model_buffer.str().c_str();
+                model_def = model_buffer.str();
             }
         } else {
             model_def = MT.DefaultConfigJSON;
@@ -108,7 +110,7 @@ Apollo::ModelWrapper::configure(
     string         m_drv_rules;
 
     log("Attempting to parse model definition...");
-    
+
     // Validate and extract model components
 
     // == [type]
@@ -144,7 +146,7 @@ Apollo::ModelWrapper::configure(
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
     }
-    
+
     // == [features]
     // == [features][count]
     // == [features][names]
@@ -201,20 +203,21 @@ Apollo::ModelWrapper::configure(
                 // We didn't find a model for this region.  Look for the "__ANY_REGION__"
                 // magic tag, if it exits, use that one, otherwise error.
                 if (j["driver"]["rules"].find("__ANY_REGION__") == j["driver"]["rules"].end()) {
-                    log("Invalid model_def: missing [driver][rules][region->name]" 
+                    log("Invalid model_def: missing [driver][rules][region->name]"
                                   " for region->name == \"", region->name,
                                   "\" and model package contains no __ANY_REGION__"
                                   " default.");
                     model_errors++;
+                    m_drv_rules = nullptr;
                 } else {
                     // We found a generic __ANY_REGION__ model
-                    m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"].get<string>();
-                    log("\t[driver][rules][__ANY_REGION__] = ", m_drv_rules);
+                    m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"];
+                    log("\t[driver][rules][__ANY_REGION__] being applied to ", region->name);
                 }
             } else {
                 // Best case! We DID find a specific model for this region
-                m_drv_rules = j["driver"]["rules"][region->name].get<string>();
-                log("\t[driver][rules][", region->name, "] = ", m_drv_rules);
+                m_drv_rules = j["driver"]["rules"][region->name];
+                log("\t[driver][rules][", region->name, "] being applied to ", region->name);
             }
 
         }
@@ -234,7 +237,7 @@ Apollo::ModelWrapper::configure(
     else if (m_type_name == "RoundRobin")   { model_type = MT.RoundRobin; }
     else if (m_type_name == "DecisionTree") { model_type = MT.DecisionTree; }
     else                                    { model_type = MT.Default; }
- 
+
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
     shared_ptr<Apollo::ModelObject> nm = nullptr;
 
@@ -285,7 +288,7 @@ Apollo::ModelWrapper::configure(
             break;
     }
 
-    lnm->configure(apollo, num_policies, m_drv_rules);
+    lnm->configure(num_policies, m_drv_rules);
     lnm->setGuid(m_type_guid);
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
@@ -331,12 +334,12 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
         err_count++;
         lm_sptr.reset();
         if (err_count < 10) {
-            log("[WARNING] requestPolicyIndex() called before model" 
+            log("[WARNING] requestPolicyIndex() called before model"
                     " has been loaded. Returning index 0 (default).");
             return 0;
         } else if (err_count == 10) {
-            log("[WARNING] requestPolicyIndex() called before model" 
-                    " has been loaded. Returning index 0 (default) and suppressing" 
+            log("[WARNING] requestPolicyIndex() called before model"
+                    " has been loaded. Returning index 0 (default) and suppressing"
                     " additional identical error messages.");
             return 0;
         }
@@ -370,25 +373,25 @@ Apollo::ModelWrapper::~ModelWrapper() {
 //     // attempting to region->requestPolicyIndex() at the
 //     // head of a loop.
 //     lock_guard<mutex> lock(object_lock);
-// 
+//
 //     if (object_loaded) {
 //         // TODO: Clean up after prior model.
 //     }
-//    
+//
 //     object_loaded = false;
-// 
+//
 //     // Clear any prior errors.
 //     char *error_msg = NULL;
 //     dlerror();
-//     
+//
 //     // Load the shared object:
 //     void *handle = dlopen(path, (RTLD_LAZY | RTLD_GLOBAL));
-// 
+//
 //     if ((error_msg = dlerror()) != NULL) {
 //         fprintf(stderr, "APOLLO: dlopen(%s, ...): %s\n", path, error_msg);
 //         return false;
 //     }
-// 
+//
 //     // Bind to the initialization hooks:
 //     create = (Apollo::Model* (*)()) dlsym(handle, "create_instance");
 //     if ((error_msg = dlerror()) != NULL) {
@@ -396,14 +399,14 @@ Apollo::ModelWrapper::~ModelWrapper() {
 //                 " shared object %s failed: %s\n", path, error_msg);
 //         return false;
 //     }
-//     
+//
 //     destroy = (void (*)(Apollo::Model*)) dlsym(handle, "destroy_instance"  );
 //     if ((error_msg = dlerror()) != NULL) {
 //         fprintf(stderr, "APOLLO: dlsym(handle, \"destroy_instance\") in"
 //                 " shared object %s failed: %s\n", path, error_msg);
 //         return false;
 //     }
-// 
+//
 //     model = NULL;
 //     model = (Apollo::Model*) create();
 //     if (model == NULL) {
@@ -411,12 +414,12 @@ Apollo::ModelWrapper::~ModelWrapper() {
 //                 " shared model object %s.\n");
 //         return false;
 //     }
-// 
+//
 //     model->configure(apollo, num_policies, definition);
-// 
+//
 //     object_loaded = true;
 //     return object_loaded;
 // }
-// 
+//
 
 

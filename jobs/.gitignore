@@ -1,1 +1,5 @@
 job_work
+sosd.*.id
+sosd.*.db
+sosd.*.key
+

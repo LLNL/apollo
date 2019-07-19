@@ -32,43 +32,62 @@ def tablePrint(results):
     return
 
 
+def generateRoundRobinModel(SOS, data, region_names):
+    model_def = {
+        "type": {
+            "guid": SOS.get_guid(),
+            "name": "RoundRobin",
+        },
+        "region_names": list(region_names),
+        "features": {
+            "count": 0,
+            "names": "NA",
+        },
+        "driver": {
+            "format": "int",
+            "rules": 1,
+        }
+    }
+
 
 
 def generateRandomModel(SOS, data, region_names):
-    model_def = {}
-    model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid()
-    model_def['type']['name'] = "Random"
-    model_def['region_names'] = []
-    for n in region_names:
-        for nm in n:
-            model_def['region_names'].append(nm)
-    model_def['features'] = {}
-    model_def['features']['count'] = 0
-    model_def['features']['names'] = []
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1"
+    model_def = {
+        "type": {
+            "guid": SOS.get_guid(),
+            "name": "Random",
+        },
+        "region_names": list(region_names),
+        "features": {
+            "count": 0,
+            "names": "NA",
+        },
+        "driver": {
+            "format": "int",
+            "rules": 1,
+        }
+    }
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
             ensure_ascii=True) + "\n"
     return model_as_json
 
 def generateStaticModel(SOS, data, region_names):
-    model_def = {}
-    model_def['type'] = {}
-    model_def['type']['guid'] = SOS.get_guid()
-    model_def['type']['name'] = "Static"
-    model_def['region_names'] = []
-    for n in region_names:
-        for nm in n:
-            model_def['region_names'].append(nm)
-    model_def['features'] = {}
-    model_def['features']['count'] = 0
-    model_def['features']['names'] = []
-    model_def['driver'] = {}
-    model_def['driver']['format'] = "int"
-    model_def['driver']['rules'] = "1"
+    model_def = {
+        "type": {
+            "guid": SOS.get_guid(),
+            "name": "Static",
+        },
+        "region_names": list(region_names),
+        "features": {
+            "count": 0,
+            "names": "NA",
+        },
+        "driver": {
+            "format": "int",
+            "rules": 1,
+        }
+    }
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
             ensure_ascii=True) + "\n"

@@ -9,9 +9,9 @@
 #  The following items will need updating at different scales:
 #
 #SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
-#SBATCH -N 2 
+#SBATCH -N 2
 #SBATCH -n 12
-#SBATCH -t 15 
+#SBATCH -t 15
 #
 export EXPERIMENT_JOB_TITLE="WATCH.0008.cleverleaf.test"  # <-- creates output path!
 #
@@ -296,10 +296,10 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-    #echo "Launching controller and waiting 10 seconds for it to come online..."
-    #printf "== CONTROLLER: START\n" >> ./output/controller.out
-    #srun ${SRUN_CONTROLLER_START} &
-    #sleep 10
+    echo "Launching controller and waiting 10 seconds for it to come online..."
+    printf "== CONTROLLER: START\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_START} &
+    sleep 10
 
     # DEBUG
     # export OMP_NUM_THREADS="1"
@@ -320,11 +320,12 @@ echo ""
     srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in
     cd ${SOS_WORK}
 
-    
-    #srun ${SRUN_CONTROLLER_STOP}
-    #sleep 5
-    
-    
+    echo "Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
+    printf "== CONTROLLER: STOP\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_STOP}
+    sleep 5
+
+
     ############################
     #
     # NOTE: Unused example code...
@@ -370,7 +371,7 @@ echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
 echo "echo \"Bringing down SOS:\""      > ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_SHUTDOWN_COMMAND}"    >> ${SOS_WORK}/sosd_stop.sh
-echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh 
+echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh
 echo "echo \"Killing SOS monitors:\""  >> ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_MONITOR_STOP}"        >> ${SOS_WORK}/sosd_stop.sh
 echo "echo \"OK!\""                    >> ${SOS_WORK}/sosd_stop.sh

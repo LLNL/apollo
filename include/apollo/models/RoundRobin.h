@@ -3,6 +3,9 @@
 
 #include <string>
 
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
+
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
@@ -11,10 +14,7 @@ class Apollo::Model::RoundRobin : public Apollo::ModelObject {
         RoundRobin();
         ~RoundRobin();
 
-        void configure(
-                Apollo     *apollo_ptr,
-                int         num_policies,
-                std::string model_definition);
+        void configure(int num_policies, json model_definition);
         //
         int  getIndex(void);
 
