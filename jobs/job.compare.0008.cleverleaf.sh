@@ -3,51 +3,26 @@
 #SBATCH -A asccasc
 #SBATCH --mail-user=wood67@llnl.gov
 #SBATCH --mail-type=ALL
-#SBATCH --wait=0
-#SBATCH --kill-on-bad-exit=0
 #SBATCH --requeue
 #SBATCH --exclusive
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:SCALE.64.lulesh"
-#SBATCH -N 3
-#SBATCH -n 69
-#SBATCH -t 240
+#SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
+#SBATCH -N 2
+#SBATCH -n 12
+#SBATCH -t 180
 #
-export EXPERIMENT_JOB_TITLE="SCALE.0064.lulesh"
+export EXPERIMENT_JOB_TITLE="COMPARE.0008.cleverleaf"  # <-- creates output path!
 #
-export APPLICATION_RANKS="64"        # ^__ make sure to change the SBATCH node counts!
+export APPLICATION_RANKS="8"         # ^__ make sure to change SBATCH node counts!
 export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
-export EXPERIMENT_NODE_COUNT="3"     # <-- is SBATCH -N count, incl/extra agg. node
-
-###
+export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. node
 #
-# LULESH scaling table:
-#
-#      1 client ranks need    2 nodes and     4 req. processes   (72 total cores)
-#	   8 client ranks need    2 nodes and    11 req. processes   (72 total cores)
-#	  27 client ranks need    2 nodes and    30 req. processes   (72 total cores)
-#	  64 client ranks need    3 nodes and    68 req. processes   (108 total cores)
-#	 125 client ranks need    5 nodes and   131 req. processes   (180 total cores)
-#	 216 client ranks need    8 nodes and   225 req. processes   (288 total cores)
-#	 343 client ranks need   11 nodes and   355 req. processes   (396 total cores)
-#	 512 client ranks need   16 nodes and   529 req. processes   (576 total cores)
-#	 729 client ranks need   22 nodes and   752 req. processes   (792 total cores)
-#	1000 client ranks need   30 nodes and  1031 req. processes   (1080 total cores)
-#	1331 client ranks need   40 nodes and  1372 req. processes   (1440 total cores)
-#	1728 client ranks need   51 nodes and  1780 req. processes   (1836 total cores)
-#	2197 client ranks need   64 nodes and  2262 req. processes   (2304 total cores)
-#	2744 client ranks need   80 nodes and  2825 req. processes   (2880 total cores)
-#
-###
-
-
 ###################################################################################
 #
 #  NOTE: Everything below here will get automatically calculated if the above
 #        variables are set correctly.
-#
 #
 #
 export  EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
@@ -59,8 +34,8 @@ echo ""
 #
 ####
 
+
 export RETURN_PATH=`pwd`
-source ./setprompt.sh
 
 ####
 #
@@ -68,7 +43,7 @@ source ./setprompt.sh
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-source ${RETURN_PATH}/common_spack.sh
+#source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -82,9 +57,9 @@ mkdir -p ${SOS_WORK}/daemons
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.
 #
+mkdir -p ${SOS_WORK}/lib
 mkdir -p ${SOS_WORK}/bin
 mkdir -p ${SOS_WORK}/bin/apollo
-mkdir -p ${SOS_WORK}/lib
 #
 cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bin
@@ -97,7 +72,7 @@ cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bi
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
 #
-cp ${HOME}/src/apollo/jobs/APOLLO.model*                          ${SOS_WORK}
+cp ${HOME}/src/apollo/jobs/model.*                                ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -232,8 +207,9 @@ export CALI_SERVICES_ENABLE="sos,timestamp"
 export CALI_TIMER_SNAPSHOT_DURATION="false"
 export CALI_SOS_ITER_PER_PUBLISH="1"
 #
-env | grep CALI                      > ${SOS_WORK}/launch/CALIPER_SETTINGS
-
+env | grep CALI > ${SOS_WORK}/launch/CALIPER_SETTINGS
+#
+#  Set up the commands we'll use for this experiment kit:
 #
 let    WORK_NODE_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
 #
@@ -249,11 +225,12 @@ export SRUN_CONTROLLER_STOP+=" -N 1 -n 1 -r 0 "
 export SRUN_CONTROLLER_STOP+=" killall -9 python "
 #
 export SRUN_SQL_EXEC=" "
-export SRUN_SQL_EXEC+=" -o /dev/null "
+export SRUN_SQL_EXEC+=" -o ./output/sqlexec.%n.out "
+export SRUN_SQL_EXEC+=" --open-mode=append "
 export SRUN_SQL_EXEC+=" -N ${EXPERIMENT_NODE_COUNT} "
 export SRUN_SQL_EXEC+=" -n ${EXPERIMENT_NODE_COUNT} "
 export SRUN_SQL_EXEC+=" -r 0 "
-export SRUN_SQL_EXEC+=" ./bin/demo_app --sql "
+export SRUN_SQL_EXEC+=" ./bin/demo_app --sql SOS_SQL "
 #
 export SOS_MONITOR_START=" "
 export SOS_MONITOR_START+=" -o ./daemons/monitor.%n.csv "
@@ -272,20 +249,25 @@ export SOS_SHUTDOWN_COMMAND=" "
 export SOS_SHUTDOWN_COMMAND+=" -N ${EXPERIMENT_NODE_COUNT} "
 export SOS_SHUTDOWN_COMMAND+=" -n ${EXPERIMENT_NODE_COUNT} "
 export SOS_SHUTDOWN_COMMAND+=" -r 0 "
-export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop"
+export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop "
 #
 export SQL_DELETE_VALS="DELETE FROM tblVals;"
 export SQL_DELETE_DATA="DELETE FROM tblData;"
 export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
-
+#
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 #
-#
 #  Copy the applications into the experiment path:
 #
-cp ${HOME}/src/raja-proxies/build/bin/lulesh-apollo              ${SOS_WORK}/bin
-cp ${HOME}/src/raja-proxies/build/bin/lulesh-v2.0-RAJA-seq.exe   ${SOS_WORK}/bin
+cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-apollo
+cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-normal
+
+#
+#  Bring over the input deck[s]:
+cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
 #  Launch an interactive terminal within the allocation:
 #
@@ -301,86 +283,97 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
-
-export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
-export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
-export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
-#srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
-srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
+export SQL_APOLLO_VIEW=`cat SQL.CREATE.viewApollo`
+export SQL_APOLLO_INDEX=`cat SQL.CREATE.indexApollo`
 #
-echo ">>>> Default Apollo model..."
-echo ""
-export APOLLO_INIT_MODEL="${SOS_WORK}/APOLLO.model*"
-echo "${APOLLO_INIT_MODEL}"
-echo ""
-
+SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
+#SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
+#
+export SQL_SANITYCHECK=`cat SQL.sanityCheck`
+#
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-echo ""
-printf "\t%4s, %4s, %4s, %-30s, time(sec)\n" "proc" "size" "iter" "application"
+#echo "Launching controller and waiting 10 seconds for it to come online..."
+#printf "== CONTROLLER: START\n" >> ./output/controller.out
+#srun ${SRUN_CONTROLLER_START} &
+#sleep 10
 #
-for PROBLEM_SIZE in $(seq 45 45 45)
-do
-    for PROBLEM_ITER in $(seq 300 300 1500)
-    do
-        export LULESH_BASELINE_BINARY=" ./bin/lulesh-v2.0-RAJA-seq.exe "
-        ###### ####################
-        export SRUN_LULESH_BASELINE=" "
-        export SRUN_LULESH_BASELINE+=" -o ./output/lulesh-baseline.out "
-        export SRUN_LULESH_BASELINE+=" -N ${WORK_NODE_COUNT} "
-        export SRUN_LULESH_BASELINE+=" -n ${APPLICATION_RANKS} "
-        export SRUN_LULESH_BASELINE+=" -r 1 "
-        export SRUN_LULESH_BASELINE+=" ${LULESH_BASELINE_BINARY} -p "
-        export SRUN_LULESH_BASELINE+=" -s ${PROBLEM_SIZE} "
-        export SRUN_LULESH_BASELINE+=" -i ${PROBLEM_ITER} "
-        printf "\t%4s, %4s, %4s, %-30s, " \
-            ${APPLICATION_RANKS} ${PROBLEM_SIZE} ${PROBLEM_ITER} \
-            $(basename -- ${LULESH_BASELINE_BINARY})
-        /usr/bin/time -f %e -- srun ${SRUN_LULESH_BASELINE}
+echo ""
+echo ">>>> Controller is DISABLED for the START of this run..."
+echo ""
+#
 
+    export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
+    export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
 
-        printf "== CONTROLLER: START\n" >> ./output/controller.out
-        printf "== CONTROLLER: START for " >> ./output/controller.out
-        printf "SIZE:%s and ITER:%s\n" ${PROBLEM_SIZE} ${PROBLEM_ITER} \
-            >> ./output/controller.out
-        printf "== CONTROLLER: START\n" >> ./output/controller.out
-        #############################
-        #srun ${SRUN_CONTROLLER_START} &
-        #sleep 5
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
+    export SRUN_CLEVERLEAF=" "
+    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
+    export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
+    export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
+    export SRUN_CLEVERLEAF+=" -r 1 "
 
-        export LULESH_APOLLO_BINARY=" ./bin/lulesh-apollo "
-        ###### ##################
-        export SRUN_LULESH_APOLLO=" "
-        export SRUN_LULESH_APOLLO+=" -o ./output/lulesh-apollo.out "
-        export SRUN_LULESH_APOLLO+=" -N ${WORK_NODE_COUNT} "
-        export SRUN_LULESH_APOLLO+=" -n ${APPLICATION_RANKS} "
-        export SRUN_LULESH_APOLLO+=" -r 1 "
-        export SRUN_LULESH_APOLLO+=" ${LULESH_APOLLO_BINARY} -p "
-        export SRUN_LULESH_APOLLO+=" -s ${PROBLEM_SIZE}"
-        export SRUN_LULESH_APOLLO+=" -i ${PROBLEM_ITER} "
-        printf "\t%4s, %4s, %4s, %-30s, " \
-            ${APPLICATION_RANKS} ${PROBLEM_SIZE} ${PROBLEM_ITER} \
-            $(basename -- ${LULESH_APOLLO_BINARY})
-        /usr/bin/time -f %e -- srun ${SRUN_LULESH_APOLLO}
+    echo ">>>> Comparing cleverleaf-normal and cleverleaf-apollo..."
 
-        ############################
-        #srun ${SRUN_CONTROLLER_STOP}
-        #sleep 5
+    echo ""
+    echo "========== EXPERIMENTS STARTING =========="
+    echo ""
 
+    function wipe_all_sos_data_from_database() {
+        echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+            >> ./output/sqlexec.out
+        SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
+        SOS_SQL=${SQL_DELETE_DATA} srun ${SRUN_SQL_EXEC}
+        SOS_SQL=${SQL_DELETE_PUBS} srun ${SRUN_SQL_EXEC}
+        SOS_SQL="VACUUM;" srun ${SRUN_SQL_EXEC}
+    }
 
-        #############
-        #  If we want to wipe out the SOS databases between runs,
-        #  we can do so like this. Let's attempt to keep them for now
-        #  so we can plot things like latency or do offline ML later.
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
-        #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
-        #############
-    done
-done
+    function run_cleverleaf_with_model() {
+        export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
+        echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+            >> ./output/cleverleaf.stdout
+        wipe_all_sos_data_from_database
+        cd output
+        printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
+            $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
+        /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
+        cd ${SOS_WORK}
+        echo "SANITY CHECK:" \
+            >> ./output/sqlexec.out
+        SOS_SQL=${SQL_SANITYCHECK} srun ${SRUN_SQL_EXEC}
+    }
+
+    echo ""
+    echo ">>>> Launching controller and waiting 10 seconds for it to come online..."
+    printf "== CONTROLLER: START\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_START} &
+    sleep 10
+    echo ">>>> OK.  Launching applications."
+    echo ""
+
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal"
+    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.roundrobin"
+
+    cd ${SOS_WORK}
+
+    echo ""
+    echo "========== EXPERIMENTS COMPLETE =========="
+    echo ""
+
+    echo ""
+    echo ">>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
+    echo ""
+    printf "== CONTROLLER: STOP\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_STOP}
+    echo ""
+    sleep 5
+
 #
 #^
 #^^
@@ -396,7 +389,7 @@ echo ""
 echo "\$SOS_WORK = ${SOS_WORK}"
 echo ""
 tree ${SOS_WORK}/daemons
-ls ${SOS_WORK}
+ls ${SOS_WORK}/output
 echo "" > ${PARTING_NOTE}
 echo "--------------------------------------------------------------------------------"
 echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
@@ -436,4 +429,3 @@ sleep 20
 echo "--- Done! End of job script. ---"
 #
 # EOF
-####

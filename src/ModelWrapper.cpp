@@ -93,11 +93,11 @@ Apollo::ModelWrapper::configure(
             log("Using the default model for initialization.");
         }
     } else {
-        log("Using the model supplied to the .configure() method.");
+        log("Using a learned model supplied to the .configure() method.");
         model_def = model_def_cstr;
     }
 
-    log("Model definition:\n", model_def);
+    log("Model definition is ", model_def.length(), " bytes long.\n");
 
     // Extract the various common elements from the model definition
     // and provide them to the configure method, independent of whatever

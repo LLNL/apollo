@@ -4,8 +4,10 @@ import sys
 import json
 import time
 import datetime
-import cStringIO
+import io
 import warnings
+import pytz
+import dateutil
 
 import numpy   as np
 import pandas  as pd
@@ -20,21 +22,21 @@ from sklearn.svm             import SVC
 
 from ssos import SSOS
 
-from config import VERBOSE
-from config import DEBUG
-from config import FRAME_INTERVAL
+from apollo.debug import log
+from apollo.config import VERBOSE
+from apollo.config import DEBUG
+from apollo.config import FRAME_INTERVAL
+from apollo.config import ONCE_THEN_EXIT
 
-import utils
+from apollo.utils import tablePrint
 
 
 
 def generateDecisionTree(SOS, data, region_names):
-    if (VERBOSE):
-        print "== CONTROLLER:  Creating categorical values for unique regions."
+    log(3, "Creating categorical values for unique regions.")
     data["region_name"] = pd.Categorical(data["region_name"])
     data["region_name_id"] = data["region_name"].cat.codes
-    if (VERBOSE):
-        print "== CONTROLLER:  Generating name-swapping table."
+    log(3, "== CONTROLLER:  Generating name-swapping table.")
     name_swap = data[["region_name", "region_name_id"]]\
             .groupby(["region_name_id"], as_index=False, sort=True)\
             .first()
@@ -47,7 +49,7 @@ def generateDecisionTree(SOS, data, region_names):
     #       dimensions/configs. We don't want to be picking some kernel
     #       just because it got a super low time doing only 1 operation.
     #       We want best on average.
-    if (VERBOSE): print "== CONTROLLER:  Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")"
+    log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
 
     #start = time.time()
     #grp_data = data\
@@ -63,23 +65,18 @@ def generateDecisionTree(SOS, data, region_names):
             as_index=False).agg({'time_avg':min})
     elapsed_agg = time.time() - start
 
-    #print ".chain took " + str(elapsed_chain) + " seconds."
-    if VERBOSE:
-        print "== CONTROLER: data.groupby.agg() took " + str(elapsed_agg) + " seconds."
-        #print type(grp_data)
-        #print grp_data.shape
-        #print grp_data.values.astype(str)
+    log(3, "data.groupby.agg() took " + str(elapsed_agg) + " seconds.")
 
-    #if (DEBUG):
-    #    print "== [[ DEBUG ]]  Grouped data:"
-    #    utils.tablePrint(grp_data.astype(str).values.tolist())
-    #    print "    " + str(grp_data.columns.astype(str).values.tolist())
+    if (VERBOSE >= 9):
+        log(9, "Grouped data:")
+        tablePrint(grp_data.astype(str).values.tolist())
+        log(9, "    " + str(grp_data.columns.astype(str).values.tolist()))
 
     # Get the translation table to go back and forth from categorical to actual
     # region name. We'll need this after doing the model.fit() step
-    #if (DEBUG):
-    #    print "== [[ DEBUG ]]  Name swapping table:"
-    #    utils.tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
+    if (VERBOSE >= 9):
+        log(9, "Name swapping table:")
+        tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
 
 
     # Available fields:
@@ -110,13 +107,12 @@ def generateDecisionTree(SOS, data, region_names):
     drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
-    if (VERBOSE):
-	print "== CONTROLLER:  Feature names: " + str(feature_names)
-        print "== CONTROLLER:  Creating a vector for regional data and models ..."
+    log(9, "Feature names: " + str(feature_names))
+    log(9, "Creating a vector for regional data and models ...")
 
     model_count = 0
     all_rules_json = {}
-    all_rules_code = {}
+    all_sizes_data = {}
     overall_start = time.time()
 
     for region in region_names:
@@ -141,13 +137,13 @@ def generateDecisionTree(SOS, data, region_names):
         trained_model = model.named_steps['estimator']
 
         all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
+        all_sizes_data[region] = str(x.shape)
 
         this_elapsed = time.time() - this_start
 
-        if (VERBOSE):
-            print "== CONTROLLER:  Built a model for region #" + str(model_count) + " \"" + str(region) \
-                    + "\" having x.shape == " + str(x.shape) + " in " + str(this_elapsed) \
-                    + " seconds."
+        log(3, "Built a model for region #" + str(model_count) + " \"" + str(region) \
+                + "\" having x.shape == " + str(x.shape) + " in " + str(this_elapsed) \
+                + " seconds.")
 
         #dotfile = open("model.dot", 'w')
         #from sklearn import tree as _tree
@@ -155,8 +151,7 @@ def generateDecisionTree(SOS, data, region_names):
         #dotfile.close()
 
     overall_elapsed = time.time() - overall_start
-    if (VERBOSE):
-        print "== CONTROLLER:  Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds."
+    log(2, "OK: Fit" + str(model_count) + " models in " + str(overall_elapsed) + " seconds.")
 
     json_start = time.time()
 
@@ -166,6 +161,7 @@ def generateDecisionTree(SOS, data, region_names):
             "name": "DecisionTree",
         },
         "region_names": list(region_names),
+        "region_sizes": all_sizes_data,
         "features": {
             "count": len(feature_names),
             "names": feature_names,
@@ -178,19 +174,19 @@ def generateDecisionTree(SOS, data, region_names):
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
     json_elapsed = time.time() - json_start
-    print "== CONTROLLER:  Serializing models into JSON took " + str(json_elapsed) + " seconds."
+    log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
 
     return model_as_json
 
     #  Keeping this here for an example.
     #  Cross-Validation doesn't work well with the simplified/conditioned data.
-    #if (VERBOSE and x.shape[0] > 2):
+    #if (VERBOSE > 3 and x.shape[0] > 2):
     #    warnings.filterwarnings("ignore")
     #    cv_folds = 10
-    #    print "== CONTROLLER:  Cross-validation... (" + str(cv_folds) + "-fold)"
+    #    log(3, "Cross-validation... (" + str(cv_folds) + "-fold)")
     #    scores = cross_val_score(model, x, y, cv=cv_folds)
-    #    print("\n".join([("    " + str(score)) for score in scores]))
-    #    print "    score.mean == " + str(np.mean(scores))
+    #    log(3, "\n".join([("    " + str(score)) for score in scores]))
+    #    log(3, "    score.mean == " + str(np.mean(scores)))
     #    warnings.resetwarnings()
 
 
@@ -216,7 +212,7 @@ def generateRegressionTree(SOS, data, region_names):
     pol_stds = data.groupby(["policy_index"], as_index=False)\
         [["t_total"]].apply(np.std)
 
-    print str(pol_stds)
+    log(9, str(pol_stds))
     quit()
 
     feature_names = []
@@ -229,8 +225,8 @@ def generateRegressionTree(SOS, data, region_names):
 
     #leafStdDev = np.std(y)
 
-    print str(predictedTime)
-    print "predictions table:"
+    log(9, "predictedTime = " + str(predictedTime))
+    log(9, "predictions table:")
     comp = ""
     for row in x:
         for column in row:
@@ -239,15 +235,15 @@ def generateRegressionTree(SOS, data, region_names):
         #comp += (" @ " + str(leafStdDev))
         #comp += (" @ " + str(pol_stds[row["policy_index"]))
         comp += "\n"
-    print comp
+    log(9, comp)
 
-    with open("regress.dot", 'w') as dotfile:
-        from sklearn import tree as _tree
-        _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
+    #with open("regress.dot", 'w') as dotfile:
+    #    from sklearn import tree as _tree
+    #    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
 
-    reg_tree = json.dumps(serializeRegressor(predictedTime))
-    with open("regress.json", 'w') as regfile:
-        regfile.write(reg_tree)
+    #reg_tree = json.dumps(serializeRegressor(predictedTime))
+    #with open("regress.json", 'w') as regfile:
+    #    regfile.write(reg_tree)
 
     return reg_tree
 

@@ -1,0 +1,22 @@
+    {
+        "driver": {
+            "format": "int",
+            "rules": {
+                "__ANY_REGION__" : 3
+            }
+        },
+        "type": {
+            "guid": 0,
+            "name": "Static"
+        },
+        "region_names": [
+             "__ANY_REGION__"
+        ],
+        "features": {
+            "count": 0,
+            "names": [
+                "NA"
+            ]
+        }
+    }
+

@@ -11,7 +11,7 @@
 #SBATCH --job-name="APOLLO:SCALE.27.lulesh"
 #SBATCH -N 2
 #SBATCH -n 31
-#SBATCH -t 120 
+#SBATCH -t 120
 
 export EXPERIMENT_JOB_TITLE="SCALE.0027.lulesh"
 export EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
@@ -35,6 +35,7 @@ export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
 export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 mkdir -p ${SOS_WORK}
 mkdir -p ${SOS_WORK}/output
+mkdir -p ${SOS_WORK}/output/models
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
 #
@@ -249,7 +250,7 @@ do
             NUM_RANKS="$((${PROC} ** 3))"
             for LULESH_VARIANT in $(ls ${SOS_WORK}/bin/lulesh*)
             do
-                printf "\t%4s, %4s, %4s, %-30s, " ${NUM_RANKS} ${SIZE}  ${ITER} $(basename -- ${LULESH_VARIANT}) 
+                printf "\t%4s, %4s, %4s, %-30s, " ${NUM_RANKS} ${SIZE}  ${ITER} $(basename -- ${LULESH_VARIANT})
                 /usr/bin/time -f %e -- srun -N 1 -n ${NUM_RANKS} -r 1 ${LULESH_VARIANT} -q -s ${SIZE} -i ${ITER} -b 1 -c 1
                 sleep 20
                 #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
@@ -290,7 +291,7 @@ echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
 echo "echo \"Bringing down SOS:\""      > ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_SHUTDOWN_COMMAND}"    >> ${SOS_WORK}/sosd_stop.sh
-echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh 
+echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh
 echo "echo \"Killing SOS monitors:\""  >> ${SOS_WORK}/sosd_stop.sh
 echo "srun ${SOS_MONITOR_STOP}"        >> ${SOS_WORK}/sosd_stop.sh
 echo "echo \"OK!\""                    >> ${SOS_WORK}/sosd_stop.sh

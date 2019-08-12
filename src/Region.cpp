@@ -39,6 +39,11 @@ Apollo::Region::getPolicyIndex(void)
         fflush(stderr);
     }
 
+    //double evaluation_time_start;
+    //double evaluation_time_stop;
+    //double evaluation_time_total;
+    //SOS_TIME(evaluation_time_start);
+
     Apollo::ModelWrapper *model = getModel();
     assert (model != NULL);
 
@@ -50,6 +55,10 @@ Apollo::Region::getPolicyIndex(void)
     } else {
         exec_count_current_policy++;
     }
+
+    //SOS_TIME(evaluation_time_stop);
+    //evaluation_time_total = evaluation_time_stop - evaluation_time_start;
+    //log("getPolicyIndex took ", evaluation_time_total, " seconds.\n");
 
     return choice;
 }

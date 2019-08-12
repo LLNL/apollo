@@ -1,0 +1,149 @@
+
+  JOB TITLE.....: WATCH.0008.cleverleaf.test
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296
+
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+             ._____________________________________________________ ___  _ _
+            /_____/\/\/\/\/\____/\/\/\/\______/\/\/\/\/\________ ___ _ _
+           /___/\/\__________/\/\____/\/\__/\/\_______________ ___  _   __ _
+          /_____/\/\/\/\____/\/\____/\/\____/\/\/\/\_________  _ __
+         /___________/\/\__/\/\____/\/\__________/\/\_______ ___ _  __ _   _
+        /___/\/\/\/\/\______/\/\/\/\____/\/\/\/\/\_________ ___ __ _  _   _
+       /_____________________________________________________ _  _      _
+      /___/\/\/\__/\/\___________________________________ ___ _ __ __  _    _
+     /___/\/\______/\/\______/\/\/\____/\/\______/\/\___ ___ _ ___ __ _  _
+    /___/\/\/\____/\/\____/\/\__/\/\__/\/\__/\__/\/\___ __ _ _  _  _  _
+   /___/\/\______/\/\____/\/\__/\/\__/\/\/\/\/\/\/\____ __ ___  _
+  /___/\/\______/\/\/\____/\/\/\______/\/\__/\/\_____ ___     _
+ |__________________________________________________ ___ _  _ _  ___  _
+
+         Scalable Observation System for Scientific Workflows        
+
+             Version: 1.25
+      Target machine: quartz1922
+
+         Compiled on: Jun 25 2019 at 02:23:34 by wood67@quartz1922
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: 30998212659c34cbae63ce379cf3091684238a93
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the start of this run.
+
+Launch command for cleverleaf:
+    srun   -o /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/output/cleverleaf.stdout  -N 1  -n 8  -r 1   /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/bin/cleverleaf   /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/cleaf_triple_pt.in
+
+	   8, cleaf_triple_pt.in  , model.static.1.sequential     , 519.94
+	   8, cleaf_triple_pt.in  , model.static.2.simd           , 527.48
+	   8, cleaf_triple_pt.in  , model.static.3.loopexec       , 522.03
+	   8, cleaf_triple_pt.in  , model.static.4.openmp         , 208.60
+Launching controller and waiting 10 seconds for it to come online...
+	   8, cleaf_triple_pt.in  , model.roundrobin              , 522.44
+
+>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)...
+
+
+srun: error: quartz128: task 0: Killed
+srun: Force Terminated job step 3138296.24
+--------------------------------------------------------------------------------
+
+    DONE!
+
+$SOS_WORK = /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296
+
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/daemons
+|-- monitor.0.csv
+|-- monitor.1.csv
+|-- sosd.00000.id
+|-- sosd.00000.key
+`-- sosd.00001.id
+
+0 directories, 5 files
+cleaf_triple_pt.0.log
+cleaf_triple_pt.0.visit
+cleaf_triple_pt.1.log
+cleaf_triple_pt.1.visit
+cleaf_triple_pt.2.log
+cleaf_triple_pt.2.visit
+cleaf_triple_pt.3.log
+cleaf_triple_pt.3.visit
+cleaf_triple_pt.4.log
+cleaf_triple_pt.4.visit
+cleverleaf.stdout
+controller.out
+sqlexec.out
+--------------------------------------------------------------------------------
+
+The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations.
+
+You are now in the $SOS_WORK directory with your RESULTS and SCRIPTS!
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To RETURN to your code ..: $ cd $RETURN_PATH
+        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: $ killall srun)
+
+NOTE: You need to shut down SOS before it will export the databases to files.
+
+
+ >>>>
+ >>>>
+ >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)
+ >>>>
+
+ *OK* Shutting down interactive experiment environment...
+
+Bringing down SOS:
+Done.
+Done.
+Killing SOS monitors:
+srun: error: quartz128: task 0: Killed
+OK!
+
+
+srun: error: quartz129: task 1: Killed
+srun: Force Terminated job step 3138296.2
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 17.4% in 2.63 seconds.  (65536 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 17.4% in 2.77 seconds.  (65536 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 34.9% in 5.28 seconds.  (131072 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 34.9% in 5.62 seconds.  (131072 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 52.3% in 7.93 seconds.  (196608 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 52.3% in 8.44 seconds.  (196608 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 69.8% in 10.67 seconds.  (262144 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 69.8% in 11.27 seconds.  (262144 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 87.2% in 13.43 seconds.  (327680 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 87.2% in 14.13 seconds.  (327680 of 375734 pages)
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00000.db --> Exported 100.0% in 15.62 seconds.  (375734 of 375734 pages)
+** SHUTDOWN **: sosd(0) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.test.3138296/sosd.00001.db --> Exported 100.0% in 16.36 seconds.  (375734 of 375734 pages)
+** SHUTDOWN **: sosd(1) is exiting cleanly!
+--- Done! End of job script. ---

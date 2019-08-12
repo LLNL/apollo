@@ -98,6 +98,6 @@ LagrangianEulerianIntegrator {
     start_time = 0.e0
     end_time = 25.e0
     grow_dt = 1.5e0
-    max_integrator_steps=20
+    max_integrator_steps=100
     regrid_interval=10
 }

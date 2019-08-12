@@ -2,12 +2,12 @@
         "driver": {
             "format": "int",
             "rules": {
-                "__ANY_REGION__" : "1"
+                "__ANY_REGION__" : 1
             }
         },
         "type": {
             "guid": 0,
-            "name": "RoundRobin"
+            "name": "Static"
         },
         "region_names": [
              "__ANY_REGION__"

@@ -8,12 +8,12 @@
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
+#SBATCH --job-name="APOLLO:WATCH.8.cleverleafx500steps"
 #SBATCH -N 2
 #SBATCH -n 12
-#SBATCH -t 15
+#SBATCH -t 180
 #
-export EXPERIMENT_JOB_TITLE="WATCH.0008.cleverleaf.test"  # <-- creates output path!
+export EXPERIMENT_JOB_TITLE="WATCH.0008.cleverleaf"  # <-- creates output path!
 #
 export APPLICATION_RANKS="8"         # ^__ make sure to change SBATCH node counts!
 export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
@@ -50,6 +50,7 @@ export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
 export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 mkdir -p ${SOS_WORK}
 mkdir -p ${SOS_WORK}/output
+mkdir -p ${SOS_WORK}/output/models
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
 #
@@ -71,7 +72,7 @@ cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bi
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
 #
-cp ${HOME}/src/apollo/jobs/APOLLO.model*                          ${SOS_WORK}
+cp ${HOME}/src/apollo/jobs/model.*                                ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -224,11 +225,12 @@ export SRUN_CONTROLLER_STOP+=" -N 1 -n 1 -r 0 "
 export SRUN_CONTROLLER_STOP+=" killall -9 python "
 #
 export SRUN_SQL_EXEC=" "
-export SRUN_SQL_EXEC+=" -o /dev/null "
+export SRUN_SQL_EXEC+=" -o ./output/sqlexec.%n.out "
+export SRUN_SQL_EXEC+=" --open-mode=append "
 export SRUN_SQL_EXEC+=" -N ${EXPERIMENT_NODE_COUNT} "
 export SRUN_SQL_EXEC+=" -n ${EXPERIMENT_NODE_COUNT} "
 export SRUN_SQL_EXEC+=" -r 0 "
-export SRUN_SQL_EXEC+=" ./bin/demo_app --sql "
+export SRUN_SQL_EXEC+=" ./bin/demo_app --sql SOS_SQL "
 #
 export SOS_MONITOR_START=" "
 export SOS_MONITOR_START+=" -o ./daemons/monitor.%n.csv "
@@ -247,22 +249,25 @@ export SOS_SHUTDOWN_COMMAND=" "
 export SOS_SHUTDOWN_COMMAND+=" -N ${EXPERIMENT_NODE_COUNT} "
 export SOS_SHUTDOWN_COMMAND+=" -n ${EXPERIMENT_NODE_COUNT} "
 export SOS_SHUTDOWN_COMMAND+=" -r 0 "
-export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop"
+export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop "
 #
 export SQL_DELETE_VALS="DELETE FROM tblVals;"
 export SQL_DELETE_DATA="DELETE FROM tblData;"
 export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 #
+#
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 #
 #  Copy the applications into the experiment path:
 #
-cp ${HOME}/src/cleverleaf/apollo-test/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin
+cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-apollo
+cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-normal
+
 #
 #  Bring over the input deck[s]:
-cp ${HOME}/src/apollo/jobs/cleaf_test.in        ${SOS_WORK}
-cp ${HOME}/src/apollo/jobs/cleaf_triple_pt.in   ${SOS_WORK}
+cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
 #  Launch an interactive terminal within the allocation:
 #
@@ -278,68 +283,97 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
-
-export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
-export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
-export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
-#srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
-srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
+export SQL_APOLLO_VIEW=`cat SQL.CREATE.viewApollo`
+export SQL_APOLLO_INDEX=`cat SQL.CREATE.indexApollo`
 #
-echo ""
-echo ">>>> Default Apollo model..."
-echo ""
-export APOLLO_INIT_MODEL="${SOS_WORK}/APOLLO.modelDefault"
-echo "${APOLLO_INIT_MODEL}"
-echo ""
-
+SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
+#SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
+#
+export SQL_SANITYCHECK=`cat SQL.sanityCheck`
+#
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-    echo "Launching controller and waiting 10 seconds for it to come online..."
-    printf "== CONTROLLER: START\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_START} &
-    sleep 10
 
-    # DEBUG
-    # export OMP_NUM_THREADS="1"
+    export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
 
-    export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf "
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
+
     export SRUN_CLEVERLEAF=" "
-    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.stdout "
+    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
     export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
     export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
     export SRUN_CLEVERLEAF+=" -r 1 "
     export SRUN_CLEVERLEAF+=" ${CLEVERLEAF_BINARY} "
 
-    echo "Launch command for cleverleaf:"
-    echo "    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in"
+    echo ">>>> Launch command for cleverleaf:"
+    echo "    srun ${SRUN_CLEVERLEAF} ${CLEVERLEAF_INPUT}"
     echo ""
 
-    cd output
-    srun ${SRUN_CLEVERLEAF} ${SOS_WORK}/cleaf_triple_pt.in
+    echo ""
+    echo "========== EXPERIMENTS STARTING =========="
+    echo ""
+
+    function wipe_all_sos_data_from_database() {
+        echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+            >> ./output/sqlexec.out
+        SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
+        SOS_SQL=${SQL_DELETE_DATA} srun ${SRUN_SQL_EXEC}
+        SOS_SQL=${SQL_DELETE_PUBS} srun ${SRUN_SQL_EXEC}
+        SOS_SQL="VACUUM;" srun ${SRUN_SQL_EXEC}
+    }
+
+    function run_cleverleaf_with_model() {
+        export APOLLO_INIT_MODEL="${SOS_WORK}/$1"
+        echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+            >> ./output/cleverleaf.stdout
+        wipe_all_sos_data_from_database
+        cd output
+        printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
+            $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
+        /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} ${CLEVERLEAF_INPUT}
+        cd ${SOS_WORK}
+        echo "SANITY CHECK:" \
+            >> ./output/sqlexec.out
+        SOS_SQL=${SQL_SANITYCHECK} srun ${SRUN_SQL_EXEC}
+    }
+
+    ulimit -c unlimited
+
+    #run_cleverleaf_with_model "model.static.1.sequential"
+    #run_cleverleaf_with_model "model.static.2.simd"
+    #run_cleverleaf_with_model "model.static.3.loopexec"
+    #run_cleverleaf_with_model "model.static.4.openmp"
+
+    run_cleverleaf_with_model "model.previous"
+
+    echo ""
+    echo ">>>> Launching controller and waiting 10 seconds for it to come online..."
+    echo ""
+    printf "== CONTROLLER: START\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_START} &
+    sleep 10
+
+    run_cleverleaf_with_model "model.roundrobin"
+
     cd ${SOS_WORK}
 
-    echo "Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
+    echo ""
+    echo "========== EXPERIMENTS COMPLETE =========="
+    echo ""
+
+    echo ""
+    echo ">>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
+    echo ""
     printf "== CONTROLLER: STOP\n" >> ./output/controller.out
     srun ${SRUN_CONTROLLER_STOP}
+    echo ""
     sleep 5
 
-
-    ############################
-    #
-    # NOTE: Unused example code...
-    #
-    #
-    # NOTE: If we want to wipe out the SOS databases between runs,
-    #       we can do so like this. Let's attempt to keep them for now
-    #       so we can plot things like latency or do offline ML later.
-    #
-    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
-    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
-    #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
-    #
-    #############
 #
 #^
 #^^

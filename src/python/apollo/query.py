@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import time
-import cStringIO
+import io
 import warnings
 import numpy   as np
 import pandas  as pd
@@ -14,14 +14,16 @@ from sklearn.tree            import DecisionTreeRegressor
 from sklearn.pipeline        import Pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.svm             import SVC
+
 from ssos import SSOS
 
-from config import VERBOSE
-from config import DEBUG
-from config import FRAME_INTERVAL
-from config import ONCE_THEN_EXIT
+from apollo.debug import log
+from apollo.config import VERBOSE
+from apollo.config import DEBUG
+from apollo.config import FRAME_INTERVAL
+from apollo.config import ONCE_THEN_EXIT
 
-import utils
+import apollo.utils
 
 
 def getTrainingData(SOS, sos_host, sos_port, row_limit):
@@ -34,16 +36,14 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     #        We do grab the list of region names so we can append it to
     #        the encoding of the model, for now.
     #
-    if (VERBOSE): print "== CONTROLLER:  Submitting SQL queries ..."
+    log(2, "Submitting SQL queries ...")
     sql_string = "SELECT DISTINCT region_name FROM viewApollo WHERE region_name IS NOT NULL;"
     names_start = time.time()
     region_name_list, col_names = SOS.query(sql_string, sos_host, sos_port)
     names_elapsed = time.time() - names_start
-    if (VERBOSE):
-        print "== CONTROLLER:  Apollo::Region list (" + str(len(region_name_list))\
-                    + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
-                    + " seconds."
-
+    log(2, "Apollo::Region list (" + str(len(region_name_list))\
+                + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
+                + " seconds.")
     region_names = []
     for nm in region_name_list:
         region_names.append(str(nm[0]))
@@ -66,26 +66,31 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     view_start = time.time()
     results, col_names = SOS.query(sql_string, sos_host, sos_port)
     view_elapsed = time.time() - view_start
-    if (VERBOSE):
-        print "== CONTROLLER:  viewApollo data (" + str(len(results))\
+    log(2, "viewApollo data (" + str(len(results))\
                     + " x " + str(len(col_names)) + ") retrieved in " + str(names_elapsed)\
-                    + " seconds."
+                    + " seconds.")
 
     convert_start = time.time()
     data = pd.DataFrame.from_records(results, columns=col_names)
     convert_elapsed = time.time() - convert_start
-    if (VERBOSE):
-        print "== CONTROLLER:  Converted to DataFrame in " + str(convert_elapsed) + " seconds."
+    log(2, "Converted to DataFrame in " + str(convert_elapsed) + " seconds.")
 
-
-    #if (VERBOSE):
-    #    print "== CONTROLLER:  Data:"
+    log(9, "Data:")
     #    utils.tablePrint(results)
     #    print "----------"
 
     return data, region_names
 
 
+
+def wipeAllExistingData(SOS, sos_host, sos_port):
+    sql_string =  "DELETE FROM tblVals;"
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
+    sql_string =  "DELETE FROM tblData;"
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
+    sql_string =  "DELETE FROM tblPubs;"
+    region_names, col_names = SOS.query(sql_string, sos_host, sos_port)
+    return
 
 def wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max):
     sql_string =  "DELETE FROM tblVals "
@@ -95,34 +100,52 @@ def wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max):
 
 
 
+def checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
+    results, col_names = \
+            SOS.query("SELECT max(latest_frame) FROM tblPubs;", sos_host, sos_port)
+    if len(results) < 1:
+        return 0
+    else:
+        if results[0][0] == "NULL":
+            return 0
+        else:
+            return int(results[0][0])
+
+def waitForMoreRowsUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
+    max_frame = checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max)
+    log(2, "Waiting for %d frames of new data..." % FRAME_INTERVAL)
+    while(max_frame < (prior_frame_max + FRAME_INTERVAL)):
+        time.sleep(1)
+        max_frame = checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max)
+    log(2, "Enough frames have arrived at SOS.  max_frame == %d" % max_frame)
+    return max_frame
+
+
 def waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max):
     if (ONCE_THEN_EXIT):
-        print "== CONTROLLER:  Using ONCE_THEN_EXIT mode, not waiting for new rows."
+        log(2, "Using ONCE_THEN_EXIT mode, not waiting for new rows.")
         return prior_frame_max
+
+    log(2, "Waiting for data...")
 
     max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
-        if (VERBOSE) :
-            sys.stdout.write("== CONTROLLER:  Waiting for data. " \
-                + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+        log(3, "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
                 + "( " + str(max_frame - prior_frame_max) + " of " \
                 + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-                + " total)\r")
-            sys.stdout.flush()
+                + " total)")
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     #####
-    if (VERBOSE):
-        sys.stdout.write("== CONTROLLER:  Waiting for data. " \
-            + "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
+    log(2, "OK: [" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
             + "( " + str(max_frame - prior_frame_max) + " of " \
             + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-            + " total)\n")
-    sys.stdout.flush()
+            + " total)")
+
     return max_frame
 
 
