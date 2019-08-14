@@ -124,18 +124,23 @@ def generateDecisionTree(SOS, data, region_names):
         y = rd["policy_index"].astype(int)
         x = rd.drop(drop_fields, axis="columns").values.astype(float)
 
+        # NOTE: Prior hyper-specific method...
+        #pipe = [('estimator',   DecisionTreeClassifier(
+        #         class_weight=None, criterion='gini', max_depth=6,
+        #         max_features=x.shape[1], max_leaf_nodes=None,
+        #         min_impurity_decrease=1e-07, min_samples_leaf=1,
+        #         min_samples_split=2, min_weight_fraction_leaf=0.0,
+        #         presort=False, random_state=None, splitter='best'))]
         pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=3,
-                 max_features=x.shape[1], max_leaf_nodes=None,
-                 min_impurity_decrease=1e-07, min_samples_leaf=1,
-                 min_samples_split=2, min_weight_fraction_leaf=0.0,
-                 presort=False, random_state=None, splitter='best'))]
+                 class_weight=None, criterion='gini', max_depth=6,
+                 min_samples_leaf=1, min_samples_split=2))]
         model = Pipeline(pipe)
 
         model.fit(x, y)
 
         trained_model = model.named_steps['estimator']
 
+        all_types_rule[region] = "DecisionTree"
         all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
         all_sizes_data[region] = str(x.shape)
 
@@ -156,21 +161,24 @@ def generateDecisionTree(SOS, data, region_names):
     json_start = time.time()
 
     model_def = {
-        "type": {
-            "guid": SOS.get_guid(),
-            "name": "DecisionTree",
+        "guid": SOS.get_guid(),
+        "driver": {
+            "rules": all_rules_json,
         },
         "region_names": list(region_names),
         "region_sizes": all_sizes_data,
+        "region_types": all_types_rule,
         "features": {
             "count": len(feature_names),
             "names": feature_names,
         },
-        "driver": {
-            "format": "json",
-            "rules": all_rules_json,
-        }
     }
+
+    # Add in a default model (static sequential) for any unnamed loops:
+    model_def["region_names"].append(    "__ANY_REGION__"            )
+    model_def["region_sizes"].append(   {"__ANY_REGION__", "(0, 0)"} )
+    model_def["region_types"].append(   {"__ANY_REGION__", "Static"} )
+    model_def["driver"]["rules"].append({"__ANY_REGION__", "40"    } )
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
     json_elapsed = time.time() - json_start

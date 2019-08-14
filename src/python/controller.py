@@ -31,8 +31,8 @@ def main():
     log(1, "Online.")
     query.createApolloView(SOS, sos_host, sos_port)
 
-    log(1, "Wiping all prior data in the SOS database...")
-    query.wipeAllExistingData(SOS, sos_host, sos_port)
+    #log(1, "Wiping all prior data in the SOS database...")
+    #query.wipeAllExistingData(SOS, sos_host, sos_port)
 
     while (os.environ.get("SOS_SHUTDOWN") != "TRUE"):
         prior_frame_max    = query.waitForMoreRowsUsingSQL(
@@ -74,8 +74,8 @@ def main():
             #if (VERBOSE): print "== CONTROLLER:  Pausing to allow new model to run for a fresh interval ..."
             #query.waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max);
 
-            log(1, "Clearing prior training data...")
-            query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
+            #log(1, "Clearing prior training data...")
+            #query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
 
             #model_def = utils.generateRoundRobinModel(SOS, data, region_names)
             #model_len = len(model_def)
