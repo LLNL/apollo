@@ -71,6 +71,7 @@ Apollo::ModelWrapper::configure(
         model_type = MT.Default;
     }
 
+
     if (model_type == MT.Default) {
         if (getenv("APOLLO_INIT_MODEL") != NULL) {
             log("Using ${APOLLO_INIT_MODEL} for region initialization.");
@@ -104,43 +105,29 @@ Apollo::ModelWrapper::configure(
     // further definitions are unique to that model.
     json j = json::parse(model_def);
 
-    uint64_t       m_type_guid;
+    uint64_t       m_guid;
     string         m_type_name;
     vector<string> m_region_names;
     int            m_feat_count;
     vector<string> m_feat_names;
-    string         m_drv_format;
     json           m_drv_rules;
+
+
 
     log("Attempting to parse model definition...");
 
     // Validate and extract model components
-
-    // == [type]
-    // == [type][guid]
-    // == [type][name]
     int model_errors = 0;
-    if (j.find("type") == j.end()) {
-        log("Invalid model_def: missing [type]");
+
+    // == [guid]
+    // == [type][name]
+    if (j.find("guid") == j.end()) {
+        log("Invalid model_def: missing [guid]");
         model_errors++;
     } else {
-        log("\t[type]");
-        if (j["type"].find("guid") == j["type"].end()) {
-            log("Invalid model_def: missing [type][guid]");
-            model_errors++;
-        } else {
-            m_type_guid = j["type"]["guid"].get<uint64_t>();
-            log("\t[type][guid] = ", m_type_guid);
-        }
-        if (j["type"].find("name") == j["type"].end()) {
-            log("Invalid model_def: missing [type][name]");
-            model_errors++;
-        } else {
-            m_type_name = j["type"]["name"].get<string>();
-            log("\t[type][name] = ", m_type_name);
-        }
+        m_guid = j["guid"].get<uint64_t>();
+        log("\t[guid] = ", m_guid);
     }
-
     // == [region_names]
     log("\t[region_names]");
     if (j.find("region_names") == j.end()) {
@@ -148,6 +135,24 @@ Apollo::ModelWrapper::configure(
         model_errors++;
     } else {
         m_region_names = j["region_names"].get<vector<string>>();
+    }
+
+    // == [region_types]
+    log("\t[region_types]");
+    if (j.find("region_types") == j.end()) {
+        log("Invalid model_def: missing [region_types]");
+        model_errors++;
+    //} else {
+    //    m_region_types = j["region_types"].get<vector<json>>();
+    }
+
+    // == [region_sizes]
+    log("\t[region_sizes]");
+    if (j.find("region_sizes") == j.end()) {
+        log("Invalid model_def: missing [region_sizes]");
+        model_errors++;
+    //} else {
+    //    m_region_sizes = j["region_sizes"].get<vector<json>>();
     }
 
     // == [features]
@@ -177,22 +182,13 @@ Apollo::ModelWrapper::configure(
     }
 
     // == [driver]
-    // == [driver][format]
     // == [driver][rules]
-    // == [driver][rules][*regname*] <-- Note the different behavior for initial models...
+    // == [driver][rules][*regname*]
     if (j.find("driver") == j.end()) {
         log("Invalid model_def: missing [driver]");
         model_errors++;
     } else {
         log("\t[driver]");
-        if (j["driver"].find("format") == j["driver"].end()) {
-            log("Invalid model_def: missing [driver][format]");
-            model_errors++;
-        } else {
-            m_drv_format = j["driver"]["format"].get<string>();
-            log("\t[driver][format] = ", m_drv_format);
-        }
-
         // TODO [optimize]: This section could be handled outside of the configure
         //                  method perhaps, to prevent multiple json deserializations
         //                  and double-scans for the __ANY_REGION__ model.
@@ -210,23 +206,43 @@ Apollo::ModelWrapper::configure(
                                   " for region->name == \"", region->name,
                                   "\" and model package contains no __ANY_REGION__"
                                   " default.");
+                    log("Using: MT.DefaultStaticModel == \"",
+                            MT.DefaultStaticModel, "\"");
                     model_errors++;
-                    m_drv_rules = nullptr;
+                    m_drv_rules = json::parse(MT.DefaultStaticModel);
+                    m_type_name = "Static";
                 } else {
                     // We found a generic __ANY_REGION__ model
                     m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"];
                     log("\t[driver][rules][__ANY_REGION__] being applied to ", region->name);
+                    if (j["region_types"].find("__ANY_REGION__") == j["region_types"].end()) {
+                        log("Invalid model_def: __ANY_REGION__ rule exists, but there is no type!");
+                        log("Using: MT.DefaultStaticModel == \"",
+                            MT.DefaultStaticModel, "\"");
+                        model_errors++;
+                        m_drv_rules = json::parse(MT.DefaultStaticModel);
+                        m_type_name = "Static";
+                    } else {
+                        m_type_name = j["region_types"]["__ANY_REGION__"].get<string>();
+                    }
                 }
             } else {
                 // Best case! We DID find a specific model for this region
                 m_drv_rules = j["driver"]["rules"][region->name];
                 log("\t[driver][rules][", region->name, "] being applied to ", region->name);
+                if (j["region_types"].find(region->name) == j["region_types"].end()) {
+                    log("Invalid model_def: Region-specific rule exists, but there is no type!");
+                    log("Using: MT.DefaultStaticModel == \"",
+                            MT.DefaultStaticModel, "\"");
+                    model_errors++;
+                    m_drv_rules = json::parse(MT.DefaultStaticModel);
+                    m_type_name = "Static";
+                } else {
+                    m_type_name = j["region_types"][region->name].get<string>();
+                }
             }
-
         }
     }
-
-
 
     if (model_errors > 0) {
         fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"
@@ -292,7 +308,7 @@ Apollo::ModelWrapper::configure(
     }
 
     lnm->configure(num_policies, m_drv_rules);
-    lnm->setGuid(m_type_guid);
+    lnm->setGuid(m_guid);
 
     model_sptr.reset(); // Release ownership of the prior model's shared ptr
     model_sptr = nm;    // Make this new model available for use.

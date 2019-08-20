@@ -28,7 +28,8 @@ Apollo::Model::Static::configure(
     apollo        = Apollo::instance();
     policy_count  = num_policies;
     model_def     = new_model_rule;
-    policy_choice = model_def.get<int>();
+
+    policy_choice = std::stoi(model_def.get<std::string>());
 
     configured = true;
     return;

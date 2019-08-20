@@ -20,8 +20,8 @@ Apollo::Model::RoundRobin::getIndex(void)
     int choice = policy_choice;
 
     policy_choice++;
-    if (policy_choice > policy_count) {
-        policy_choice = 1;
+    if (policy_choice >= policy_count) {
+        policy_choice = 0;
     }
 
     return choice;

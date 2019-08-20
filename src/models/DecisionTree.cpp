@@ -87,6 +87,7 @@ Apollo::Model::DecisionTree::getIndex(void)
         feat->value         = cali_variant_to_double(feat->value_variant, &converted_ok);
         if (not converted_ok) {
             fprintf(stderr, "== APOLLO: [ERROR] Unable to convert feature to a double!\n");
+            return 0;
         }
     }
 

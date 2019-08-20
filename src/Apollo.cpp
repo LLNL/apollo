@@ -28,9 +28,9 @@ using json = nlohmann::json;
 SOS_runtime *sos;
 SOS_pub     *pub;
 
-typedef cali::Annotation note; 
+typedef cali::Annotation note;
 
-void 
+void
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
     Apollo *apollo = Apollo::instance();
@@ -85,16 +85,32 @@ Apollo::attachModel(const char *def)
     bool def_has_wildcard_model = false;
 
     if (def == NULL) {
-        log("[ERROR] apollo->attachModel() called with a" 
+        log("[ERROR] apollo->attachModel() called with a"
                     " NULL model definition. Doing nothing.");
         return;
     }
 
     if (strlen(def) < 1) {
-        log("[ERROR] apollo->attachModel() called with an" 
+        log("[ERROR] apollo->attachModel() called with an"
                     " empty model definition. Doing nothing.");
         return;
     }
+
+    // --------
+    // CHAD's little debugging toy...
+    static int rank = -1;
+    if (rank < 0) {
+        const char *rank_str = getenv("SLURM_PROCID");
+        if ((rank_str != NULL) && (strlen(rank_str) > 0))
+        {
+            rank = atoi(rank_str);
+        }
+    }
+    if (rank == 0) {
+        std::cout << "-------- new model has arrived --------" << std::endl;
+    }
+    // --------
+
 
     // Extract the list of region names for this "package of models"
     std::vector<std::string> region_names;
@@ -142,7 +158,7 @@ Apollo::Apollo()
 
     SOS_init(&sos, SOS_ROLE_CLIENT,
             SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
-    
+
     if (sos == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to communicate"
                 " with the SOS daemon.\n");
@@ -150,7 +166,7 @@ Apollo::Apollo()
     }
 
     SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
-    SOS_reference_set(sos, "APOLLO_PUB", (void *) pub); 
+    SOS_reference_set(sos, "APOLLO_PUB", (void *) pub);
 
     if (pub == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
@@ -162,14 +178,50 @@ Apollo::Apollo()
         return;
     }
 
+    log("Reading SLURM env...");
+    try {
+        numNodes = std::stoi(getenv("SLURM_NNODES"));
+        log("    numNodes ................: ", numNodes);
+
+        numProcs = std::stoi(getenv("SLURM_NPROCS"));
+        log("    numProcs ................: ", numProcs);
+
+        numCPUsOnNode = std::stoi(getenv("SLURM_CPUS_ON_NODE"));
+        log("    numCPUsOnNode ...........: ", numCPUsOnNode);
+
+        std::string envProcPerNode = getenv("SLURM_TASKS_PER_NODE");
+        // Sometimes SLURM sets this to something like "4(x2)" and
+        // all we care about here is the "4":
+        auto pos = envProcPerNode.find('(');
+        if (pos != envProcPerNode.npos) {
+            numProcsPerNode = std::stoi(envProcPerNode.substr(0, pos));
+        } else {
+            numProcsPerNode = std::stoi(envProcPerNode);
+        }
+        log("    numProcsPerNode .........: ", numProcsPerNode);
+
+        numThreadsPerProcCap = std::max(1, (int)(numCPUsOnNode / numProcsPerNode));
+        log("    numThreadsPerProcCap ....: ", numThreadsPerProcCap);
+
+    } catch (...) {
+        fprintf(stderr, "== APOLLO: [ERROR] Unable to read values from SLURM"
+                " environment variables.\n");
+        if (sos != NULL) {
+            SOS_finalize(sos);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+
+
     // At this point we have a valid SOS runtime and pub handle.
     // NOTE: The assumption here is that there is 1:1 ratio of Apollo
     //       instances per process.
-    SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this); 
-    SOS_sense_register(sos, "APOLLO_MODELS"); 
+    SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this);
+    SOS_sense_register(sos, "APOLLO_MODELS");
 
-    ynConnectedToSOS = true; 
-    
+    ynConnectedToSOS = true;
+
     SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
 
     note_flush =
@@ -180,7 +232,7 @@ Apollo::Apollo()
         (void *) new note("step", CALI_ATTR_ASVALUE);
     note_time_exec_count =
         (void *) new note("exec_count", CALI_ATTR_ASVALUE);
-    note_time_last = 
+    note_time_last =
         (void *) new note("time_last", CALI_ATTR_ASVALUE);
     note_time_min =
         (void *) new note("time_min", CALI_ATTR_ASVALUE);
@@ -245,11 +297,11 @@ Apollo::setFeature(std::string set_name, double set_value)
         Apollo::Feature f;
         f.name  = set_name;
         f.value = set_value;
-        
+
         features.push_back(std::move(f));
 
         note *n = new note(set_name.c_str(), CALI_ATTR_ASVALUE);
-        feature_notes.insert({set_name, (void *) n}); 
+        feature_notes.insert({set_name, (void *) n});
     }
 
     return;
@@ -269,8 +321,6 @@ Apollo::getFeature(std::string req_name)
 
     return retval;
 }
-
-
 
 void
 Apollo::noteBegin(std::string &name, double with_value) {
@@ -339,7 +389,7 @@ Apollo::sosPackRelated(long relation_id, const char *name, int val)
 {
     return SOS_pack_related(pub, relation_id, name, SOS_VAL_TYPE_INT, &val);
 }
- 
+
 void Apollo::sosPublish()
 {
     if (isOnline()) {

@@ -8,7 +8,7 @@
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.8.cleverleafx500steps"
+#SBATCH --job-name="APOLLO:WATCH.8.cleverleafx100steps"
 #SBATCH -N 2
 #SBATCH -n 12
 #SBATCH -t 180
@@ -330,7 +330,7 @@ echo ""
     function run_cleverleaf_with_model() {
         export APOLLO_INIT_MODEL="${SOS_WORK}/$1"
         echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
-            >> ./output/cleverleaf.stdout
+            >> ./output/cleverleaf.0000.stdout
         wipe_all_sos_data_from_database
         cd output
         printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
@@ -351,14 +351,14 @@ echo ""
 
     run_cleverleaf_with_model "model.previous"
 
-    echo ""
-    echo ">>>> Launching controller and waiting 10 seconds for it to come online..."
-    echo ""
-    printf "== CONTROLLER: START\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_START} &
-    sleep 10
+    #echo ""
+    #echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
+    #echo ""
+    #printf "== CONTROLLER: START\n" >> ./output/controller.out
+    #srun ${SRUN_CONTROLLER_START} &
+    #sleep 2
 
-    run_cleverleaf_with_model "model.roundrobin"
+    #run_cleverleaf_with_model "model.roundrobin"
 
     cd ${SOS_WORK}
 

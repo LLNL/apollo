@@ -29,7 +29,8 @@ class Apollo::Model {
                 static constexpr int RoundRobin   = 4;
                 static constexpr int DecisionTree = 5;
 
-                // Default configuration JSON:
+                const char *DefaultStaticModel = "{ \"__ANY_REGION__\" : \"0\" }";
+
                 const char *DefaultConfigJSON = \
                        "{\n"                                               \
                        "    \"driver\": {\n"                               \

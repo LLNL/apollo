@@ -67,10 +67,10 @@ def generateDecisionTree(SOS, data, region_names):
 
     log(3, "data.groupby.agg() took " + str(elapsed_agg) + " seconds.")
 
-    if (VERBOSE >= 9):
-        log(9, "Grouped data:")
-        tablePrint(grp_data.astype(str).values.tolist())
-        log(9, "    " + str(grp_data.columns.astype(str).values.tolist()))
+    # if (VERBOSE >= 9):
+    #    log(9, "Grouped data:")
+    #    tablePrint(grp_data.astype(str).values.tolist())
+    #    log(9, "    " + str(grp_data.columns.astype(str).values.tolist()))
 
     # Get the translation table to go back and forth from categorical to actual
     # region name. We'll need this after doing the model.fit() step
@@ -111,6 +111,7 @@ def generateDecisionTree(SOS, data, region_names):
     log(9, "Creating a vector for regional data and models ...")
 
     model_count = 0
+    all_types_rule = {}
     all_rules_json = {}
     all_sizes_data = {}
     overall_start = time.time()
@@ -175,10 +176,10 @@ def generateDecisionTree(SOS, data, region_names):
     }
 
     # Add in a default model (static sequential) for any unnamed loops:
-    model_def["region_names"].append(    "__ANY_REGION__"            )
-    model_def["region_sizes"].append(   {"__ANY_REGION__", "(0, 0)"} )
-    model_def["region_types"].append(   {"__ANY_REGION__", "Static"} )
-    model_def["driver"]["rules"].append({"__ANY_REGION__", "40"    } )
+    model_def["region_names"].append("__ANY_REGION__")
+    model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
+    model_def["region_types"]["__ANY_REGION__"] = "Static"
+    model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
     json_elapsed = time.time() - json_start

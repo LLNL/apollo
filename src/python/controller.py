@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+import pickle
 
 from ssos import SSOS
 
@@ -40,6 +41,8 @@ def main():
                                 prior_frame_max)
         data, region_names = query.getTrainingData(SOS, sos_host, sos_port, row_limit=0);
         data.to_pickle("./output/models/step.%d.trainingdata.pickle" % prior_frame_max)
+        with open(("./output/models/step.%d.region_names.pickle" % prior_frame_max), "w") as f:
+            pickle.dump(region_names, f)
 
         model_def = ""
         model_len = 0
@@ -64,6 +67,8 @@ def main():
             log(1, "Writing models to \"prev_model.json\" ...")
 
             with open(("./output/models/step.%d.decisiontree.json" % prior_frame_max), "w") as mf:
+                mf.write(model_def)
+            with open("./output/models/latest_model.json", "w") as mf:
                 mf.write(model_def)
 
             if (ONCE_THEN_EXIT):

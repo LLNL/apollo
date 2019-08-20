@@ -1,17 +1,19 @@
     {
         "driver": {
-            "format": "int",
             "rules": {
-                "__ANY_REGION__" : 4
+                "__ANY_REGION__" : "4"
             }
         },
-        "type": {
-            "guid": 0,
-            "name": "Static"
-        },
+        "guid": 0,
         "region_names": [
-             "__ANY_REGION__"
+            "__ANY_REGION__"
         ],
+        "region_types": {
+            "__ANY_REGION__": "Static"
+        },
+        "region_sizes": {
+            "__ANY_REGION__": "(0, 0)"
+        },
         "features": {
             "count": 0,
             "names": [

@@ -12,14 +12,14 @@
 #include <vector>
 
 #include "apollo/Logging.h"
- 
-#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
-#define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
+
+#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
+#define APOLLO_DEFAULT_MODEL_DEFINITION     "0"
 
 
 extern "C" {
     // SOS will deliver triggers and query results here:
-    void  
+    void
     handleFeedback(void *sos_context,
                    int msg_type,
                    int msg_size,
@@ -35,8 +35,8 @@ class Apollo
 {
     public:
        ~Apollo();
-        // disallow copy constructor 
-        Apollo(const Apollo&) = delete; 
+        // disallow copy constructor
+        Apollo(const Apollo&) = delete;
         Apollo& operator=(const Apollo&) = delete;
 
         static Apollo* instance(void) {
@@ -58,7 +58,7 @@ class Apollo
         enum class Unit : int {
             INTEGER,
             DOUBLE,
-            CSTRING 
+            CSTRING
         };
 
 
@@ -83,6 +83,14 @@ class Apollo
         std::vector<Apollo::Feature>            features;
         std::unordered_map<std::string, void *> feature_notes; // cali::Annotation *
         //
+        // Precalculated at Apollo::Init from evironment variable strings to
+        // facilitate quick calculations during model evaluation later.
+        int numNodes;
+        int numCPUsOnNode;
+        int numProcs;
+        int numProcsPerNode;
+        int numThreadsPerProcCap;
+        //
         void *  getNote(std::string &name);
         void    noteBegin(std::string &name, double with_value);
         void    noteEnd(std::string &name);
@@ -93,7 +101,7 @@ class Apollo
         Apollo::Region *region(const char *regionName);
         //
         void attachModel(const char *modelEncoding);
-        // 
+        //
         bool        isOnline();
         std::string uniqueRankIDText(void);
         //

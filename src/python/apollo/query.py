@@ -75,9 +75,6 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     convert_elapsed = time.time() - convert_start
     log(2, "Converted to DataFrame in " + str(convert_elapsed) + " seconds.")
 
-    log(9, "Data:")
-    #    utils.tablePrint(results)
-    #    print "----------"
 
     return data, region_names
 
@@ -132,20 +129,11 @@ def waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max):
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     while (max_frame < (prior_frame_max + FRAME_INTERVAL)):
-        log(3, "[" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
-                + "( " + str(max_frame - prior_frame_max) + " of " \
-                + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-                + " total)")
         time.sleep(1)
         max_frame, results, col_names = \
             SOS.request_pub_manifest("", sos_host, sos_port)
 
     #####
-    log(2, "OK: [" + utils.progressBar((max_frame - prior_frame_max), FRAME_INTERVAL, 20) + "] " \
-            + "( " + str(max_frame - prior_frame_max) + " of " \
-            + str(FRAME_INTERVAL) + ", " + str(max_frame) \
-            + " total)")
-
     return max_frame
 
 

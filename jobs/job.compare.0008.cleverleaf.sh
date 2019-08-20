@@ -309,8 +309,8 @@ echo ""
     export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
 
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
-    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
     export SRUN_CLEVERLEAF=" "
@@ -337,7 +337,7 @@ echo ""
     function run_cleverleaf_with_model() {
         export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
         echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
-            >> ./output/cleverleaf.stdout
+            >> ./output/cleverleaf.0000.stdout
         wipe_all_sos_data_from_database
         cd output
         printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \

@@ -6,5 +6,6 @@ if [ "${1}" == "-h" ] ; then
     echo "Usage:"
     echo "    srun -r 2 -N 1 -n 32 --unbuffered -m block ./show.layout.sh"
 else
-    printf "slurm_nodename: %s  slurm_procid: %s  slurm_jobid: %s\n" ${SLURMD_NODENAME} ${SLURM_PROCID} ${SLURM_JOBID}
+    printf "pid(%s) @ %s  slurm_tasks_per_node: %s  slurm_nprocs: %s  slurm_nnodes: %s\n" \
+         ${SLURM_PROCID} ${SLURMD_NODENAME} ${SLURM_TASKS_PER_NODE} ${SLURM_NPROCS} ${SLURM_NNODES}
 fi
