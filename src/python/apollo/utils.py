@@ -32,67 +32,6 @@ def tablePrint(results):
     return
 
 
-def generateRoundRobinModel(SOS, data, region_names):
-    model_def = {
-        "type": {
-            "guid": SOS.get_guid(),
-            "name": "RoundRobin",
-        },
-        "region_names": list(region_names),
-        "features": {
-            "count": 0,
-            "names": "NA",
-        },
-        "driver": {
-            "format": "int",
-            "rules": 1,
-        }
-    }
-
-
-
-def generateRandomModel(SOS, data, region_names):
-    model_def = {
-        "type": {
-            "guid": SOS.get_guid(),
-            "name": "Random",
-        },
-        "region_names": list(region_names),
-        "features": {
-            "count": 0,
-            "names": "NA",
-        },
-        "driver": {
-            "format": "int",
-            "rules": 1,
-        }
-    }
-
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True) + "\n"
-    return model_as_json
-
-def generateStaticModel(SOS, data, region_names):
-    model_def = {
-        "type": {
-            "guid": SOS.get_guid(),
-            "name": "Static",
-        },
-        "region_names": list(region_names),
-        "features": {
-            "count": 0,
-            "names": "NA",
-        },
-        "driver": {
-            "format": "int",
-            "rules": 1,
-        }
-    }
-
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4,
-            ensure_ascii=True) + "\n"
-    return model_as_json
-
 def progressBar(amount, total, length, fill='='):
     if amount >= total:
         return fill * length

@@ -25,18 +25,28 @@ export SPACK_ROOT='/g/g17/wood67/src/spack'
 export PATH=$SPACK_ROOT/bin:$PATH
 . $SPACK_ROOT/share/spack/setup-env.sh
 echo " |-- Loading Spack packages..."
-echo " |    |-- python"
-spack load python
+export PY_SPACK_HASH="zsgpqf3"    #Python 2.7.16
+#export PY_SPACK_HASH="tckxnhk"    #Python 3.7.2
+echo " |    |-- python@2.7.16                      /$PY_SPACK_HASH"
+spack load python@2.7.16
 echo " |    |    |-- py-scipy"
-spack load py-scipy
+spack load py-scipy ^python/$PY_SPACK_HASH
 echo " |    |    |-- py-scikit-learn"
-spack load py-scikit-learn
+spack load py-scikit-learn ^python/$PY_SPACK_HASH
 echo " |    |    |-- py-pandas"
-spack load py-pandas
+spack load py-pandas ^python/$PY_SPACK_HASH
 echo " |    |    |-- py-numpy"
-spack load py-numpy
+spack load py-numpy ^python/$PY_SPACK_HASH
+echo " |    |    |-- py-pycparser"
+spack load py-pycparser ^python/$PY_SPACK_HASH
 echo " |    |    |-- py-cffi"
-spack load py-cffi
+spack load py-cffi ^python/$PY_SPACK_HASH
+echo " |    |    |-- py-pytz"
+spack load py-pytz ^python/$PY_SPACK_HASH
+echo " |    |    |-- py-dateutil"
+spack load py-dateutil ^python/$PY_SPACK_HASH
+echo " |    |    |-- py-six"
+spack load py-six ^python/$PY_SPACK_HASH
 echo " |    |    \\_"
 echo " |    \\_"
 echo " |-- vim"

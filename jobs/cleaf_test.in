@@ -1,7 +1,7 @@
 Cleverleaf {
     dim = 2
     field_summary_interval=1
-    vis_dump_interval=1
+    vis_dump_interval=-1
     DEV_check_result = TRUE
 
     states {
@@ -35,7 +35,7 @@ PatchHierarchy {
     ratio_to_coarser {
         level_1 = 2,2
     }
-    
+
     largest_patch_size {
         level_0 = -1,-1
     }

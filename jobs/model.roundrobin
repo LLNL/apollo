@@ -2,6 +2,12 @@
         "driver": {
             "rules": {
                 "__ANY_REGION__" : "0"
+            },
+            "least": {
+                "__ANY_REGION__" : -1
+            },
+            "timed": {
+                "__ANY_REGION__" : true
             }
         },
         "guid": 0,

@@ -1,0 +1,191 @@
+
+  JOB TITLE.....: COMPARE.0001.cleverleaf
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237
+
+module swap intel/18.0.1 gcc/4.9.3
+Lmod has detected the following error: Swap failed: "intel/18.0.1" is not
+loaded.
+
+
+
+
+Compiler path: '/usr/tce/packages/gcc/gcc-4.9.3/bin/gcc'
+Compiler version:
+gcc (GCC) 4.9.3
+Copyright (C) 2015 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+ .-- Processing ~/setenv.sh ...
+ |
+ |-- Initializing Spack environment...
+ |-- Loading Spack packages...
+ |    |-- python@2.7.16                      /zsgpqf3
+ |    |    |-- py-scipy
+ |    |    |-- py-scikit-learn
+ |    |    |-- py-pandas
+ |    |    |-- py-numpy
+ |    |    |-- py-pycparser
+ |    |    |-- py-cffi
+ |    |    |-- py-pytz
+ |    |    |-- py-dateutil
+ |    |    |-- py-six
+ |    |    \_
+ |    \_
+ |-- vim
+ |-- cmake
+ |-- libnl
+ |-- libevpath
+ |-- libffs
+ |-- gtkorvo-atl
+ |-- gtkorvo-dill
+ |-- htop
+ \_
+
+cp: omitting directory '/g/g17/wood67/src/apollo/src/python/apollo/__pycache__'
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+_._____. .____  .____.._____. _  ..
+__  ___/_  __ \_  ___/__  __/__  /________      __    .:|   Scalable
+.____ \_  / / /.___ \__  /_ ._  /_  __ \_ | /| / /    .:|   Observation
+____/ // /_/ /.___/ /_  __/ _  / / /_/ /_ |/ |/ /     .:|   System for Scientific
+/____/ \____/ /____/ /_/    /_/  \____/____/|__/      .:|   Workflows
+
+             Version: 1.25
+      Target machine: quartz1154
+
+         Compiled on: Aug  8 2019 at 12:39:16 by wood67@quartz1154
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: a6eeed771836f72734e9e2c594577bf4790e3d9f
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the START of this run...
+
+>>>> Comparing cleverleaf-normal and cleverleaf-apollo...
+
+========== EXPERIMENTS STARTING ==========
+
+
+>>>> Launching controller and waiting 10 seconds for it to come online...
+>>>> OK.
+
+	   1, cleaf_triple_pt_100.in, normal.32.auto                , 1003.62
+	   1, cleaf_triple_pt_100.in, normal.16.auto                , 998.81
+	   1, cleaf_triple_pt_100.in, normal.8.auto                 , 1003.67
+	   1, cleaf_triple_pt_100.in, normal.4.auto                 , 998.39
+	   1, cleaf_triple_pt_100.in, normal.2.auto                 , 1002.85
+	   1, cleaf_triple_pt_100.in, model.roundrobin              , 946.26
+
+========== EXPERIMENTS COMPLETE ==========
+
+
+>>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)...
+
+
+srun: error: quartz2069: task 0: Killed
+srun: Force Terminated job step 3345237.4
+--------------------------------------------------------------------------------
+
+    DONE!
+
+$SOS_WORK = /p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237
+
+/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/daemons
+|-- monitor.0.csv
+|-- monitor.1.csv
+|-- sosd.00000.id
+|-- sosd.00000.key
+`-- sosd.00001.id
+
+0 directories, 5 files
+cleaf_triple_pt_100.0.log
+cleaf_triple_pt_100.1.log
+cleaf_triple_pt_100.2.log
+cleaf_triple_pt_100.3.log
+cleaf_triple_pt_100.4.log
+cleaf_triple_pt_100.5.log
+cleverleaf.0000.stdout
+controller.out
+models
+sqlexec.0.out
+sqlexec.1.out
+sqlexec.out
+--------------------------------------------------------------------------------
+
+The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations.
+
+You are now in the $SOS_WORK directory with your RESULTS and SCRIPTS!
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To RETURN to your code ..: $ cd $RETURN_PATH
+        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: $ killall srun)
+
+NOTE: You need to shut down SOS before it will export the databases to files.
+
+
+Constructing / emailing a results summary:
+  adding: cleaf_triple_pt_100.0.log (deflated 82%)
+  adding: cleverleaf.0000.stdout (deflated 84%)
+  adding: controller.out (deflated 88%)
+  adding: ../daemons/monitor.0.csv (deflated 83%)
+  adding: models/latest_model.json (deflated 96%)
+Error sending message, child exited 70 (Internal error.).
+Could not send the message.
+
+
+ >>>>
+ >>>>
+ >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)
+ >>>>
+
+ *OK* Shutting down interactive experiment environment...
+
+Bringing down SOS:
+Done.
+Done.
+Killing SOS monitors:
+srun: error: quartz2069: task 0: Killed
+OK!
+
+
+srun: error: quartz2152: task 1: Killed
+srun: Force Terminated job step 3345237.2
+/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/sosd.00000.db --> Exported 86.0% in 2.90 seconds.  (65536 of 76200 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/sosd.00001.db --> Exported 86.0% in 3.01 seconds.  (65536 of 76200 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/sosd.00000.db --> Exported 100.0% in 3.48 seconds.  (76200 of 76200 pages)
+** SHUTDOWN **: sosd(0) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3345237/sosd.00001.db --> Exported 100.0% in 3.61 seconds.  (76200 of 76200 pages)
+** SHUTDOWN **: sosd(1) is exiting cleanly!
+--- Done! End of job script. ---

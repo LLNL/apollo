@@ -55,10 +55,6 @@ def main():
         #model_def = trees.generateRegressionTree(SOS, data, region_names)
         #model_len = len(model_def)
 
-        # STATIC
-        #model_def = utils.generateStaticModel(SOS, data, region_names)
-        #model_len = len(model_def)
-
         if model_len > 0:
             trigger_start = time.time()
             SOS.trigger("APOLLO_MODELS", model_len, model_def)
@@ -81,9 +77,6 @@ def main():
 
             #log(1, "Clearing prior training data...")
             #query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
-
-            #model_def = utils.generateRoundRobinModel(SOS, data, region_names)
-            #model_len = len(model_def)
 
             #trigger_start = time.time()
             #SOS.trigger("APOLLO_MODELS", model_len, model_def)

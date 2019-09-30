@@ -1,0 +1,114 @@
+
+  JOB TITLE.....: COMPARE.0001.cleverleaf
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3320146
+
+module swap intel/18.0.1 gcc/4.9.3
+Lmod has detected the following error: Swap failed: "intel/18.0.1" is not
+loaded.
+
+
+
+
+Compiler path: '/usr/tce/packages/gcc/gcc-4.9.3/bin/gcc'
+Compiler version:
+gcc (GCC) 4.9.3
+Copyright (C) 2015 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+ .-- Processing ~/setenv.sh ...
+ |
+ |-- Initializing Spack environment...
+ |-- Loading Spack packages...
+ |    |-- python@2.7.16                      /zsgpqf3
+ |    |    |-- py-scipy
+ |    |    |-- py-scikit-learn
+ |    |    |-- py-pandas
+ |    |    |-- py-numpy
+ |    |    |-- py-pycparser
+ |    |    |-- py-cffi
+ |    |    |-- py-pytz
+ |    |    |-- py-dateutil
+ |    |    |-- py-six
+ |    |    \_
+ |    \_
+ |-- vim
+ |-- cmake
+ |-- libnl
+ |-- libevpath
+ |-- libffs
+ |-- gtkorvo-atl
+ |-- gtkorvo-dill
+ |-- htop
+ \_
+
+cp: omitting directory '/g/g17/wood67/src/apollo/src/python/apollo/__pycache__'
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3320146
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/COMPARE.0001.cleverleaf.3320146/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+_._____. .____  .____.._____. _  ..
+__  ___/_  __ \_  ___/__  __/__  /________      __    .:|   Scalable
+.____ \_  / / /.___ \__  /_ ._  /_  __ \_ | /| / /    .:|   Observation
+____/ // /_/ /.___/ /_  __/ _  / / /_/ /_ |/ |/ /     .:|   System for Scientific
+/____/ \____/ /____/ /_/    /_/  \____/____/|__/      .:|   Workflows
+
+             Version: 1.25
+      Target machine: quartz1154
+
+         Compiled on: Aug  8 2019 at 12:39:16 by wood67@quartz1154
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: a6eeed771836f72734e9e2c594577bf4790e3d9f
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the START of this run...
+
+>>>> Comparing cleverleaf-normal and cleverleaf-apollo...
+
+========== EXPERIMENTS STARTING ==========
+
+
+>>>> Launching controller and waiting 10 seconds for it to come online...
+>>>> OK.
+
+	   1, cleaf_triple_pt_500.in, normal                        , 5608.09
+	   1, cleaf_triple_pt_500.in, model.roundrobin              , 2170.95
+	   1, cleaf_triple_pt_500.in, normal                        , srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+slurmstepd: error: *** STEP 3320146.1 ON quartz166 CANCELLED AT 2019-08-21T21:52:48 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 3320146.0 ON quartz165 CANCELLED AT 2019-08-21T21:52:48 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 3320146 ON quartz165 CANCELLED AT 2019-08-21T21:52:48 DUE TO TIME LIMIT ***
+srun: error: quartz166: task 1: Terminated

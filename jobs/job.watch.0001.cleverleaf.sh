@@ -8,10 +8,10 @@
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.1.cleverleaf500steps"
+#SBATCH --job-name="APOLLO:WATCH.1.cleverleaf"
 #SBATCH -N 2
 #SBATCH -n 8
-#SBATCH -t 180
+#SBATCH -t 120
 #
 export EXPERIMENT_JOB_TITLE="WATCH.0001.cleverleaf"  # <-- creates output path!
 #
@@ -82,6 +82,7 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
@@ -262,7 +263,7 @@ echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 #
 cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
     ${SOS_WORK}/bin/cleverleaf-apollo
-cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
     ${SOS_WORK}/bin/cleverleaf-normal
 
 #
@@ -298,12 +299,16 @@ echo ""
 
     export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
 
-    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
-    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_states_5.in"
+
 
     export SRUN_CLEVERLEAF=" "
+    export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
+    export SRUN_CLEVERLEAF+=" -c 36 "
     export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
     export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
     export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
@@ -333,8 +338,10 @@ echo ""
             >> ./output/cleverleaf.0000.stdout
         wipe_all_sos_data_from_database
         cd output
-        printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
-            $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
+        printf "\t%4s, %-20s, %-20s, " \
+            ${APPLICATION_RANKS} \
+            $(basename -- ${CLEVERLEAF_INPUT}) \
+            $(basename -- ${APOLLO_INIT_MODEL})
         /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} ${CLEVERLEAF_INPUT}
         cd ${SOS_WORK}
         echo "SANITY CHECK:" \
@@ -351,12 +358,13 @@ echo ""
 
     #run_cleverleaf_with_model "model.previous"
 
-    echo ""
-    echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
-    echo ""
-    printf "== CONTROLLER: START\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_START} &
-    sleep 2
+    #echo ""
+    #echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
+    #echo ""
+    #printf "== CONTROLLER: START\n" >> ./output/controller.out
+    #srun ${SRUN_CONTROLLER_START} &
+    #sleep 2
+
 
     run_cleverleaf_with_model "model.roundrobin"
 
@@ -414,6 +422,9 @@ chmod +x ${SOS_WORK}/sosd_stop.sh
 cd ${RETURN_PATH}
 cd ${SOS_WORK}
 echo ""
+echo "Constructing / emailing a results summary:"
+${RETURN_PATH}/end.emailresults.sh cleverleaf
+echo ""
 echo " >>>>"
 echo " >>>>"
 echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
@@ -425,7 +436,7 @@ echo ""
 ${SOS_WORK}/sosd_stop.sh
 echo ""
 echo ""
-sleep 20
+sleep 60
 echo "--- Done! End of job script. ---"
 #
 # EOF

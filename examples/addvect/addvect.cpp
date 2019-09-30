@@ -10,6 +10,10 @@
 //
 #include "addvectLoops.h"
 
+#ifndef RAJA_ENABLE_OPENMP
+#define RAJA_ENABLE_OPENMP
+#endif
+
 void printProgress(double percentage);
 
 #if defined(RAJA_ENABLE_CUDA)
@@ -19,7 +23,7 @@ const int CUDA_BLOCK_SIZE = 256;
 //
 // Functions for checking and printing results
 //
-void checkResult(int* res, int len); 
+void checkResult(int* res, int len);
 void printResult(int* res, int len);
 
 
@@ -31,7 +35,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     Apollo         *apollo = Apollo::instance();
     Apollo::Region *kernel = new Apollo::Region(apollo, "RAJA_kernel", 5);
 
-    // 
+    //
     // How many times we want to hit these loops
     //
     const int iter_max = 1000;
@@ -67,7 +71,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
             {
                 //Do the work of the kernel here.
                 c[i] = a[i] + b[i];
-                
+
             });
         });
         kernel->end();
@@ -81,8 +85,8 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     //
     // Clean up.
     //
-    
-    
+
+
     memoryManager::deallocate(a);
     memoryManager::deallocate(b);
     memoryManager::deallocate(c);

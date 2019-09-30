@@ -2,7 +2,14 @@
         "driver": {
             "rules": {
                 "__ANY_REGION__" : "2"
+            },
+            "least": {
+                "__ANY_REGION__" : -1
+            },
+            "timed": {
+                "__ANY_REGION__" : true
             }
+
         },
         "guid": 0,
         "region_names": [

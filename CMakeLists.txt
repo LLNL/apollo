@@ -60,7 +60,7 @@ endif(APOLLO_RPATH_OVERRIDES)
 
 #
 # Setup variables to pass to ApolloConfig.h
-# 
+#
 # Pull in macros
 include(ApolloProjectMacros)
 # Pull in the GIT repo information
@@ -113,16 +113,16 @@ configure_file(
   ${PROJECT_BINARY_DIR}/apollo-config.cmake
   @ONLY)
 
-install(FILES ${PROJECT_BINARY_DIR}/apollo-config.cmake 
+install(FILES ${PROJECT_BINARY_DIR}/apollo-config.cmake
   DESTINATION share/cmake/apollo)
 
 install(EXPORT apollo
   DESTINATION share/cmake/apollo)
 
-install(FILES ${PROJECT_BINARY_DIR}/apollo-config.h 
+install(FILES ${PROJECT_BINARY_DIR}/apollo-config.h
   DESTINATION include/apollo)
 
-install(FILES ${PROJECT_BINARY_DIR}/apollo.pc 
+install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
   DESTINATION lib/pkgconfig)
 
 #####
@@ -137,7 +137,7 @@ if(SOS_FOUND)
     message(STATUS "---- SOS:    SOS_LIB_DIRS     = ${SOS_LIB_DIRS}")
     message(STATUS "---- SOS:    SOS_LIBRARY      = ${SOS_LIBRARY}")
     include_directories(${SOS_INCLUDE_DIRS})
-    list(APPEND APOLLO_EXTERNAL_LIBS ${SOS_LIBRARY}) 
+    list(APPEND APOLLO_EXTERNAL_LIBS ${SOS_LIBRARY})
 else()
     message(STATUS "---- SOS:  ** ERROR ** Could not locate SOS installation.")
 endif(SOS_FOUND)
@@ -145,8 +145,8 @@ endif(SOS_FOUND)
 find_package(OpenMP)
 if (OPENMP_FOUND)
     message(STATUS "---- OPENMP:  Found!")
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} ")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 else()
     message(STATUS "---- OPENMP:  Not found.")
@@ -159,10 +159,23 @@ if(CALIPER_FOUND)
     message(STATUS "---- CALIPER:    CALIPER_LIB_DIRS     = ${CALIPER_LIB_DIRS}")
     message(STATUS "---- CALIPER:    CALIPER_LIBRARY      = ${CALIPER_LIBRARY}")
     include_directories(${CALIPER_INCLUDE_DIRS})
-    list(APPEND APOLLO_EXTERNAL_LIBS ${CALIPER_LIBRARY}) 
+    list(APPEND APOLLO_EXTERNAL_LIBS ${CALIPER_LIBRARY})
 else()
     message(STATUS "---- CALIPER:  ** ERROR ** Could not locate Caliper installation.")
 endif(CALIPER_FOUND)
+
+
+find_package(callpath REQUIRED)
+if(callpath_CONFIG_LOADED)
+    message(STATUS "---- CALLPATH:  Found!")
+    message(STATUS "---- CALLPATH:    callpath_INCLUDE_DIR = ${callpath_INCLUDE_DIR}")
+    message(STATUS "---- CALLPATH:    callpath_LIB_DIR     = ${callpath_LIB_DIR}")
+    include_directories(${callpath_INCLUDE_DIR})
+    list(APPEND APOLLO_EXTERNAL_LIBS ${callpath_LIB_DIR}/libcallpath.so)
+else()
+    message(STATUS "---- CALLPATH:  ** ERROR ** Could not locate the callpath library.")
+endif(callpath_CONFIG_LOADED)
+
 
 if(APOLLO_REQUIRES_PYTHON)
     find_package(PythonInterp 2.7 REQUIRED)

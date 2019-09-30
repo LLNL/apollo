@@ -8,7 +8,7 @@
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
+#SBATCH --job-name="APOLLO:COMPARE.8.cleverleaf.test"
 #SBATCH -N 2
 #SBATCH -n 12
 #SBATCH -t 180
@@ -43,7 +43,7 @@ export RETURN_PATH=`pwd`
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-#source ${RETURN_PATH}/common_spack.sh
+source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -82,6 +82,7 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
@@ -309,8 +310,8 @@ echo ""
     export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
 
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
-    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
     export SRUN_CLEVERLEAF=" "
@@ -357,8 +358,31 @@ echo ""
     echo ">>>> OK.  Launching applications."
     echo ""
 
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal"
+    export OMP_DISPLAY_ENV=VERBOSE
+
+
     run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.roundrobin"
+
+    export OMP_NUM_THREADS=32
+    export OMP_SCHEDULE="auto"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    export OMP_NUM_THREADS=16
+    export OMP_SCHEDULE="auto"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    export OMP_NUM_THREADS=8
+    export OMP_SCHEDULE="auto"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    export OMP_NUM_THREADS=4
+    export OMP_SCHEDULE="auto"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    export OMP_NUM_THREADS=2
+    export OMP_SCHEDULE="auto"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
 
     cd ${SOS_WORK}
 
@@ -413,6 +437,10 @@ chmod +x ${SOS_WORK}/sosd_stop.sh
 # So that 'cd -' takes you back to the launch path...
 cd ${RETURN_PATH}
 cd ${SOS_WORK}
+echo ""
+echo ""
+echo "Constructing / emailing a results summary:"
+${RETURN_PATH}/end.emailresults.sh cleverleaf
 echo ""
 echo " >>>>"
 echo " >>>>"

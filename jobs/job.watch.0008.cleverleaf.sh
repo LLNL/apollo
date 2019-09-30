@@ -43,7 +43,7 @@ export RETURN_PATH=`pwd`
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-#source ${RETURN_PATH}/common_spack.sh
+source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -82,6 +82,7 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
@@ -262,7 +263,7 @@ echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 #
 cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
     ${SOS_WORK}/bin/cleverleaf-apollo
-cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
     ${SOS_WORK}/bin/cleverleaf-normal
 
 #
@@ -299,8 +300,8 @@ echo ""
     export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
 
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
-    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
     export SRUN_CLEVERLEAF=" "
@@ -349,16 +350,16 @@ echo ""
     #run_cleverleaf_with_model "model.static.3.loopexec"
     #run_cleverleaf_with_model "model.static.4.openmp"
 
-    run_cleverleaf_with_model "model.previous"
+    #run_cleverleaf_with_model "model.previous"
 
-    #echo ""
-    #echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
-    #echo ""
-    #printf "== CONTROLLER: START\n" >> ./output/controller.out
-    #srun ${SRUN_CONTROLLER_START} &
-    #sleep 2
+    echo ""
+    echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
+    echo ""
+    printf "== CONTROLLER: START\n" >> ./output/controller.out
+    srun ${SRUN_CONTROLLER_START} &
+    sleep 2
 
-    #run_cleverleaf_with_model "model.roundrobin"
+    run_cleverleaf_with_model "model.roundrobin"
 
     cd ${SOS_WORK}
 
@@ -413,6 +414,10 @@ chmod +x ${SOS_WORK}/sosd_stop.sh
 # So that 'cd -' takes you back to the launch path...
 cd ${RETURN_PATH}
 cd ${SOS_WORK}
+echo ""
+echo "Constructing / emailing a results summary:"
+${RETURN_PATH}/end.emailresults.sh cleverleaf
+echo ""
 echo ""
 echo " >>>>"
 echo " >>>>"

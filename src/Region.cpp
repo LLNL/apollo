@@ -2,6 +2,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <algorithm>
+#include <limits>
 
 #include "assert.h"
 
@@ -31,7 +32,8 @@ typedef cali::Annotation note;
 int
 Apollo::Region::getPolicyIndex(void)
 {
-    if (not currently_inside_region) {
+    if ((not currently_inside_region)
+        and (is_timed)){
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
                         " while NOT inside the region. Please call"
                         " region->begin(step) first so the model has values to use"
@@ -79,6 +81,9 @@ Apollo::Region::Region(
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
+    is_timed = true;
+    minimum_elements_to_evaluate_model = -1;
+
     model = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
     model->configure("");
 
@@ -112,6 +117,10 @@ Apollo::Region::~Region()
 //       calling context is typical.
 void
 Apollo::Region::begin(int for_experiment_time_step) {
+    if (is_timed == false) {
+        return;
+    }
+
     if (currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->begin(%d) called"
                         " while already inside the region. Please call"
@@ -180,6 +189,9 @@ Apollo::Region::begin(int for_experiment_time_step) {
 
 void
 Apollo::Region::end(void) {
+    if (is_timed == false) {
+        return;
+    }
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
                         " while NOT inside the region. Please call"
@@ -234,6 +246,11 @@ Apollo::Region::end(void) {
         time = iter->second;
     }
 
+
+    // TODO: performance
+    //
+    // Turn this into TOTAL and COUND, do division once at the flush
+    //
     time->exec_count++;
     time->last = current_step_time_end - current_step_time_begin;
     time->min = std::min(time->min, time->last);
@@ -267,37 +284,65 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
         const std::vector<Apollo::Feature>& these_features = iter_measure->first;
         Apollo::Region::Measure                  *time_set = iter_measure->second;
 
+        std::cout.precision(17);
+
         if (time_set->exec_count > 0) {
             t_flush->begin(0);
             t_for_region->begin(name);
             t_for_step->begin(assign_to_step);
             t_exec_count->begin(time_set->exec_count);
-            t_last->begin(time_set->last);
-            t_min->begin(time_set->min);
-            t_max->begin(time_set->max);
+            //t_last->begin(time_set->last);
+            //t_min->begin(time_set->min);
+            //t_max->begin(time_set->max);
             t_avg->begin(time_set->avg);
 
+            int num_elements = -1;
+            int num_threads  = -1;
             for (Apollo::Feature ft : these_features) {
                 apollo->noteBegin(ft.name, ft.value);
+                if (ft.name == "num_elements") {
+                    num_elements = (int) ft.value;
+                }
+                if (ft.name == "num_threads") {
+                    num_threads = (int) ft.value;
+                }
             }
 
             t_flush->end(); // Triggers the consumption of our annotation stack
             //              // by the Caliper service
+
+            //std::cout \
+            //    << assign_to_step << ", " \
+            //    << name << ", " \
+            //    << time_set->exec_count << ", " \
+            //    << current_policy << ", " \
+            //    << num_threads << ", " \
+            //    << num_elements << ", " \
+            //    << std::fixed << time_set->avg << std::endl;
 
             for (Apollo::Feature ft : these_features) {
                 apollo->noteEnd(ft.name);
             }
 
             t_avg->end();
-            t_max->end();
-            t_min->end();
-            t_last->end();
+            //t_max->end();
+            //t_min->end();
+            //t_last->end();
             t_exec_count->end();
             t_for_step->end();
             t_for_region->end();
         }
 
+        //
+        //
+        //
+        //TODO: performance
+        //
+        // Zero out the time set instead of deleting them.
         delete time_set;
+        //
+        //
+        //
         measures.erase(iter_measure);
         iter_measure = measures.begin();
     }

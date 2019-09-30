@@ -107,6 +107,7 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib

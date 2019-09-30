@@ -37,6 +37,12 @@ class Apollo::Model {
                        "        \"rules\": {\n"                            \
                        "            \"__ANY_REGION__\": \"1\"\n"           \
                        "        },\n"                                      \
+                       "        \"least\": {\n"                            \
+                       "            \"__ANY_REGION__\": \"-1\"\n"          \
+                       "        },\n"                                      \
+                       "        \"timed\": {\n"                            \
+                       "            \"__ANY_REGION__\": true\n"            \
+                       "        }\n"                                       \
                        "    },\n"                                          \
                        "    \"guid\": 0,\n"                                \
                        "    \"region_types\": [\n"                         \

@@ -111,7 +111,8 @@ Apollo::ModelWrapper::configure(
     int            m_feat_count;
     vector<string> m_feat_names;
     json           m_drv_rules;
-
+    bool           m_timed;
+    int            m_least_count;
 
 
     log("Attempting to parse model definition...");
@@ -211,6 +212,8 @@ Apollo::ModelWrapper::configure(
                     model_errors++;
                     m_drv_rules = json::parse(MT.DefaultStaticModel);
                     m_type_name = "Static";
+                    m_timed = true;
+                    m_least_count = -1;
                 } else {
                     // We found a generic __ANY_REGION__ model
                     m_drv_rules = j["driver"]["rules"]["__ANY_REGION__"];
@@ -222,8 +225,12 @@ Apollo::ModelWrapper::configure(
                         model_errors++;
                         m_drv_rules = json::parse(MT.DefaultStaticModel);
                         m_type_name = "Static";
+                        m_timed = true;
+                        m_least_count = -1;
                     } else {
                         m_type_name = j["region_types"]["__ANY_REGION__"].get<string>();
+                        m_timed = j["driver"]["timed"]["__ANY_REGION__"].get<bool>();
+                        m_least_count = j["driver"]["least"]["__ANY_REGION__"].get<int>();
                     }
                 }
             } else {
@@ -237,12 +244,19 @@ Apollo::ModelWrapper::configure(
                     model_errors++;
                     m_drv_rules = json::parse(MT.DefaultStaticModel);
                     m_type_name = "Static";
+                    m_timed = true;
+                    m_least_count = -1;
                 } else {
                     m_type_name = j["region_types"][region->name].get<string>();
+                    m_timed = j["driver"]["timed"][region->name].get<bool>();
+                    m_least_count = j["driver"]["least"][region->name].get<int>();
                 }
             }
         }
     }
+
+    region->is_timed = m_timed;
+    region->minimum_elements_to_evaluate_model = m_least_count;
 
     if (model_errors > 0) {
         fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"

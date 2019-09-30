@@ -78,32 +78,6 @@ def generateDecisionTree(SOS, data, region_names):
         log(9, "Name swapping table:")
         tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
 
-
-    # Available fields:
-    #        region_name,
-    #        region_name_id,
-    #        policy_index,
-    #        step,
-    #        frame,
-    #        num_elements,
-    #        exec_count,
-    #        time_last,
-    #        time_min,
-    #        time_max,
-    #        time_avg
-    #drop_fields = [
-    #        "region_name",
-    #        "region_name_id",
-    #        "policy_index",
-    #        "mpi_rank",
-    #        "step",
-    #        "exec_count",
-    #        "frame",
-    #        "time_last",
-    #        "time_min",
-    #        "time_max",
-    #        "time_avg" ]
-
     drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
@@ -113,6 +87,8 @@ def generateDecisionTree(SOS, data, region_names):
     model_count = 0
     all_types_rule = {}
     all_rules_json = {}
+    all_least_json = {}
+    all_timed_json = {}
     all_sizes_data = {}
     overall_start = time.time()
 
@@ -121,6 +97,14 @@ def generateDecisionTree(SOS, data, region_names):
         this_start = time.time()
 
         rd = grp_data[grp_data['region_name'] == region]
+
+        if (rd.shape[0] < 1):
+            continue
+
+        element_minimum_to_evaluate_tree = -1
+        # seq_winners =  rd[rd['policy_index']==1]
+        # if (seq_winners.shape[0] > 0):
+        #     element_minimum_to_evaluate_tree = seq_winners.max('num_elements').astype(int)
 
         y = rd["policy_index"].astype(int)
         x = rd.drop(drop_fields, axis="columns").values.astype(float)
@@ -133,7 +117,7 @@ def generateDecisionTree(SOS, data, region_names):
         #         min_samples_split=2, min_weight_fraction_leaf=0.0,
         #         presort=False, random_state=None, splitter='best'))]
         pipe = [('estimator',   DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=6,
+                 class_weight=None, criterion='gini', max_depth=4,
                  min_samples_leaf=1, min_samples_split=2))]
         model = Pipeline(pipe)
 
@@ -143,6 +127,8 @@ def generateDecisionTree(SOS, data, region_names):
 
         all_types_rule[region] = "DecisionTree"
         all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
+        all_least_json[region] = element_minimum_to_evaluate_tree
+        all_timed_json[region] = True
         all_sizes_data[region] = str(x.shape)
 
         this_elapsed = time.time() - this_start
@@ -165,6 +151,8 @@ def generateDecisionTree(SOS, data, region_names):
         "guid": SOS.get_guid(),
         "driver": {
             "rules": all_rules_json,
+            "least": all_least_json,
+            "timed": all_timed_json,
         },
         "region_names": list(region_names),
         "region_sizes": all_sizes_data,
@@ -175,11 +163,18 @@ def generateDecisionTree(SOS, data, region_names):
         },
     }
 
-    # Add in a default model (static sequential) for any unnamed loops:
+
+    #IDEA: Create bins of regions. If some region doesn't have a model, figure out what bin
+    #      its actual runtimes placed it in and give it a model from some other region in that
+    #      bin... (this is problematic, just an idea)
+
+    # Add in a default model (Static, OMP defaults) for any unnamed region:
     model_def["region_names"].append("__ANY_REGION__")
     model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
     model_def["region_types"]["__ANY_REGION__"] = "Static"
     model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
+    model_def["driver"]["least"]["__ANY_REGION__"] = 4
+    model_def["driver"]["timed"]["__ANY_REGION__"] = True
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
     json_elapsed = time.time() - json_start
@@ -205,8 +200,8 @@ def generateRegressionTree(SOS, data, region_names):
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes
 
-    # We don't bin or simplify the raw data for regression trees,
-    # we want all of it.
+    # TODO: This is all out of date...
+
     drop_fields =[
             "frame",
             "loop",

@@ -1,21 +1,8 @@
 #!/bin/bash
-#SBATCH -p pbatch
-#SBATCH -A asccasc
-#SBATCH --mail-user=wood67@llnl.gov
-#SBATCH --mail-type=ALL
-#SBATCH --requeue
-#SBATCH --exclusive
 #
-#  The following items will need updating at different scales:
+export EXPERIMENT_JOB_TITLE="BLANK.test.cleverleaf"  # <-- creates output path!
 #
-#SBATCH --job-name="APOLLO:WATCH.8.cleverleaf.test"
-#SBATCH -N 2
-#SBATCH -n 12
-#SBATCH -t 120
-#
-export EXPERIMENT_JOB_TITLE="COMPARE.0008.cleverleaf-viz"  # <-- creates output path!
-#
-export APPLICATION_RANKS="8"         # ^__ make sure to change SBATCH node counts!
+export APPLICATION_RANKS="1"         # ^__ make sure to change SBATCH node counts!
 export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
 export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. node
 #
@@ -82,6 +69,7 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
@@ -91,7 +79,6 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
 cp ${RETURN_PATH}/common_spack.sh           ${SOS_WORK}/launch/COMMON_SPACK.sh
 cp ${RETURN_PATH}/common_setenv.sh          ${SOS_WORK}/launch/COMMON_SETENV.sh
 cp ${RETURN_PATH}/common_unsetenv.sh        ${SOS_WORK}/launch/COMMON_UNSETENV.sh
-cp ${BASH_SOURCE}                           ${SOS_WORK}/launch/BATCH_JOB_SCRIPT.sh
 #
 export SOS_BATCH_ENVIRONMENT="TRUE"
 #
@@ -257,6 +244,7 @@ export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 #
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
+env | grep SLURM                     > ${SOS_WORK}/launch/SLURM_ENV
 #
 #  Copy the applications into the experiment path:
 #
@@ -295,30 +283,22 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-#echo "Launching controller and waiting 10 seconds for it to come online..."
-#printf "== CONTROLLER: START\n" >> ./output/controller.out
-#srun ${SRUN_CONTROLLER_START} &
-#sleep 10
-#
-echo ""
-echo ">>>> Controller is DISABLED for the START of this run..."
-echo ""
-#
-
     export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
     export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
 
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
+
     export SRUN_CLEVERLEAF=" "
+    export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
+    export SRUN_CLEVERLEAF+=" -c 32 "
     export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
     export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
     export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
     export SRUN_CLEVERLEAF+=" -r 1 "
 
-    echo ">>>> Comparing cleverleaf-normal and cleverleaf-apollo..."
-
-    echo ""
-    echo "========== EXPERIMENTS STARTING =========="
-    echo ""
 
     function wipe_all_sos_data_from_database() {
         echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
@@ -332,11 +312,16 @@ echo ""
     function run_cleverleaf_with_model() {
         export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
         echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
-            >> ./output/cleverleaf.stdout
+            >> ./output/cleverleaf.0000.stdout
         wipe_all_sos_data_from_database
         cd output
+
+        echo ""
+        echo "srun ${SRUN_CLEVERLEAF} $1 $2"
+        echo ""
+
         printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
-            $(basename -- $2) $(basename -- ${APOLLO_INIT_MODEL})
+            $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
         /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
         cd ${SOS_WORK}
         echo "SANITY CHECK:" \
@@ -344,35 +329,42 @@ echo ""
         SOS_SQL=${SQL_SANITYCHECK} srun ${SRUN_SQL_EXEC}
     }
 
-    echo ""
-    echo ">>>> Launching controller and waiting 10 seconds for it to come online..."
-    printf "== CONTROLLER: START\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_START} &
-    sleep 10
-    echo ">>>> OK.  Launching applications."
-    echo ""
+    #run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
 
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "normal"
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "model.roundrobin"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "normal"
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "model.roundrobin"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "normal"
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${SOS_WORK}/cleaf_triple_pt_500_viz.in "model.roundrobin"
 
+    # The static model doesn't adjust anything, and doesn't receive feedback from the controller,
+    # there is no need to start it until now. SOS is still running and receiving data.
+    #srun ${SRUN_CONTROLLER_START} &
+    #sleep 4
+
+    #export OMP_DISPLAY_ENV=VERBOSE
+    #run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.roundrobin"
+
+    #export OMP_NUM_THREADS=32
+    #export OMP_SCHEDULE="auto"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    #export OMP_NUM_THREADS=16
+    #export OMP_SCHEDULE="auto"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    #export OMP_NUM_THREADS=8
+    #export OMP_SCHEDULE="auto"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    #export OMP_NUM_THREADS=4
+    #export OMP_SCHEDULE="auto"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    #export OMP_NUM_THREADS=2
+    #export OMP_SCHEDULE="auto"
+    #run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+
+    export OMP_NUM_THREADS=36
+    export APOLLO_INIT_MODEL=${SOS_WORK}/model.static.0.default
+    export OMP_DISPLAY_ENV=verbose
     cd ${SOS_WORK}
-
-    echo ""
-    echo "========== EXPERIMENTS COMPLETE =========="
-    echo ""
-
-    echo ""
-    echo ">>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
-    echo ""
-    printf "== CONTROLLER: STOP\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_STOP}
-    echo ""
-    sleep 5
-
 #
 #^
 #^^
@@ -382,8 +374,6 @@ echo ""
 export PARTING_NOTE=${SOS_WORK}/launch/PARTING_INSTRUCTIONS
 #
 echo "--------------------------------------------------------------------------------"
-echo ""
-echo "    DONE!"
 echo ""
 echo "\$SOS_WORK = ${SOS_WORK}"
 echo ""
@@ -412,6 +402,10 @@ chmod +x ${SOS_WORK}/sosd_stop.sh
 # So that 'cd -' takes you back to the launch path...
 cd ${RETURN_PATH}
 cd ${SOS_WORK}
+echo ""
+#echo "Constructing / emailing a results summary:"
+#${RETURN_PATH}/end.emailresults.sh cleverleaf
+echo ""
 echo ""
 echo " >>>>"
 echo " >>>>"

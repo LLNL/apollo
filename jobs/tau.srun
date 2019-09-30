@@ -1,0 +1,1 @@
+srun -N 1 tau_exec -T mpi,pthread,papi -ebs ./bin/cleverleaf-normal cleaf_triple_pt_25.in

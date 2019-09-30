@@ -37,7 +37,17 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     #        the encoding of the model, for now.
     #
     log(2, "Submitting SQL queries ...")
-    sql_string = "SELECT DISTINCT region_name FROM viewApollo WHERE region_name IS NOT NULL;"
+    #
+    # Old slow way:
+    #sql_string = "SELECT DISTINCT region_name FROM viewApollo WHERE region_name IS NOT NULL;"
+    #
+    sql_string = """\
+            SELECT DISTINCT(tblVals.val)
+            FROM tblVals
+                LEFT OUTER JOIN tblData ON tblVals.guid = tblData.guid
+            WHERE tblData.name LIKE "region_name"
+                AND tblVals.val IS NOT NULL;
+            """
     names_start = time.time()
     region_name_list, col_names = SOS.query(sql_string, sos_host, sos_port)
     names_elapsed = time.time() - names_start
@@ -52,11 +62,21 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     #
     #  Now get the full training set:
     #
-    sql_string = """\
-        SELECT *
-        FROM   viewApollo
-        WHERE  region_name IS NOT NULL
-        """
+    #
+    #  Example of a faster version of this query:
+    # select region_name, policy_index, min(time_avg) from viewApollo2
+    #      where step > 90 and exec_count > 10 and num_elements > 9 group by region_name;
+    #
+    sql_string = "SELECT * FROM viewApollo WHERE region_name IS NOT NULL;"
+
+    # Skip the regrid steps:
+    #   sql_string = """\
+    #       SELECT *
+    #       FROM   viewApollo
+    #       WHERE ( ((frame + 1) % 10 != 0)
+    #           AND (region_name IS NOT NULL)
+    #       )
+    #       """
 
     if (row_limit < 1):
         sql_string += ";"
@@ -154,12 +174,6 @@ def createApolloView(SOS, sos_host, sos_port):
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "num_elements",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "exec_count"
                                   THEN tblVals.val END) AS "exec_count",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
-                                  THEN tblVals.val END) AS "time_last",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_min"
-                                  THEN tblVals.val END) AS "time_min",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_max"
-                                  THEN tblVals.val END) AS "time_max",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_avg"
                                   THEN tblVals.val END) AS "time_avg"
             FROM   tblPubs

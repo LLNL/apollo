@@ -1,6 +1,6 @@
 Cleverleaf {
     dim = 2
-    vis_dump_interval = 1 
+    vis_dump_interval = -1
     field_summary_interval = 0
     restart_interval = 0
 
@@ -115,6 +115,6 @@ LagrangianEulerianIntegrator {
     start_time = 0.e0
     end_time = 2.5e0
     grow_dt = 1.5e0
-    max_integrator_steps=20
+    max_integrator_steps=100
     regrid_interval=10
 }
