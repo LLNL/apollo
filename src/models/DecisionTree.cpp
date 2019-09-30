@@ -3,12 +3,11 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
-
-#include "caliper/cali.h"
-#include "caliper/common/cali_types.h"
 
 #include "apollo/Apollo.h"
 #include "apollo/models/DecisionTree.h"
@@ -31,14 +30,16 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     //IF this a LEAF node, return the int.
     //OTHERWISE...
     //
-    if (node->feature->value <= node->value_LEQ) {
+    double feat_val = apollo->features[node->feature_index].value;
+
+    if (feat_val <= node->value_LEQ) {
         if (node->left_child == nullptr) {
             return node->recommendation;
         } else {
             return recursiveTreeWalk(node->left_child);
         }
     }
-    if (node->feature->value > node->value_LEQ) {
+    if (feat_val > node->value_LEQ) {
         if (node->right_child == nullptr) {
             return node->recommendation;
         } else {
@@ -55,6 +56,7 @@ Apollo::Model::DecisionTree::getIndex(void)
     // Keep choice around for easier debugging, if needed:
     static int choice = -1;
 
+    // NOTE: iter_count is here so we don't fill up stderr with endless warnings.
     iter_count++;
     if (configured == false) {
         if (iter_count < 10) {
@@ -71,26 +73,6 @@ Apollo::Model::DecisionTree::getIndex(void)
         return choice;
     }
 
-    // Refresh the values for each feature mentioned in the decision tree.
-    // This gives us coherent tree behavior for this iteration, even if the model
-    // gets replaced or other values are coming into Caliper during this process,
-    // values being evaluated wont change halfway through walking the tree:
-    bool converted_ok = true;
-    for (Feature *feat : tree_features) {
-        if (feat->cali_id == -1) {
-            feat->cali_id = cali_find_attribute(feat->name.c_str());
-            if (feat->cali_id == CALI_INV_ID) {
-                feat->cali_id = -1;
-            }
-        }
-        feat->value_variant = cali_get(feat->cali_id);
-        feat->value         = cali_variant_to_double(feat->value_variant, &converted_ok);
-        if (not converted_ok) {
-            fprintf(stderr, "== APOLLO: [ERROR] Unable to convert feature to a double!\n");
-            return 0;
-        }
-    }
-
     // Find the recommendation of the decision tree:
     choice = recursiveTreeWalk(tree_head);
 
@@ -103,11 +85,11 @@ Apollo::Model::DecisionTree::configure(
         int  numPolicies,
         json model_definition)
 {
+    // Construct a decisiontree for this model_definition.
 
     apollo       = Apollo::instance();
     policy_count = numPolicies;
 
-    // Construct a decisiontree for this model_definition.
     if ((model_definition == nullptr) || (model_definition == NULL)) {
         fprintf(stderr, "[WARNING] Cannot successfully configure"
                 " with a NULL or empty model definition.\n");
@@ -115,31 +97,18 @@ Apollo::Model::DecisionTree::configure(
         configured = false;
         return;
     }
-
     log("DecisionTree::configure() called with the following model_definition: \n",
             model_definition);
 
+    // Keep a copy of the JSON:
     model_def = model_definition;
 
-    // ----------
     // Recursive function that constructs tree from nested JSON:
     tree_head = nodeFromJson(model_def, nullptr, 1);
-    configured = true;
 
+    configured = true;
     return;
 }
-
-    // NOTE: Deprecated from prior incarnation of model as a string. It stays a JSON object now.
-    //json j;
-    //try {
-    //    j = json::parse(model_def);
-    //} catch (json::parse_error& e) {
-    //    // output exception information
-    //    std::cout << "Error parsing JSON:\n\tmessage: " << e.what() << '\n'
-    //        << "\texception id: " << e.id << '\n'
-    //        << "\tbyte position of error: " << e.byte << std::endl;
-    //    exit(EXIT_FAILURE);
-    //}
 
 
 Apollo::Model::DecisionTree::Node*
@@ -158,12 +127,11 @@ Apollo::Model::DecisionTree::nodeFromJson(
 
     std::string indent = std::string(my_indent * 4, ' ');
 
-    // [ ] IF there is a "rule", there are L/R children
+    // IF there is a "rule", there are L/R children
     if (j.find("rule") != j.end()) {
-        // [ ] We're a branch
+        // We're a branch
         node->is_leaf = false;
-        // [ ] Extract the feature name and the comparison value for LEQ/GT
-        cali_id_t   feat_id;
+        // Extract the feature name and the comparison value for LEQ/GT
 
         std::string rule = j["rule"].get<string>();
         std::string feat_name = "";
@@ -176,54 +144,22 @@ Apollo::Model::DecisionTree::nodeFromJson(
         rule_split >> comparison_symbol;
         rule_split >> leq_val;
 
-        //log("feat_name == '", feat_name, "'");
-        //log("comparison_symbol == '", comparison_symbol, "'");
-        //log("leq_val == '", leq_val, "'");
-
         node->value_LEQ = leq_val;
 
-        // Scan to see if we have this feature in our accelleration structure::
+        // Find or Insert this feature:
         bool found = false;
-        Feature *feat;
-
-        for (auto f : tree_features) {
-            if (f->name == feat_name) {
-                feat = f;
-                found = true;
-                break;
+        while (not found) {
+            for (int i = 0; i < apollo->features.size(); ++i) {
+                if (apollo->features[i].name == feat_name) {
+                    node->feature_index = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (not found) {
+                apollo->setFeature(feat_name, 0.0);
             }
         }
-        if (not found) {
-            // add it
-            feat_id = cali_find_attribute(feat_name.c_str());
-            if (feat_id == CALI_INV_ID) {
-                // NOTE: We don't want to error out here, in case we're loading a model trained
-                //       in a previous run, but don't yet have measurements of some feature the
-                //       model refers to.
-                //
-                //fprintf(stderr, "== APOLLO: "
-                //"[ERROR] DecisionTree refers to features not present in Caliper data.\n"
-                //"\tThis is likely due to an error in the Apollo Controller logic.\n");
-                //fprintf(stderr, "== APOLLO: Referenced feature: \"%s\"\n",
-                //        feat_name.c_str());
-                //fflush(stderr);
-                //exit(EXIT_FAILURE);
-                feat = new Feature();
-                // NOTE: feat->value_variant and feat->value are filled
-                //       before being used for traversal in getIndex()
-                feat->cali_id = -1;
-                feat->name    = feat_name;
-                tree_features.push_back(feat);
-            } else {
-                feat = new Feature();
-                // NOTE: feat->value_variant and feat->value are filled
-                //       before being used for traversal in getIndex()
-                feat->cali_id = feat_id;
-                feat->name    = feat_name;
-                tree_features.push_back(feat);
-            }
-        }
-        node->feature = feat;
 
         log(indent, "if (", feat_name, " <= ", node->value_LEQ, ")");
 
@@ -234,7 +170,7 @@ Apollo::Model::DecisionTree::nodeFromJson(
     } else {
         // [ ] We are a leaf, extract the values from the tree
         node->is_leaf = true;
-        node->feature = node->parent_node->feature;
+        node->feature_index = node->parent_node->feature_index;
         node->recommendation_vector = j["value"].get<vector<float>>();
         // [ ] Look at the vector and find the index with the most clients
         //     in it, that's where the best performing kernels were clustered
@@ -298,10 +234,6 @@ Apollo::Model::DecisionTree::~DecisionTree()
             if (node != nullptr) { delete node; }
         }
         tree_nodes.clear();
-        for (Feature *feat : tree_features) {
-            if (feat != nullptr) { delete feat; }
-        }
-        tree_features.clear();
         model_def = "";
         iter_count = 0;
     }
@@ -325,64 +257,4 @@ APOLLO_model_destroy_decisiontree(
 }
 
 
-
-    /* DEPRECATED: This is the old hand-rolled model encoding format.
-     *
-    std::istringstream model(model_def);
-    typedef std::stringstream  unpack_str;
-    std::string        line;
-
-    int num_features = 0;
-
-    // Find out how many features are named:
-    std::getline(model, line);
-    unpack_str(line) >> num_features;
-
-    // Load in the feature names:   (values are fetched by getIndex())
-    for (int i = 0; i < num_features; i++) {
-        std::getline(model, line);
-        tree_features.push_back(std::string(line));
-    }
-
-    // Load in the rules:
-    int         line_id   = -1;
-    std::string line_feat = NULL;
-    std::string line_op   = NULL;
-    double      line_val  = 0;
-
-    Node *node = nullptr;
-
-    while (std::getline(model, line)) {
-        unpack_str(line) >> line_id >> line_feat >> line_op >> line_val;
-
-        auto tree_find = tree_nodes.find(line_id);
-        //
-        // Either we are adding to an existing node, or a new one, either way
-        // make 'node' point to the correct object instance.
-        if (tree_find == tree_nodes.end()) {
-                node = new Node(apollo, line_id, line_feat.c_str());
-                tree_nodes.emplace(line_id, node);
-        } else {
-                node = tree_find->second;
-        }
-
-        // Set the components of this node, give the content of this line.
-        // NOTE: apollo, node_id, and node_feat have already been set.
-        if (line_op == "<=") {
-            break;
-        } else if (line_op == ">") {
-            break;
-        } else if (line_op == "=") {
-            break;
-        } else {
-            fprintf(stderr, "ERROR: Unable to process decision"
-                    " tree model definition (bad operator"
-                    " encountered).\n");
-            configured = false;
-            return;
-        } // end: if(node_op...)
-
-        //...
-    }
-    */
 

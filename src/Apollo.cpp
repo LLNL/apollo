@@ -21,16 +21,8 @@ using json = nlohmann::json;
 //
 #include "util/Debug.h"
 //
-#include "caliper/cali.h"
-#include "caliper/Annotation.h"
-//
 #include "sos.h"
 #include "sos_types.h"
-
-SOS_runtime *sos;
-SOS_pub     *pub;
-
-typedef cali::Annotation note;
 
 void
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
@@ -53,11 +45,6 @@ handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
             break;
         //
         case SOS_FEEDBACK_TYPE_PAYLOAD:
-            //log("Trigger payload received.  (msg_size == " << msg_size << ")");
-            //void *apollo_ref = SOS_reference_get(
-            //        (SOS_runtime *)sos_context,
-            //        "APOLLO_CONTEXT");
-
             //NOTE: data may not be a null-terminated string, so we put it into one.
             char *cleanstr = (char *) calloc(msg_size + 1, sizeof(char));
             strncpy(cleanstr, (const char *)data, msg_size);
@@ -98,22 +85,6 @@ Apollo::attachModel(const char *def)
         return;
     }
 
-    // --------
-    // CHAD's little debugging toy...
-    static int rank = -1;
-    if (rank < 0) {
-        const char *rank_str = getenv("SLURM_PROCID");
-        if ((rank_str != NULL) && (strlen(rank_str) > 0))
-        {
-            rank = atoi(rank_str);
-        }
-    }
-    if (rank == 0) {
-        std::cout << "-------- new model has arrived --------" << std::endl;
-    }
-    // --------
-
-
     // Extract the list of region names for this "package of models"
     std::vector<std::string> region_names;
     json j = json::parse(std::string(def));
@@ -137,6 +108,9 @@ Apollo::attachModel(const char *def)
             // Everyone will get either a specific model from the definintion, or
             // the __ANY_REGION__ fallback.
             region->getModel()->configure(def);
+            // TODO: We need a version that only attaches models to unassigned regions,
+            // that does not update ALL regions, for instances where we have some regions
+            // explicitly retraining and don't want to interrupt them
         } else {
             if (std::find(std::begin(region_names), std::end(region_names),
                         region->name) != std::end(region_names)) {
@@ -145,7 +119,6 @@ Apollo::attachModel(const char *def)
         }
     };
 
-    //std::cout << "Done attempting to load new model.\n";
     return;
 }
 
@@ -155,8 +128,8 @@ Apollo::Apollo()
 {
     ynConnectedToSOS = false;
 
-    sos = NULL;
-    pub = NULL;
+    SOS_runtime *sos = NULL;
+    SOS_pub     *pub = NULL;
 
     SOS_init(&sos, SOS_ROLE_CLIENT,
             SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
@@ -179,6 +152,13 @@ Apollo::Apollo()
         sos = NULL;
         return;
     }
+
+    // For other components of Apollo to access the SOS API w/out the include
+    // file spreading SOS as a project build dependency, store these as void *
+    // references in the class:
+    sos_handle = sos;
+    pub_handle = pub;
+
 
     log("Reading SLURM env...");
     try {
@@ -224,25 +204,6 @@ Apollo::Apollo()
 
     ynConnectedToSOS = true;
 
-    SOS_guid guid = SOS_uid_next(sos->uid.my_guid_pool);
-
-    note_flush =
-        (void *) new note("APOLLO_time_flush", CALI_ATTR_ASVALUE);
-    note_time_for_region =
-        (void *) new note("region_name", CALI_ATTR_ASVALUE);
-    note_time_for_step =
-        (void *) new note("step", CALI_ATTR_ASVALUE);
-    note_time_exec_count =
-        (void *) new note("exec_count", CALI_ATTR_ASVALUE);
-    note_time_last =
-        (void *) new note("time_last", CALI_ATTR_ASVALUE);
-    note_time_min =
-        (void *) new note("time_min", CALI_ATTR_ASVALUE);
-    note_time_max =
-        (void *) new note("time_max", CALI_ATTR_ASVALUE);
-    note_time_avg =
-        (void *) new note("time_avg", CALI_ATTR_ASVALUE);
-
     log("Initialized.");
 
     return;
@@ -250,36 +211,31 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
+    SOS_runtime *sos = (SOS_runtime *) sos_handle;
     if (sos != NULL) {
         SOS_finalize(sos);
         sos = NULL;
+        sos_handle = NULL;
+        // Leaving the pub in place leaks a little bit of memory, but
+        // this destructor is only called when the process is terminating.
+        pub_handle = NULL;
     }
-    delete (note *) note_flush;
-    delete (note *) note_time_for_region;
-    delete (note *) note_time_for_step;
-    delete (note *) note_time_exec_count;
-    delete (note *) note_time_last;
-    delete (note *) note_time_min;
-    delete (note *) note_time_max;
-    delete (note *) note_time_avg;
-
 }
 
 void
 Apollo::flushAllRegionMeasurements(int assign_to_step)
 {
+    SOS_pub *pub = (SOS_pub *) pub_handle;
+
     auto it = regions.begin();
     while (it != regions.end()) {
         Apollo::Region *reg = it->second;
         reg->flushMeasurements(assign_to_step);
         ++it;
     }
-    note *t_flush = (note *) note_flush;
-    t_flush->begin(1);
-    t_flush->end();
+    SOS_publish(pub);
     return;
 }
-
 
 
 void
@@ -301,9 +257,6 @@ Apollo::setFeature(std::string set_name, double set_value)
         f.value = set_value;
 
         features.push_back(std::move(f));
-
-        note *n = new note(set_name.c_str(), CALI_ATTR_ASVALUE);
-        feature_notes.insert({set_name, (void *) n});
     }
 
     return;
@@ -324,36 +277,6 @@ Apollo::getFeature(std::string req_name)
     return retval;
 }
 
-void
-Apollo::noteBegin(std::string &name, double with_value) {
-    note *feat_annotation = (note *) getNote(name);
-    if (feat_annotation != nullptr) {
-        feat_annotation->begin(with_value);
-    }
-    return;
-}
-
-void
-Apollo::noteEnd(std::string &name) {
-    note *feat_annotation = (note *) getNote(name);
-    if (feat_annotation != nullptr) {
-        feat_annotation->end();
-    }
-    return;
-}
-
-void *
-Apollo::getNote(std::string &name) {
-    auto iter_feature = feature_notes.find(name);
-    if (iter_feature != feature_notes.end()) {
-        return (void *) iter_feature->second;
-    } else {
-        return nullptr;
-    }
-}
-
-
-
 
 Apollo::Region *
 Apollo::region(const char *regionName)
@@ -370,6 +293,7 @@ Apollo::region(const char *regionName)
 std::string
 Apollo::uniqueRankIDText(void)
 {
+    SOS_pub *pub = (SOS_pub *) pub_handle;
     std::stringstream ss_text;
     ss_text << "{";
     ss_text << "hostname: \"" << pub->node_id      << "\",";
@@ -379,20 +303,33 @@ Apollo::uniqueRankIDText(void)
     return ss_text.str();
 }
 
+
 int
-Apollo::sosPack(const char *name, int val)
+Apollo::sosPackRelatedInt(uint64_t relation_id, const char *name, int val)
 {
-    return SOS_pack(pub, name, SOS_VAL_TYPE_INT, &val);
+    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_INT, &val);
 }
 
 int
-Apollo::sosPackRelated(long relation_id, const char *name, int val)
+Apollo::sosPackRelatedDouble(uint64_t relation_id, const char *name, double val)
 {
-    return SOS_pack_related(pub, relation_id, name, SOS_VAL_TYPE_INT, &val);
+    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_DOUBLE, &val);
+}
+
+int
+Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, const char *val)
+{
+    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val);
+}
+int
+Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, std::string val)
+{
+    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val.c_str());
 }
 
 void Apollo::sosPublish()
 {
+    SOS_pub *pub = (SOS_pub *) pub_handle;
     if (isOnline()) {
         SOS_publish(pub);
     }

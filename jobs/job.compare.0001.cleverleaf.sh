@@ -42,7 +42,7 @@ export RETURN_PATH=`pwd`
 #
 #  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-source ${RETURN_PATH}/common_spack.sh
+#source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 #
 export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
@@ -298,9 +298,10 @@ echo ""
     export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
     export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
 
+    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-    export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+    #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
     export SRUN_CLEVERLEAF=" "
@@ -341,13 +342,10 @@ echo ""
             $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
         /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
         cd ${SOS_WORK}
-        echo "SANITY CHECK:" \
-            >> ./output/sqlexec.out
-        SOS_SQL=${SQL_SANITYCHECK} srun ${SRUN_SQL_EXEC}
     }
 
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
     run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
+    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
 
 
     # The static model doesn't adjust anything, and doesn't receive feedback from the controller,
@@ -356,27 +354,27 @@ echo ""
     sleep 4
 
     export OMP_DISPLAY_ENV=VERBOSE
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.roundrobin"
+    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.4.openmp"
 
-    export OMP_NUM_THREADS=32
-    export OMP_SCHEDULE="auto"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
-
-    export OMP_NUM_THREADS=16
-    export OMP_SCHEDULE="auto"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
-
-    export OMP_NUM_THREADS=8
-    export OMP_SCHEDULE="auto"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
-
-    export OMP_NUM_THREADS=4
-    export OMP_SCHEDULE="auto"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
-
-    export OMP_NUM_THREADS=2
-    export OMP_SCHEDULE="auto"
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+#    export OMP_NUM_THREADS=32
+#    export OMP_SCHEDULE="auto"
+#    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+#
+#    export OMP_NUM_THREADS=16
+#    export OMP_SCHEDULE="auto"
+#    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+#
+#    export OMP_NUM_THREADS=8
+#    export OMP_SCHEDULE="auto"
+#    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+#
+#    export OMP_NUM_THREADS=4
+#    export OMP_SCHEDULE="auto"
+#    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+#
+#    export OMP_NUM_THREADS=2
+#    export OMP_SCHEDULE="auto"
+#    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 
     cd ${SOS_WORK}
 

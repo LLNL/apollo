@@ -27,23 +27,15 @@ class Apollo::Region {
         typedef struct {
             int       exec_count;
             double    time_total;
-            // TODO: performance
-            //
-            // Remove the double's below.
-            //
-            double    min;
-            double    max;
-            double    avg;
-            double    last;
         } Measure;
 
 
         char    *name;
-        void     begin(int user_defined_step);
+        void     begin(void);
         void     end(void);
 
-        int      minimum_elements_to_evaluate_model;
         bool     is_timed;
+        int      minimum_elements_to_evaluate_model; //deprecated
 
         Apollo::ModelWrapper *getModel(void);
         int                   getPolicyIndex(void);
@@ -53,15 +45,9 @@ class Apollo::Region {
 
         std::vector<Apollo::Explorable> explorables;
 
-        int            current_step;
         int            current_policy;
-        int            exec_count_total;
-        int            exec_count_current_step;
-        int            exec_count_current_policy;
-        void flushMeasurements(int assign_to_step);
 
-        void caliSetInt(const char *name, int value);
-        void caliSetString(const char *name, const char *value);
+        void           flushMeasurements(int assign_to_step);
 
     private:
         //
@@ -72,9 +58,6 @@ class Apollo::Region {
         //
         double         current_step_time_begin;
         double         current_step_time_end;
-        //
-        // Deprecated (somewhat, look into for cleanup):
-        //void          *loop_obj;                 // cali::Loop *
         //
         uint64_t       id;
         uint64_t       parent_id;

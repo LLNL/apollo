@@ -30,7 +30,7 @@ std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
     return os;
 }
 
-static constexpr 
+static constexpr
 unsigned int hash(const char* str, int h = 0)
 {
         return !str[h] ? 5381 : (hash(str, h+1)*33) ^ str[h];
@@ -41,7 +41,7 @@ class RunSettings {
     public:
         RunSettings() {};
         ~RunSettings() {};
-       
+
         class Behavior {
             public:
                 static constexpr int StaticMax      = 0;
@@ -59,7 +59,7 @@ class RunSettings {
             (void)expander{0, (void(std::cout << std::forward<Args>(args)), 0)...};
             std::cout << std::endl;
         };
- 
+
         bool verbose          = false;
         bool sim_sleep        = false;
         int  vector_size_min  = 10000;
@@ -105,7 +105,7 @@ RunSettings parse(int argc, char **argv) {
         cxxopts::Options options(argv[0], "");
         options.positional_help("[optional args]");
         options.show_positional_help();
-        
+
         options
             .add_options()
             ("h,help",
@@ -140,7 +140,7 @@ RunSettings parse(int argc, char **argv) {
             ;
 
         auto result = options.parse(argc, argv);
-   
+
         if (result.count("help")) {
             std::cout << options.help({"", "Experiment"}) << std::endl;
             exit(EXIT_SUCCESS);
@@ -204,7 +204,7 @@ RunSettings parse(int argc, char **argv) {
 
 int main(int argc, char **argv)
 {
-    auto run = parse(argc, argv);    
+    auto run = parse(argc, argv);
     Apollo *apollo = Apollo::instance();
 
     experimentLoop(apollo, run);
@@ -222,7 +222,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
     uint64_t prior_model_guid = 0;
     int      sweep_policy     = 0;
-    bool     sweep_complete   = false; 
+    bool     sweep_complete   = false;
     int      vector_size      = 1;
     int      policy_index     = 0;
 
@@ -235,11 +235,11 @@ void experimentLoop(Apollo *apollo, auto& run) {
         case RunSettings::Behavior::Random:    vector_size = random_sizes(run.rng); break;
         default: vector_size = run.vector_size_max;
     }
-    
+
     int iter = 1;
     while (true) {
 
-        
+
         // Allocate and initialize vector data (untimed)
         //
         int *a = memoryManager::allocate<int>(vector_size);
@@ -249,7 +249,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
             a[p] = -p;
             b[p] = p;
         }
- 
+
         // ##########
         // #
         // #
@@ -258,10 +258,10 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // features affiliated with the actual performance of the loop.
         // During training the model evaluates extremely fast, so this is
         // not a significant issue.
-        reg->begin(iter);
+        reg->begin();
         // Express our current application-defined features to Apollo
         // for use when evaluating the performance model
-        reg->caliSetInt("vector_size", vector_size);
+        apollo->setFeature("vector_size", (double) vector_size);
 
         // Evaluate our model and get a policy recommendation
         policy_index = reg->getPolicyIndex();
@@ -277,7 +277,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         } else {
             sweep_string = "";
         }
-        reg->caliSetInt("policy_index", policy_index);
+        apollo->setFeature("policy_index", (double) policy_index);
 
         if (reg->getModel()->isTraining()) {
             model_name = sBOLD + sRED + reg->getModel()->getName() + sRST;
@@ -298,7 +298,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
             {
                 //Do the work of the kernel here.
                 c[j] = a[j] + b[j];
-                
+
             });
         });
         reg->end();

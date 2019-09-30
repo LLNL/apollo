@@ -16,7 +16,8 @@
 #include "CallpathRuntime.h"
 
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
-#define APOLLO_DEFAULT_MODEL_DEFINITION     "0"
+
+// TODO: Add MACRO to get callpath here
 
 
 extern "C" {
@@ -83,7 +84,6 @@ class Apollo
 		};
         //
         std::vector<Apollo::Feature>            features;
-        std::unordered_map<std::string, void *> feature_notes; // cali::Annotation *
         //
         // Precalculated at Apollo::Init from evironment variable strings to
         // facilitate quick calculations during model evaluation later.
@@ -92,10 +92,6 @@ class Apollo
         int numProcs;
         int numProcsPerNode;
         int numThreadsPerProcCap;
-        //
-        void *  getNote(std::string &name);
-        void    noteBegin(std::string &name, double with_value);
-        void    noteEnd(std::string &name);
         //
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
@@ -111,8 +107,15 @@ class Apollo
         //
         void flushAllRegionMeasurements(int assign_to_step);
         //
-        int  sosPack(const char *name, int val);
-        int  sosPackRelated(long relation_id, const char *name, int val);
+        void *sos_handle;  // #include "sos_types.h":  SOS_runtime *sos = sos_handle;
+        void *pub_handle;  // #include "sos_types.h":  SOS_pub     *pub = pub_handle;
+        //
+        int  sosPackInt(const char *name, int val);
+        int  sosPackDouble(const char *name, double val);
+        int  sosPackRelatedInt(uint64_t relation_id, const char *name, int val);
+        int  sosPackRelatedDouble(uint64_t relation_id, const char *name, double val);
+        int  sosPackRelatedString(uint64_t relation_id, const char *name, const char *val);
+        int  sosPackRelatedString(uint64_t relation_id, const char *name, std::string val);
         void sosPublish();
         //
         void disconnect();

@@ -53,7 +53,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         b[i] = i;
     }
 
-    kernel->caliSetInt("vector_size", N);
+    apollo->setFeature("vector_size", (double) N);
 
     for (iter_now = 0; iter_now < iter_max; iter_now++) {
         printf("> Iteration %d of %d...\r",
@@ -63,7 +63,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
         static int increasing = 0;
         increasing++;
 
-        kernel->begin(increasing);
+        kernel->begin();
         addvectPolicySwitcher(
             kernel->getPolicyIndex(),
             [=] (auto exec_policy) {

@@ -375,11 +375,11 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // ##########
         // #
         // #
-        reg->begin(i);
+        reg->begin();
         // Express our configuration to Caliper:
-        reg->caliSetInt("group_id",  group_id);
-        reg->caliSetInt("op_count",  op_count);
-        reg->caliSetInt("op_weight", op_weight);
+        apollo->setFeature("group_id",  (double) group_id);
+        apollo->setFeature("op_count",  (double) op_count);
+        apollo->setFeature("op_weight", (double) op_weight);
 
         // Select our "kernel variant"
         pol_idx = reg->getPolicyIndex();
@@ -400,9 +400,9 @@ void experimentLoop(Apollo *apollo, auto& run) {
             optimal_variant_used = true;
         }
 
-        reg->caliSetInt("policy_index", pol_idx);
+        apollo->setFeature("policy_index", (double) pol_idx);
         auto kernel = run.kernel_variants.at(pol_idx);
-        reg->caliSetInt("t_op", kernel.t_op);
+        apollo->setFeature("t_op", kernel.t_op);
         // Run it:
         //
         t_total = syntheticRegion(run, kernel, op_count, op_weight);
@@ -427,7 +427,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
         // Record the computed time, in case we're not actually sleeping
         // and don't want to use the time captured by Caliper:
-        reg->caliSetInt("t_total", t_total);
+        apollo->setFeature("t_total", t_total);
         reg->end();
         // #
         // #
