@@ -273,7 +273,7 @@ int main(int argc, char **argv)
     //auto run = parse(argc, argv);
     Apollo *apollo = Apollo::instance();
 
-    int i;
+    unsigned int i;
     Callpath path = apollo->callpath.doStackwalk();
     for (i = 0; i < path.size(); i++) {
         std::cout << "path.get(" << i << ") == " << path.get(i) << std::endl;

@@ -35,7 +35,7 @@ class Apollo::Model {
                        "{\n"                                               \
                        "    \"driver\": {\n"                               \
                        "        \"rules\": {\n"                            \
-                       "            \"__ANY_REGION__\": \"1\"\n"           \
+                       "            \"__ANY_REGION__\": \"0\"\n"           \
                        "        },\n"                                      \
                        "        \"least\": {\n"                            \
                        "            \"__ANY_REGION__\": \"-1\"\n"          \
@@ -45,11 +45,15 @@ class Apollo::Model {
                        "        }\n"                                       \
                        "    },\n"                                          \
                        "    \"guid\": 0,\n"                                \
-                       "    \"region_types\": [\n"                         \
-                       "        \"__ANY_REGION__\": \"RoundRobin\"\n"      \
                        "    \"region_names\": [\n"                         \
                        "        \"__ANY_REGION__\"\n"                      \
                        "    ],\n"                                          \
+                       "    \"region_types\": {\n"                         \
+                       "        \"__ANY_REGION__\": \"Static\"\n"          \
+                       "    },\n"                                          \
+                       "    \"region_sizes\": {\n"                         \
+                       "        \"__ANY_REGION__\": \"(0, 0)\"\n"          \
+                       "    },\n"                                          \
                        "    \"features\": {\n"                             \
                        "        \"count\": 0,\n"                           \
                        "        \"names\": [\n"                            \
