@@ -1,27 +1,24 @@
         CREATE VIEW viewApollo AS
             SELECT
                   tblVals.frame AS frame,
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_region"
-                                  THEN tblVals.val END) AS "region_name", 
+                  tblPubs.comm_rank AS mpi_rank,
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "region_name"
+                                  THEN tblVals.val END) AS "region_name",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "policy_index"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "policy_index",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_for_step"
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "step"
                                   THEN CAST(tblVals.val AS INTEGER) END) AS "step",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_exec_count"
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "num_elements"
+                                  THEN CAST(tblVals.val AS INTEGER) END) AS "num_elements",
+                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "exec_count"
                                   THEN tblVals.val END) AS "exec_count",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_last"
-                                  THEN tblVals.val END) AS "time_last",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_min"
-                                  THEN tblVals.val END) AS "time_min",
-                  GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_max"
-                                  THEN tblVals.val END) AS "time_max",
                   GROUP_CONCAT(CASE WHEN tblData.NAME LIKE "time_avg"
                                   THEN tblVals.val END) AS "time_avg"
-            FROM   tblPubs 
-                  LEFT OUTER JOIN tblData 
-                               ON tblPubs.guid = tblData.pub_guid 
-                  LEFT OUTER JOIN tblVals 
-                               ON tblData.guid = tblVals.guid 
+            FROM   tblPubs
+                  LEFT OUTER JOIN tblData
+                               ON tblPubs.guid = tblData.pub_guid
+                  LEFT OUTER JOIN tblVals
+                               ON tblData.guid = tblVals.guid
             GROUP BY
                 tblPubs.guid,
                 tblVals.meta_relation_id

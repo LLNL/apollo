@@ -1,6 +1,9 @@
 #include <string>
 #include <mutex>
 
+#include "external/nlohmann/json.hpp"
+using json = nlohmann::json;
+
 #include "apollo/Apollo.h"
 #include "apollo/models/Sequential.h"
 
@@ -26,11 +29,10 @@ Apollo::Model::Sequential::getIndex(void)
 
 void
 Apollo::Model::Sequential::configure(
-        Apollo      *apollo_ptr,
-        int          num_policies,
-        std::string  new_model_def)
+        int  num_policies,
+        json new_model_def)
 {
-    apollo        = apollo_ptr;
+    apollo        = Apollo::instance();
     policy_count  = num_policies;
     model_def     = new_model_def;
     configured    = true;

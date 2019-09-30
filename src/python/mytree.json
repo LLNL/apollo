@@ -1,0 +1,52 @@
+{
+    "id": "0", "rule": "num_elements <= 1633.0000", "gini": "0.646815527681661", "samples": "272",
+    "left": 
+    {
+        "id": "1", "rule": "num_elements <= 525.0000", "gini": "0.7228353308808987", "samples": "159",
+        "left": 
+        {
+            "id": "2", "rule": "num_elements <= 508.5000", "gini": "0.7325522801713278", "samples": "126",
+            "left": 
+            {
+                "id": "3", "criterion": "gini", "impurity": "0.731776", "samples": "125", "value": [2.0, 25.0, 23.0, 48.0, 27.0]            
+            },
+            "right": 
+            {
+                "id": "4", "criterion": "gini", "impurity": "0.0", "samples": "1", "value": [0.0, 0.0, 0.0, 0.0, 1.0]            
+            }        
+        },
+        "right": 
+        {
+            "id": "5", "rule": "num_elements <= 1623.0000", "gini": "0.6170798898071626", "samples": "33",
+            "left": 
+            {
+                "id": "6", "criterion": "gini", "impurity": "0.599609375", "samples": "32", "value": [0.0, 3.0, 12.0, 16.0, 1.0]            
+            },
+            "right": 
+            {
+                "id": "7", "criterion": "gini", "impurity": "0.0", "samples": "1", "value": [0.0, 1.0, 0.0, 0.0, 0.0]            
+            }        
+        }    
+    },
+    "right": 
+    {
+        "id": "8", "rule": "num_elements <= 2138.5000", "gini": "0.46832171665753", "samples": "113",
+        "left": 
+        {
+            "id": "9", "criterion": "gini", "impurity": "0.0", "samples": "26", "value": [0.0, 0.0, 0.0, 26.0, 0.0]        
+        },
+        "right": 
+        {
+            "id": "10", "rule": "num_elements <= 2252.5000", "gini": "0.5633505086537192", "samples": "87",
+            "left": 
+            {
+                "id": "11", "criterion": "gini", "impurity": "0.6938775510204082", "samples": "7", "value": [0.0, 1.0, 3.0, 1.0, 2.0]            
+            },
+            "right": 
+            {
+                "id": "12", "criterion": "gini", "impurity": "0.5203125", "samples": "80", "value": [0.0, 9.0, 12.0, 53.0, 6.0]            
+            }        
+        }    
+    }
+}
+

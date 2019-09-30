@@ -1,0 +1,422 @@
+
+  JOB TITLE.....: COMPARE.0016.cleverleaf
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465
+
+module swap intel/18.0.1 gcc/4.9.3
+Lmod has detected the following error: Swap failed: "intel/18.0.1" is not
+loaded.
+
+
+
+
+Compiler path: '/usr/tce/packages/gcc/gcc-4.9.3/bin/gcc'
+Compiler version:
+gcc (GCC) 4.9.3
+Copyright (C) 2015 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+ .-- Processing ~/setenv.sh ...
+ |
+ |-- Initializing Spack environment...
+ |-- Loading Spack packages...
+ |    |-- python@2.7.16                      /zsgpqf3
+ |    |    |-- py-scipy
+ |    |    |-- py-scikit-learn
+ |    |    |-- py-pandas
+ |    |    |-- py-numpy
+ |    |    |-- py-pycparser
+ |    |    |-- py-cffi
+ |    |    |-- py-pytz
+ |    |    |-- py-dateutil
+ |    |    |-- py-six
+ |    |    \_
+ |    \_
+ |-- vim
+ |-- cmake
+ |-- libnl
+ |-- libevpath
+ |-- libffs
+ |-- gtkorvo-atl
+ |-- gtkorvo-dill
+ |-- htop
+ \_
+
+cp: omitting directory '/g/g17/wood67/src/apollo/src/python/apollo/__pycache__'
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+  --> sosd.listener(2) starting...
+  --> sosd.listener(3) starting...
+  --> sosd.listener(4) starting...
+  --> sosd.listener(5) starting...
+  --> sosd.listener(6) starting...
+  --> sosd.listener(7) starting...
+  --> sosd.listener(8) starting...
+  --> sosd.listener(9) starting...
+  --> sosd.listener(10) starting...
+  --> sosd.listener(11) starting...
+  --> sosd.listener(12) starting...
+  --> sosd.listener(13) starting...
+  --> sosd.listener(14) starting...
+  --> sosd.listener(15) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+           _/_/_/    _/_/      _/_/_/ ||[]||[]}))))}]|[]||||  Scalable
+        _/        _/    _/  _/        |||||[][{(((({[]|[]|||  Observation
+         _/_/    _/    _/    _/_/     |[][]|[]}))))}][]|||[]  System
+            _/  _/    _/        _/    []|||[][{(((({[]|[]|||  for Scientific
+     _/_/_/      _/_/    _/_/_/       ||[]||[]}))))}][]||[]|  Workflows
+
+             Version: 1.25
+      Target machine: quartz1154
+
+         Compiled on: Aug  8 2019 at 12:39:16 by wood67@quartz1154
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: a6eeed771836f72734e9e2c594577bf4790e3d9f
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the START of this run...
+
+>>>> Comparing cleverleaf-normal and cleverleaf-apollo...
+
+========== EXPERIMENTS STARTING ==========
+
+
+>>>> Launching controller and waiting 10 seconds for it to come online...
+>>>> OK.
+
+Running default Cleverleaf 16 ranks on 16 nodes...
+
+	  16, cleaf_triple_pt_500.in, normal                        , 368.31
+	  16, cleaf_triple_pt_500.in, model.roundrobin              , 294.20
+	  16, cleaf_triple_pt_500.in, normal                        , 367.05
+	  16, cleaf_triple_pt_500.in, normal                        , 364.93
+	  16, cleaf_triple_pt_500.in, normal                        , 364.80
+
+========== EXPERIMENTS COMPLETE ==========
+
+
+>>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)...
+
+
+srun: error: quartz1081: task 0: Killed
+srun: Force Terminated job step 3319465.18
+--------------------------------------------------------------------------------
+
+    DONE!
+
+$SOS_WORK = /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465
+
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/daemons
+|-- monitor.0.csv
+|-- monitor.1.csv
+|-- monitor.10.csv
+|-- monitor.11.csv
+|-- monitor.12.csv
+|-- monitor.13.csv
+|-- monitor.14.csv
+|-- monitor.15.csv
+|-- monitor.2.csv
+|-- monitor.3.csv
+|-- monitor.4.csv
+|-- monitor.5.csv
+|-- monitor.6.csv
+|-- monitor.7.csv
+|-- monitor.8.csv
+|-- monitor.9.csv
+|-- sosd.00000.id
+|-- sosd.00000.key
+|-- sosd.00001.id
+|-- sosd.00002.id
+|-- sosd.00003.id
+|-- sosd.00004.id
+|-- sosd.00005.id
+|-- sosd.00006.id
+|-- sosd.00007.id
+|-- sosd.00008.id
+|-- sosd.00009.id
+|-- sosd.00010.id
+|-- sosd.00011.id
+|-- sosd.00012.id
+|-- sosd.00013.id
+|-- sosd.00014.id
+`-- sosd.00015.id
+
+0 directories, 33 files
+cleaf_triple_pt_500.0.log
+cleaf_triple_pt_500.1.log
+cleaf_triple_pt_500.2.log
+cleaf_triple_pt_500.3.log
+cleaf_triple_pt_500.4.log
+cleverleaf.0000.stdout
+cleverleaf.0001.stdout
+cleverleaf.0002.stdout
+cleverleaf.0003.stdout
+cleverleaf.0004.stdout
+cleverleaf.0005.stdout
+cleverleaf.0006.stdout
+cleverleaf.0007.stdout
+cleverleaf.0008.stdout
+cleverleaf.0009.stdout
+cleverleaf.0010.stdout
+cleverleaf.0011.stdout
+cleverleaf.0012.stdout
+cleverleaf.0013.stdout
+cleverleaf.0014.stdout
+cleverleaf.0015.stdout
+controller.out
+models
+sqlexec.0.out
+sqlexec.1.out
+sqlexec.10.out
+sqlexec.11.out
+sqlexec.12.out
+sqlexec.13.out
+sqlexec.14.out
+sqlexec.15.out
+sqlexec.2.out
+sqlexec.3.out
+sqlexec.4.out
+sqlexec.5.out
+sqlexec.6.out
+sqlexec.7.out
+sqlexec.8.out
+sqlexec.9.out
+sqlexec.out
+--------------------------------------------------------------------------------
+
+The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations.
+
+You are now in the $SOS_WORK directory with your RESULTS and SCRIPTS!
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To RETURN to your code ..: $ cd $RETURN_PATH
+        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: $ killall srun)
+
+NOTE: You need to shut down SOS before it will export the databases to files.
+
+
+
+Constructing / emailing a results summary:
+  adding: cleaf_triple_pt_500.0.log (deflated 78%)
+  adding: cleverleaf.0000.stdout (deflated 78%)
+  adding: controller.out (deflated 83%)
+  adding: ../daemons/monitor.0.csv (deflated 84%)
+  adding: models/latest_model.json (deflated 95%)
+Error sending message, child exited 70 (Internal error.).
+Could not send the message.
+
+ >>>>
+ >>>>
+ >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)
+ >>>>
+
+ *OK* Shutting down interactive experiment environment...
+
+Bringing down SOS:
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Killing SOS monitors:
+srun: error: quartz1081: task 0: Killed
+srun: error: quartz2402: task 14: Killed
+srun: error: quartz1757: task 4: Killed
+srun: error: quartz2164: task 12: Killed
+srun: error: quartz1774: task 5: Killed
+srun: error: quartz2273: task 13: Killed
+srun: error: quartz2582: task 15: Killed
+srun: error: quartz2030: task 10: Killed
+srun: error: quartz1958: task 8: Killed
+srun: error: quartz1802: task 6: Killed
+srun: error: quartz1206: task 2: Killed
+srun: error: quartz1132: task 1: Killed
+srun: error: quartz1312: task 3: Killed
+srun: error: quartz1827: task 7: Killed
+OK!
+
+
+srun: error: quartz2096: task 11: Killed
+srun: error: quartz1986: task 9: Killed
+srun: Force Terminated job step 3319465.16
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 10.8% in 3.06 seconds.  (65536 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00010.db --> Exported 23.4% in 3.12 seconds.  (65536 of 280015 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00005.db --> Exported 24.1% in 3.08 seconds.  (65536 of 272045 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00006.db --> Exported 21.5% in 3.03 seconds.  (65536 of 305175 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 17.5% in 3.20 seconds.  (65536 of 374037 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00003.db --> Exported 20.0% in 3.14 seconds.  (65536 of 327655 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 18.6% in 3.12 seconds.  (65536 of 352396 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 15.1% in 3.14 seconds.  (65536 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00011.db --> Exported 23.1% in 3.15 seconds.  (65536 of 283792 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00014.db --> Exported 27.5% in 3.16 seconds.  (65536 of 238514 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 15.7% in 3.18 seconds.  (65536 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00013.db --> Exported 21.9% in 3.18 seconds.  (65536 of 298837 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 19.0% in 3.20 seconds.  (65536 of 344591 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00015.db --> Exported 21.1% in 3.23 seconds.  (65536 of 310589 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00002.db --> Exported 21.6% in 3.22 seconds.  (65536 of 303091 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 1.3% in 3.26 seconds.  (65536 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00006.db --> Exported 42.9% in 5.99 seconds.  (131072 of 305175 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 21.7% in 6.12 seconds.  (131072 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00010.db --> Exported 46.8% in 6.22 seconds.  (131072 of 280015 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 37.2% in 6.18 seconds.  (131072 of 352396 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00005.db --> Exported 48.2% in 6.20 seconds.  (131072 of 272045 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00011.db --> Exported 46.2% in 6.22 seconds.  (131072 of 283792 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00003.db --> Exported 40.0% in 6.24 seconds.  (131072 of 327655 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 30.2% in 6.24 seconds.  (131072 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 35.0% in 6.35 seconds.  (131072 of 374037 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00014.db --> Exported 55.0% in 6.26 seconds.  (131072 of 238514 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00013.db --> Exported 43.9% in 6.29 seconds.  (131072 of 298837 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 31.3% in 6.33 seconds.  (131072 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 38.0% in 6.36 seconds.  (131072 of 344591 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00002.db --> Exported 43.2% in 6.41 seconds.  (131072 of 303091 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 2.5% in 6.45 seconds.  (131072 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00015.db --> Exported 42.2% in 6.53 seconds.  (131072 of 310589 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00006.db --> Exported 64.4% in 8.96 seconds.  (196608 of 305175 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 32.5% in 9.16 seconds.  (196608 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00010.db --> Exported 70.2% in 9.31 seconds.  (196608 of 280015 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00011.db --> Exported 69.3% in 9.31 seconds.  (196608 of 283792 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00003.db --> Exported 60.0% in 9.34 seconds.  (196608 of 327655 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 45.2% in 9.33 seconds.  (196608 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00005.db --> Exported 72.3% in 9.33 seconds.  (196608 of 272045 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 55.8% in 9.32 seconds.  (196608 of 352396 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00014.db --> Exported 82.4% in 9.34 seconds.  (196608 of 238514 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00013.db --> Exported 65.8% in 9.38 seconds.  (196608 of 298837 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 52.6% in 9.51 seconds.  (196608 of 374037 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 47.0% in 9.45 seconds.  (196608 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 57.1% in 9.56 seconds.  (196608 of 344591 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00002.db --> Exported 64.9% in 9.60 seconds.  (196608 of 303091 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 3.8% in 9.63 seconds.  (196608 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00015.db --> Exported 63.3% in 9.73 seconds.  (196608 of 310589 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00014.db --> Exported 100.0% in 11.44 seconds.  (238514 of 238514 pages)
+** SHUTDOWN **: sosd(14) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00006.db --> Exported 85.9% in 11.92 seconds.  (262144 of 305175 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 43.4% in 12.18 seconds.  (262144 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 74.4% in 12.35 seconds.  (262144 of 352396 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00010.db --> Exported 93.6% in 12.42 seconds.  (262144 of 280015 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00011.db --> Exported 92.4% in 12.40 seconds.  (262144 of 283792 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 60.3% in 12.43 seconds.  (262144 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00003.db --> Exported 80.0% in 12.47 seconds.  (262144 of 327655 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00005.db --> Exported 96.4% in 12.47 seconds.  (262144 of 272045 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00013.db --> Exported 87.7% in 12.49 seconds.  (262144 of 298837 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 70.1% in 12.68 seconds.  (262144 of 374037 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 62.6% in 12.60 seconds.  (262144 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 76.1% in 12.75 seconds.  (262144 of 344591 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00002.db --> Exported 86.5% in 12.83 seconds.  (262144 of 303091 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 5.0% in 12.83 seconds.  (262144 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00015.db --> Exported 84.4% in 12.90 seconds.  (262144 of 310589 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00005.db --> Exported 100.0% in 13.09 seconds.  (272045 of 272045 pages)
+** SHUTDOWN **: sosd(5) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00010.db --> Exported 100.0% in 13.42 seconds.  (280015 of 280015 pages)
+** SHUTDOWN **: sosd(10) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00011.db --> Exported 100.0% in 13.57 seconds.  (283792 of 283792 pages)
+** SHUTDOWN **: sosd(11) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00006.db --> Exported 100.0% in 14.04 seconds.  (305175 of 305175 pages)
+** SHUTDOWN **: sosd(6) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00013.db --> Exported 100.0% in 14.38 seconds.  (298837 of 298837 pages)
+** SHUTDOWN **: sosd(13) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00002.db --> Exported 100.0% in 14.99 seconds.  (303091 of 303091 pages)
+** SHUTDOWN **: sosd(2) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 54.2% in 15.33 seconds.  (327680 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 93.0% in 15.35 seconds.  (327680 of 352396 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00015.db --> Exported 100.0% in 15.41 seconds.  (310589 of 310589 pages)
+** SHUTDOWN **: sosd(15) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 75.4% in 15.53 seconds.  (327680 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00003.db --> Exported 100.0% in 15.74 seconds.  (327655 of 327655 pages)
+** SHUTDOWN **: sosd(3) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 87.6% in 15.87 seconds.  (327680 of 374037 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 78.3% in 15.80 seconds.  (327680 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 95.1% in 15.93 seconds.  (327680 of 344591 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 6.3% in 16.06 seconds.  (327680 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00008.db --> Exported 100.0% in 16.64 seconds.  (352396 of 352396 pages)
+** SHUTDOWN **: sosd(8) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00012.db --> Exported 100.0% in 16.88 seconds.  (344591 of 344591 pages)
+** SHUTDOWN **: sosd(12) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00007.db --> Exported 100.0% in 18.31 seconds.  (374037 of 374037 pages)
+** SHUTDOWN **: sosd(7) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 65.1% in 18.49 seconds.  (393216 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 90.5% in 18.65 seconds.  (393216 of 434614 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 93.9% in 18.96 seconds.  (393216 of 418719 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 7.6% in 19.28 seconds.  (393216 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00009.db --> Exported 100.0% in 20.36 seconds.  (418719 of 418719 pages)
+** SHUTDOWN **: sosd(9) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00004.db --> Exported 100.0% in 20.77 seconds.  (434614 of 434614 pages)
+** SHUTDOWN **: sosd(4) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 75.9% in 21.60 seconds.  (458752 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 8.8% in 22.51 seconds.  (458752 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 86.8% in 24.60 seconds.  (524288 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 10.1% in 25.64 seconds.  (524288 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 97.6% in 27.64 seconds.  (589824 of 604125 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00001.db --> Exported 100.0% in 28.56 seconds.  (604125 of 604125 pages)
+** SHUTDOWN **: sosd(1) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 11.3% in 28.79 seconds.  (589824 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 12.6% in 31.94 seconds.  (655360 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 13.9% in 35.23 seconds.  (720896 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 15.1% in 38.37 seconds.  (786432 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 16.4% in 41.54 seconds.  (851968 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 17.6% in 44.74 seconds.  (917504 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 18.9% in 47.94 seconds.  (983040 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 20.1% in 51.11 seconds.  (1048576 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 21.4% in 54.30 seconds.  (1114112 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 22.7% in 57.51 seconds.  (1179648 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 23.9% in 60.70 seconds.  (1245184 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 25.2% in 64.09 seconds.  (1310720 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 26.4% in 67.38 seconds.  (1376256 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 27.7% in 70.79 seconds.  (1441792 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 29.0% in 74.03 seconds.  (1507328 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 30.2% in 77.25 seconds.  (1572864 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 31.5% in 80.48 seconds.  (1638400 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 32.7% in 83.72 seconds.  (1703936 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 34.0% in 86.98 seconds.  (1769472 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 35.3% in 90.20 seconds.  (1835008 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 36.5% in 93.44 seconds.  (1900544 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 37.8% in 96.67 seconds.  (1966080 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 39.0% in 99.92 seconds.  (2031616 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 40.3% in 103.12 seconds.  (2097152 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 41.6% in 106.44 seconds.  (2162688 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 42.8% in 109.71 seconds.  (2228224 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 44.1% in 112.93 seconds.  (2293760 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 45.3% in 116.16 seconds.  (2359296 of 5204346 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3319465/sosd.00000.db --> Exported 46.6% in 119.38 seconds.  (2424832 of 5204346 pages)
+--- Done! End of job script. ---

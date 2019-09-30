@@ -1,6 +1,10 @@
 
 #include "RAJA/RAJA.hpp"
 
+#ifndef RAJA_ENABLE_OPENMP
+#define RAJA_ENABLE_OPENMP
+#endif
+
 //
 // Define vector length
 //
@@ -26,7 +30,7 @@ void addvectPolicySwitcher(int choice, BODY body) {
 #if defined(RAJA_ENABLE_CUDA)
     case 5: body(addvectPolicyCUDA{}); break;
 #endif
-    case 0: 
+    case 0:
     default: body(addvectPolicySeq{}); break;
     }
 }

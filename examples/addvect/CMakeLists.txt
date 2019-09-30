@@ -6,9 +6,9 @@ include_directories("${RAJA_DIR}")
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall -std=c99   -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -fopenmp")
 
-set(ENABLE_TBB Off CACHE Bool "")
+set(ENABLE_TBB Off CACHE STRING "")
 
-set(RAJA_USE_CHRONO On CACHE Bool "")
+set(RAJA_USE_CHRONO On CACHE STRING "")
 
 set(RAJA_RANGE_ALIGN           4   )
 set(RAJA_RANGE_MIN_LENGTH      32  )

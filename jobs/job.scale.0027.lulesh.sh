@@ -1,11 +1,19 @@
 #!/bin/bash
-#SBATCH -N 2
-#SBATCH -n 36
 #SBATCH -p pbatch
-#SBATCH -A lc
+#SBATCH -A asccasc
+#SBATCH --mail-user=wood67@llnl.gov
+#SBATCH --mail-type=ALL
+#SBATCH --wait=0
+#SBATCH --kill-on-bad-exit=0
+#SBATCH --requeue
+#SBATCH --exclusive
+#
+#SBATCH --job-name="APOLLO:SCALE.27.lulesh"
+#SBATCH -N 2
+#SBATCH -n 31
 #SBATCH -t 120
 
-export EXPERIMENT_JOB_TITLE="002_0027_lulesh"
+export EXPERIMENT_JOB_TITLE="SCALE.0027.lulesh"
 export EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
 export RETURN_PATH=`pwd`
 
@@ -27,6 +35,7 @@ export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
 export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 mkdir -p ${SOS_WORK}
 mkdir -p ${SOS_WORK}/output
+mkdir -p ${SOS_WORK}/output/models
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
 #
@@ -34,6 +43,7 @@ mkdir -p ${SOS_WORK}/daemons
 # where the output of the job is being stored.
 #
 mkdir -p ${SOS_WORK}/bin
+mkdir -p ${SOS_WORK}/bin/apollo
 mkdir -p ${SOS_WORK}/lib
 #
 cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
@@ -42,7 +52,11 @@ cp ${HOME}/src/sos_flow/build/bin/sosd_probe                      ${SOS_WORK}/bi
 cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
+#
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
+cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
+#
+cp ${HOME}/src/apollo/jobs/APOLLO.model*                          ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
 cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
@@ -52,17 +66,17 @@ cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/li
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
 cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
+cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
 #
 # Make an archive of this script and the environment config script:
 #
-cp ${RETURN_PATH}/ALL.lulesh_variants.sh  ${SOS_WORK}
-cp ${RETURN_PATH}/common_spack.sh         ${SOS_WORK}/launch/COMMON_SPACK.sh
-cp ${RETURN_PATH}/common_setenv.sh        ${SOS_WORK}/launch/COMMON_SETENV.sh
-cp ${RETURN_PATH}/common_unsetenv.sh      ${SOS_WORK}/launch/COMMON_UNSETENV.sh
-cp ${BASH_SOURCE}                         ${SOS_WORK}/launch/JOB_OVERALL_BASH_SCRIPT.sh
+cp ${RETURN_PATH}/common_spack.sh           ${SOS_WORK}/launch/COMMON_SPACK.sh
+cp ${RETURN_PATH}/common_setenv.sh          ${SOS_WORK}/launch/COMMON_SETENV.sh
+cp ${RETURN_PATH}/common_unsetenv.sh        ${SOS_WORK}/launch/COMMON_UNSETENV.sh
+cp ${BASH_SOURCE}                           ${SOS_WORK}/launch/BATCH_JOB_SCRIPT.sh
 #
 export SOS_BATCH_ENVIRONMENT="TRUE"
 #
@@ -168,6 +182,9 @@ export SRUN_SQL_EXEC="         -o /dev/null                    -N 2 -n 2  -r 0  
 export SOS_MONITOR_START="     -o ./daemons/monitor.%n.csv     -N 2 -n 2  -r 0  ./bin/sosd_probe -header on -l 1000000"
 export SOS_MONITOR_STOP="                                      -N 2 -n 2  -r 0  killall -9 sosd_probe"
 export SOS_SHUTDOWN_COMMAND="                                  -N 2 -n 2  -r 0  ./bin/sosd_stop"
+export SQL_DELETE_VALS="DELETE FROM tblVals;"
+export SQL_DELETE_DATA="DELETE FROM tblData;"
+export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 #
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 echo "srun ${SRUN_LULESH_BASELINE}"  > ${SOS_WORK}/launch/SRUN_LULESH_BASELINE
@@ -194,11 +211,20 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
+
 export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
 export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
 export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
-srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
+#srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
+#
+echo ""
+echo ">>>> Default Apollo model..."
+echo ""
+export APOLLO_INIT_MODEL="${SOS_WORK}/APOLLO.modelDefault"
+echo "${APOLLO_INIT_MODEL}"
+echo ""
+
 #
 #echo ""
 #echo ">>>> Launching Apollo controller..."
@@ -210,14 +236,31 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-#${SOS_WORK}/ALL.lulesh_variants.sh
+echo ""
+printf "\t%4s, %4s, %4s, %-30s, time(sec)\n" "proc" "size" "iter" "application"
 #
-echo -n "lulesh-raja,   " 
-/usr/bin/time -f %e -- srun ${SRUN_LULESH_BASELINE}
+# NOTE: Only the 2-node script scales PROC like this, the rest are one process
+#       count per batch file, since they're requesting more nodes per count.
 #
-echo -n "lulesh-apollo, "
-/usr/bin/time -f %e -- srun ${SRUN_LULESH_APOLLO}
-#
+for PROC in $(seq 1 1 3)
+do
+    for SIZE in $(seq 45 45 45)
+    do
+        for ITER in $(seq 300 300 1500)
+        do
+            NUM_RANKS="$((${PROC} ** 3))"
+            for LULESH_VARIANT in $(ls ${SOS_WORK}/bin/lulesh*)
+            do
+                printf "\t%4s, %4s, %4s, %-30s, " ${NUM_RANKS} ${SIZE}  ${ITER} $(basename -- ${LULESH_VARIANT})
+                /usr/bin/time -f %e -- srun -N 1 -n ${NUM_RANKS} -r 1 ${LULESH_VARIANT} -q -s ${SIZE} -i ${ITER} -b 1 -c 1
+                sleep 20
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_VALS}
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_DATA}
+                #srun ${SRUN_SQL_EXEC} ${SQL_DELETE_PUBS}
+            done
+        done
+    done
+done
 #
 #^
 #^^
@@ -232,26 +275,45 @@ echo "    DONE!"
 echo ""
 echo "\$SOS_WORK = ${SOS_WORK}"
 echo ""
-echo "\$SOS_WORK directory listing:"
-tree ${SOS_WORK}
+tree ${SOS_WORK}/daemons
+ls ${SOS_WORK}
 echo "" > ${PARTING_NOTE}
 echo "--------------------------------------------------------------------------------"
-#echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
-#echo "" >> ${PARTING_NOTE}
+echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}
+echo "" >> ${PARTING_NOTE}
 echo "You are now in the \$SOS_WORK directory with your RESULTS and SCRIPTS!" >> ${PARTING_NOTE}
 echo "                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
 echo "        To RETURN to your code ..: $ cd \$RETURN_PATH" >> ${PARTING_NOTE}
 echo "        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: \$ killall srun)" >> ${PARTING_NOTE}
 echo "" >> ${PARTING_NOTE}
-#echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
-#echo "" >> ${PARTING_NOTE}
+echo "NOTE: You need to shut down SOS before it will export the databases to files." >> ${PARTING_NOTE}
+echo "" >> ${PARTING_NOTE}
 cat ${PARTING_NOTE}
-echo "srun ${SOS_SHUTDOWN_COMMAND}" > ${SOS_WORK}/sosd_stop.sh
-echo "srun ${SOS_MONITOR_STOP}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"Bringing down SOS:\""      > ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_SHUTDOWN_COMMAND}"    >> ${SOS_WORK}/sosd_stop.sh
+echo "sleep 2"                         >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"Killing SOS monitors:\""  >> ${SOS_WORK}/sosd_stop.sh
+echo "srun ${SOS_MONITOR_STOP}"        >> ${SOS_WORK}/sosd_stop.sh
+echo "echo \"OK!\""                    >> ${SOS_WORK}/sosd_stop.sh
 chmod +x ${SOS_WORK}/sosd_stop.sh
-#sleep 480
-#${SOS_WORK}/sosd_stop.sh
-#sleep 60
+# So that 'cd -' takes you back to the launch path...
+cd ${RETURN_PATH}
+cd ${SOS_WORK}
+echo ""
+echo " >>>>"
+echo " >>>>"
+echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
+echo " >>>>"
+read -t 120 -p " >>>> "
+echo ""
+echo " *OK* Shutting down interactive experiment environment..."
+echo ""
+${SOS_WORK}/sosd_stop.sh
+echo ""
+echo ""
+sleep 20
+echo "--- Done! End of job script. ---"
 #
+# EOF
 ####

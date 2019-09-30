@@ -4,8 +4,8 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES Intel)
   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -std=c99   -ldl -fPIC")
 else()
   set(CMAKE_C_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON) 
-
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  #
   set(CMAKE_CXX_STANDARD 14)
   set(CMAKE_C_STANDARD   99)
 endif()
@@ -19,22 +19,27 @@ include_directories(
 
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
+    ../include/apollo/Logging.h
     ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
+    ../include/apollo/Explorable.h
     ../include/apollo/Model.h
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
     ../include/apollo/models/Static.h
+    ../include/apollo/models/RoundRobin.h
     ../include/apollo/models/DecisionTree.h
     )
 
 set(APOLLO_SOURCES
     Apollo.cpp
     Region.cpp
+    Explorable.cpp
     ModelWrapper.cpp
     models/Random.cpp
     models/Sequential.cpp
     models/Static.cpp
+    models/RoundRobin.cpp
     models/DecisionTree.cpp
     )
 
@@ -47,8 +52,12 @@ foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
 endforeach()
 
 install(FILES ${APOLLO_HEADERS} DESTINATION include/apollo)
+install(FILES ../include/external/nlohmann/json.hpp DESTINATION include/external/nlohmann)
 
 install(TARGETS apollo
     EXPORT apollo
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib)
+
+add_subdirectory(tools)
+

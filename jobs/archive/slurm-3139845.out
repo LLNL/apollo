@@ -1,0 +1,69 @@
+
+  JOB TITLE.....: WATCH.0008.cleverleaf
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845
+
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+_._____. .____  .____.._____. _  ..
+__  ___/_  __ \_  ___/__  __/__  /________      __    .:|   Scalable
+.____ \_  / / /.___ \__  /_ ._  /_  __ \_ | /| / /    .:|   Observation
+____/ // /_/ /.___/ /_  __/ _  / / /_/ /_ |/ |/ /     .:|   System for Scientific
+/____/ \____/ /____/ /_/    /_/  \____/____/|__/      .:|   Workflows
+
+             Version: 1.25
+      Target machine: quartz1922
+
+         Compiled on: Jun 25 2019 at 02:23:34 by wood67@quartz1922
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: 30998212659c34cbae63ce379cf3091684238a93
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the START of this run...
+
+>>>> Launch command for cleverleaf:
+    srun   -o /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845/output/cleverleaf.%4t.stdout  -N 1  -n 8  -r 1   /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845/bin/cleverleaf   /p/lustre2/wood67/experiments/apollo/WATCH.0008.cleverleaf.3139845/cleaf_triple_pt.in
+
+
+========== EXPERIMENTS STARTING ==========
+
+	   8, cleaf_triple_pt.in  , model.static.1.sequential     , 1423.52
+	   8, cleaf_triple_pt.in  , model.static.2.simd           , 1433.67
+	   8, cleaf_triple_pt.in  , model.static.3.loopexec       , 1432.51
+	   8, cleaf_triple_pt.in  , model.static.4.openmp         , srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+slurmstepd: error: *** STEP 3139845.0 ON quartz1261 CANCELLED AT 2019-07-25T12:35:09 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 3139845.1 ON quartz1259 CANCELLED AT 2019-07-25T12:35:09 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+slurmstepd: error: *** JOB 3139845 ON quartz1259 CANCELLED AT 2019-07-25T12:35:09 DUE TO TIME LIMIT ***
+srun: error: quartz1259: task 0: Terminated

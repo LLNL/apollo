@@ -51,7 +51,7 @@ std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
     return os;
 }
 
-static constexpr 
+static constexpr
 unsigned int hash(const char* str, int h = 0)
 {
         return !str[h] ? 5381 : (hash(str, h+1)*33) ^ str[h];
@@ -90,7 +90,7 @@ class RunSettings {
         RunSettings() {};
 
         ~RunSettings() {};
-       
+
         class Behavior {
             public:
                 static constexpr int StaticMax      = 0;
@@ -109,7 +109,7 @@ class RunSettings {
             std::cout << std::endl;
         };
 
- 
+
         bool verbose        = false;
         bool sim_sleep      = false;
         int  op_count_max   = 0;
@@ -154,7 +154,7 @@ RunSettings parse(int argc, char **argv) {
         cxxopts::Options options(argv[0], "");
         options.positional_help("[optional args]");
         options.show_positional_help();
-        
+
         options
             .add_options()
             ("h,help",
@@ -191,7 +191,7 @@ RunSettings parse(int argc, char **argv) {
             ;
 
         auto result = options.parse(argc, argv);
-   
+
         if (result.count("help")) {
             std::cout << options.help({"", "Experiment"}) << std::endl;
             exit(EXIT_SUCCESS);
@@ -248,7 +248,7 @@ void configureKernelVariants(auto& run) {
     run.kernel_variants.push_back(KernelVariant(10,  2, "[cpu     ]"));
     run.kernel_variants.push_back(KernelVariant(32,  1, "[cuda    ]"));
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
-    return;    
+    return;
 }
 
 int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight) {
@@ -270,10 +270,17 @@ int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight)
 
 int main(int argc, char **argv)
 {
-    auto run = parse(argc, argv);    
+    //auto run = parse(argc, argv);
     Apollo *apollo = Apollo::instance();
-    configureKernelVariants(run);
-    experimentLoop(apollo, run);
+
+    unsigned int i;
+    Callpath path = apollo->callpath.doStackwalk();
+    for (i = 0; i < path.size(); i++) {
+        std::cout << "path.get(" << i << ") == " << path.get(i) << std::endl;
+    }
+
+    //configureKernelVariants(run);
+    //experimentLoop(apollo, run);
 
     return EXIT_SUCCESS;
 }
@@ -295,7 +302,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         new Apollo::Region(apollo, "synben", run.kernel_variants.size());
 
     int pol_count = (int) run.kernel_variants.size();
-    
+
     int pol_idx = 0;
     int test_pol = 0;
     int sweep_pol = 0;
@@ -362,9 +369,9 @@ void experimentLoop(Apollo *apollo, auto& run) {
                 break;
         }
 
-        
+
         group_id = i % 50;
-        
+
         // ##########
         // #
         // #
@@ -400,7 +407,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         //
         t_total = syntheticRegion(run, kernel, op_count, op_weight);
         //
-        
+
         if (run.behavior == RunSettings::Behavior::Sweep) {
             sweep_progress = "";
             sweep_progress_ss.str(std::string());
@@ -450,7 +457,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
         // If an "untimed" per-iteration delay was requested, sleep now
         std::this_thread::sleep_for(std::chrono::microseconds(run.delay_usec));
 
-   
+
     } // end: iteration loop
 
     delete reg;

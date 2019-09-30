@@ -1,0 +1,731 @@
+
+  JOB TITLE.....: COMPARE.0016.cleverleaf
+  WORKING PATH..: /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368
+
+module swap intel/18.0.1 gcc/4.9.3
+Lmod has detected the following error: Swap failed: "intel/18.0.1" is not
+loaded.
+
+
+
+
+Compiler path: '/usr/tce/packages/gcc/gcc-4.9.3/bin/gcc'
+Compiler version:
+gcc (GCC) 4.9.3
+Copyright (C) 2015 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+ .-- Processing ~/setenv.sh ...
+ |
+ |-- Initializing Spack environment...
+ |-- Loading Spack packages...
+ |    |-- python@2.7.16                      /zsgpqf3
+ |    |    |-- py-scipy
+ |    |    |-- py-scikit-learn
+ |    |    |-- py-pandas
+ |    |    |-- py-numpy
+ |    |    |-- py-pycparser
+ |    |    |-- py-cffi
+ |    |    |-- py-pytz
+ |    |    |-- py-dateutil
+ |    |    |-- py-six
+ |    |    \_
+ |    \_
+ |-- vim
+ |-- cmake
+ |-- libnl
+ |-- libevpath
+ |-- libffs
+ |-- gtkorvo-atl
+ |-- gtkorvo-dill
+ |-- htop
+ \_
+
+cp: omitting directory '/g/g17/wood67/src/apollo/src/python/apollo/__pycache__'
+
+Launching SOS daemons...
+
+    SOS_WORK=/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368
+    SOS_EVPATH_MEETUP=/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/daemons
+
+  --> sosd.aggregator(0) starting...
+  --> sosd.listener(1) starting...
+  --> sosd.listener(2) starting...
+  --> sosd.listener(3) starting...
+  --> sosd.listener(4) starting...
+  --> sosd.listener(5) starting...
+  --> sosd.listener(6) starting...
+  --> sosd.listener(7) starting...
+  --> sosd.listener(8) starting...
+  --> sosd.listener(9) starting...
+  --> sosd.listener(10) starting...
+  --> sosd.listener(11) starting...
+  --> sosd.listener(12) starting...
+  --> sosd.listener(13) starting...
+  --> sosd.listener(14) starting...
+  --> sosd.listener(15) starting...
+
+Pausing to ensure runtime is completely established...
+
+==================================================================================
+----------------------------------------------------------------------------------
+
+           _/_/_/    _/_/      _/_/_/ ||[]||[]}))))}]|[]||||  Scalable
+        _/        _/    _/  _/        |||||[][{(((({[]|[]|||  Observation
+         _/_/    _/    _/    _/_/     |[][]|[]}))))}][]|||[]  System
+            _/  _/    _/        _/    []|||[][{(((({[]|[]|||  for Scientific
+     _/_/_/      _/_/    _/_/_/       ||[]||[]}))))}][]||[]|  Workflows
+
+             Version: 1.25
+      Target machine: quartz1154
+
+         Compiled on: Aug  8 2019 at 12:39:16 by wood67@quartz1154
+   Build environment: GNU/Linux 3.10.0-957.12.2.1chaos.ch6.x86_64 x86_64
+         Commit head: a6eeed771836f72734e9e2c594577bf4790e3d9f
+
+----------------------------------------------------------------------------------
+==================================================================================
+
+
+SOS is ready for use!
+
+
+--------------------------------------------------------------------------------
+
+
+>>>> Starting SOS daemon statistics monitoring...
+
+
+>>>> Creating Apollo VIEW and INDEX in the SOS databases...
+
+
+>>>> Launching experiment codes...
+
+
+>>>> Controller is DISABLED for the START of this run...
+
+>>>> Comparing cleverleaf-normal and cleverleaf-apollo...
+
+========== EXPERIMENTS STARTING ==========
+
+
+>>>> Launching controller and waiting 10 seconds for it to come online...
+>>>> OK.
+
+Running default Cleverleaf 64 ranks on 16 nodes...
+
+	  64, cleaf_triple_pt_500.in, normal                        , 98.45
+	  64, cleaf_triple_pt_500.in, normal                        , 86.71
+	  64, cleaf_triple_pt_500.in, normal                        , 86.89
+	  64, cleaf_triple_pt_500.in, normal                        , 87.39
+	  64, cleaf_triple_pt_500.in, model.roundrobin              , sosd: /g/g17/wood67/src/sos_flow/src/sos_pipe.c:548: check_invariants: Assertion `((capacity(s) + p->elem_size) >= (p->min_cap) && (capacity(s) + p->elem_size) <= (p->max_cap))' failed.
+srun: error: quartz92: task 0: Aborted (core dumped)
+225.47
+srun: error: quartz92: task 0: Aborted (core dumped)
+srun: First task exited 30s ago
+srun: step:3336368.48 tasks 1-15: running
+srun: step:3336368.48 task 0: exited abnormally
+srun: Terminating job step 3336368.48
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+srun: error: quartz1351: task 12: Killed
+srun: error: quartz1099: task 8: Killed
+srun: error: quartz1285: task 10: Killed
+srun: error: quartz825: task 7: Killed
+srun: error: quartz1286: task 11: Killed
+srun: error: quartz434: task 3: Killed
+srun: error: quartz435: task 4: Killed
+srun: error: quartz2012: task 15: Killed
+srun: error: quartz1415: task 13: Killed
+srun: error: quartz1952: task 14: Killed
+srun: error: quartz1138: task 9: Killed
+srun: error: quartz436: task 5: Killed
+srun: error: quartz437: task 6: Killed
+srun: error: quartz326: task 2: Killed
+srun: error: quartz93: task 1: Killed
+
+========== EXPERIMENTS COMPLETE ==========
+
+
+>>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)...
+
+
+srun: error: quartz92: task 0: Killed
+srun: Force Terminated job step 3336368.18
+ERROR: Unable to contact target (quartz1286:43729) after 8 attempts.
+ERROR: Unable to contact target (quartz436:45568) after 8 attempts.
+ERROR: Unable to contact target (quartz1138:36797) after 8 attempts.
+--------------------------------------------------------------------------------
+
+    DONE!
+
+$SOS_WORK = /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368
+
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/daemons
+|-- monitor.0.csv
+|-- monitor.1.csv
+|-- monitor.10.csv
+|-- monitor.11.csv
+|-- monitor.12.csv
+|-- monitor.13.csv
+|-- monitor.14.csv
+|-- monitor.15.csv
+|-- monitor.2.csv
+|-- monitor.3.csv
+|-- monitor.4.csv
+|-- monitor.5.csv
+|-- monitor.6.csv
+|-- monitor.7.csv
+|-- monitor.8.csv
+|-- monitor.9.csv
+|-- sosd.00000.id
+|-- sosd.00000.key
+|-- sosd.00001.id
+|-- sosd.00002.id
+|-- sosd.00003.id
+|-- sosd.00004.id
+|-- sosd.00005.id
+|-- sosd.00006.id
+|-- sosd.00007.id
+|-- sosd.00008.id
+|-- sosd.00009.id
+|-- sosd.00010.id
+|-- sosd.00011.id
+|-- sosd.00012.id
+|-- sosd.00013.id
+|-- sosd.00014.id
+`-- sosd.00015.id
+
+0 directories, 33 files
+cleaf_triple_pt_500.0.log
+cleaf_triple_pt_500.1.log
+cleaf_triple_pt_500.2.log
+cleaf_triple_pt_500.3.log
+cleaf_triple_pt_500.4.log
+cleverleaf.0000.stdout
+cleverleaf.0001.stdout
+cleverleaf.0002.stdout
+cleverleaf.0003.stdout
+cleverleaf.0004.stdout
+cleverleaf.0005.stdout
+cleverleaf.0006.stdout
+cleverleaf.0007.stdout
+cleverleaf.0008.stdout
+cleverleaf.0009.stdout
+cleverleaf.0010.stdout
+cleverleaf.0011.stdout
+cleverleaf.0012.stdout
+cleverleaf.0013.stdout
+cleverleaf.0014.stdout
+cleverleaf.0015.stdout
+cleverleaf.0016.stdout
+cleverleaf.0017.stdout
+cleverleaf.0018.stdout
+cleverleaf.0019.stdout
+cleverleaf.0020.stdout
+cleverleaf.0021.stdout
+cleverleaf.0022.stdout
+cleverleaf.0023.stdout
+cleverleaf.0024.stdout
+cleverleaf.0025.stdout
+cleverleaf.0026.stdout
+cleverleaf.0027.stdout
+cleverleaf.0028.stdout
+cleverleaf.0029.stdout
+cleverleaf.0030.stdout
+cleverleaf.0031.stdout
+cleverleaf.0032.stdout
+cleverleaf.0033.stdout
+cleverleaf.0034.stdout
+cleverleaf.0035.stdout
+cleverleaf.0036.stdout
+cleverleaf.0037.stdout
+cleverleaf.0038.stdout
+cleverleaf.0039.stdout
+cleverleaf.0040.stdout
+cleverleaf.0041.stdout
+cleverleaf.0042.stdout
+cleverleaf.0043.stdout
+cleverleaf.0044.stdout
+cleverleaf.0045.stdout
+cleverleaf.0046.stdout
+cleverleaf.0047.stdout
+cleverleaf.0048.stdout
+cleverleaf.0049.stdout
+cleverleaf.0050.stdout
+cleverleaf.0051.stdout
+cleverleaf.0052.stdout
+cleverleaf.0053.stdout
+cleverleaf.0054.stdout
+cleverleaf.0055.stdout
+cleverleaf.0056.stdout
+cleverleaf.0057.stdout
+cleverleaf.0058.stdout
+cleverleaf.0059.stdout
+cleverleaf.0060.stdout
+cleverleaf.0061.stdout
+cleverleaf.0062.stdout
+cleverleaf.0063.stdout
+controller.out
+models
+sqlexec.0.out
+sqlexec.1.out
+sqlexec.10.out
+sqlexec.11.out
+sqlexec.12.out
+sqlexec.13.out
+sqlexec.14.out
+sqlexec.15.out
+sqlexec.2.out
+sqlexec.3.out
+sqlexec.4.out
+sqlexec.5.out
+sqlexec.6.out
+sqlexec.7.out
+sqlexec.8.out
+sqlexec.9.out
+sqlexec.out
+--------------------------------------------------------------------------------
+
+The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations.
+
+You are now in the $SOS_WORK directory with your RESULTS and SCRIPTS!
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To RETURN to your code ..: $ cd $RETURN_PATH
+        To SHUT DOWN SOS ........: $ ./sosd_stop.sh   (OR: $ killall srun)
+
+NOTE: You need to shut down SOS before it will export the databases to files.
+
+
+
+Constructing / emailing a results summary:
+  adding: cleaf_triple_pt_500.0.log (deflated 79%)
+  adding: cleverleaf.0000.stdout (deflated 83%)
+ERROR: Unable to contact target (quartz435:39109) after 8 attempts.
+  adding: controller.out (deflated 38%)
+  adding: ../daemons/monitor.0.csv (deflated 81%)
+	zip warning: name not matched: models/latest_model.json
+
+zip error: Nothing to do! (results.3336368.summary.zip)
+
+ >>>>
+ >>>>
+ >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)
+ >>>>
+
+ *OK* Shutting down interactive experiment environment...
+
+Bringing down SOS:
+*** Error in `/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/./bin/sosd_stop': munmap_chunk(): invalid pointer: 0x0000000000e042a9 ***
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+Done.
+======= Backtrace: =========
+/lib64/libc.so.6(+0x7f5d4)[0x2aaaad4555d4]
+/g/g17/wood67/src/sos_flow/build/lib/libsos.so(SOS_init_existing_runtime+0x642)[0x2aaaad1a8ecd]
+/g/g17/wood67/src/sos_flow/build/lib/libsos.so(SOS_init+0xcb)[0x2aaaad1a8883]
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/./bin/sosd_stop(SOSD_STOP_local_daemon+0x2b)[0x40206e]
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/./bin/sosd_stop(main+0xa1)[0x401727]
+/lib64/libc.so.6(__libc_start_main+0xf5)[0x2aaaad3f83d5]
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/./bin/sosd_stop[0x4015b9]
+======= Memory map: ========
+00400000-00404000 r-xp 00000000 6a6:a2f42 162133191908393581             /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/bin/sosd_stop
+00603000-00604000 r--p 00003000 6a6:a2f42 162133191908393581             /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/bin/sosd_stop
+00604000-00605000 rw-p 00004000 6a6:a2f42 162133191908393581             /p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/bin/sosd_stop
+00605000-00e24000 rw-p 00000000 00:00 0                                  [heap]
+2aaaaaaab000-2aaaaaacd000 r-xp 00000000 fd:00 264046                     /usr/lib64/ld-2.17.so
+2aaaaaacd000-2aaaaaacf000 r-xp 00000000 00:00 0                          [vdso]
+2aaaaaacf000-2aaaaaad1000 rw-p 00000000 00:00 0 
+2aaaaaad1000-2aaaaaad2000 r--s dabbad0003030000 00:05 58797              /dev/hfi1_0
+2aaaaaad2000-2aaaaaad8000 -w-s dabbad0002030000 00:05 58797              /dev/hfi1_0
+2aaaaaad8000-2aaaaaade000 -w-s dabbad0001030000 00:05 58797              /dev/hfi1_0
+2aaaaaade000-2aaaaaadf000 r--s ffffba5c0fffe000 00:05 58797              /dev/hfi1_0
+2aaaaaadf000-2aaaaaae0000 rw-s dabbad0006030000 00:05 58797              /dev/hfi1_0
+2aaaaaae0000-2aaaaaae1000 r--s ffffba5c0d3c8000 00:05 58797              /dev/hfi1_0
+2aaaaaae1000-2aaaaaae2000 r--s dabbad0008030000 00:05 58797              /dev/hfi1_0
+2aaaaaae2000-2aaaaaae3000 rw-p 00000000 00:00 0 
+2aaaaab11000-2aaaaab1f000 rw-p 00000000 00:00 0 
+2aaaaab1f000-2aaaaab5f000 r--s dabbad0004030000 00:05 58797              /dev/hfi1_0
+2aaaaaccc000-2aaaaaccd000 r--p 00021000 fd:00 264046                     /usr/lib64/ld-2.17.so
+2aaaaaccd000-2aaaaacce000 rw-p 00022000 fd:00 264046                     /usr/lib64/ld-2.17.so
+2aaaaacce000-2aaaaaccf000 rw-p 00000000 00:00 0 
+2aaaaaccf000-2aaaaad80000 r-xp 00000000 fd:00 264349                     /usr/lib64/libsqlite3.so.0.8.6
+2aaaaad80000-2aaaaaf7f000 ---p 000b1000 fd:00 264349                     /usr/lib64/libsqlite3.so.0.8.6
+2aaaaaf7f000-2aaaaaf81000 r--p 000b0000 fd:00 264349                     /usr/lib64/libsqlite3.so.0.8.6
+2aaaaaf81000-2aaaaaf84000 rw-p 000b2000 fd:00 264349                     /usr/lib64/libsqlite3.so.0.8.6
+2aaaaaf84000-2aaaaafa3000 r-xp 00000000 00:36 1589116605                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpicxx.so.12.1.1
+2aaaaafa3000-2aaaab1a3000 ---p 0001f000 00:36 1589116605                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpicxx.so.12.1.1
+2aaaab1a3000-2aaaab1a5000 r--p 0001f000 00:36 1589116605                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpicxx.so.12.1.1
+2aaaab1a5000-2aaaab1a6000 rw-p 00021000 00:36 1589116605                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpicxx.so.12.1.1
+2aaaab1a6000-2aaaab55e000 r-xp 00000000 00:36 1594139526                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpi.so.12.1.1
+2aaaab55e000-2aaaab75e000 ---p 003b8000 00:36 1594139526                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpi.so.12.1.1
+2aaaab75e000-2aaaab76d000 r--p 003b8000 00:36 1594139526                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpi.so.12.1.1
+2aaaab76d000-2aaaab773000 rw-p 003c7000 00:36 1594139526                 /usr/tce/packages/mvapich2/mvapich2-2.3-gcc-4.9.3/lib/libmpi.so.12.1.1
+2aaaab773000-2aaaab7a1000 rw-p 00000000 00:00 0 
+2aaaab7a1000-2aaaab8e2000 r-xp 00000000 fd:00 302479                     /usr/lib64/libfabric.so.1.9.14
+2aaaab8e2000-2aaaabae1000 ---p 00141000 fd:00 302479                     /usr/lib64/libfabric.so.1.9.14
+2aaaabae1000-2aaaabae2000 r--p 00140000 fd:00 302479                     /usr/lib64/libfabric.so.1.9.14
+2aaaabae2000-2aaaabaed000 rw-p 00141000 fd:00 302479                     /usr/lib64/libfabric.so.1.9.14
+2aaaabaed000-2aaaabaf5000 rw-p 00000000 00:00 0 
+2aaaabaf5000-2aaaabb49000 r-xp 00000000 fd:00 302361                     /usr/lib64/libpsm_infinipath.so.1.16
+2aaaabb49000-2aaaabd48000 ---p 00054000 fd:00 302361                     /usr/lib64/libpsm_infinipath.so.1.16
+2aaaabd48000-2aaaabd49000 r--p 00053000 fd:00 302361                     /usr/lib64/libpsm_infinipath.so.1.16
+2aaaabd49000-2aaaabd4a000 rw-p 00054000 fd:00 302361                     /usr/lib64/libpsm_infinipath.so.1.16
+2aaaabd4a000-2aaaabd4b000 rw-p 00000000 00:00 0 
+2aaaabd4b000-2aaaabdaa000 r-xp 00000000 fd:00 284915                     /usr/lib64/libpsm2.so.2.1
+2aaaabdaa000-2aaaabfaa000 ---p 0005f000 fd:00 284915                     /usr/lib64/libpsm2.so.2.1
+2aaaabfaa000-2aaaabfab000 r--p 0005f000 fd:00 284915                     /usr/lib64/libpsm2.so.2.1
+2aaaabfab000-2aaaabfac000 rw-p 00060000 fd:00 284915                     /usr/lib64/libpsm2.so.2.1
+2aaaabfac000-2aaaabfae000 rw-p 00000000 00:00 0 
+2aaaabfae000-2aaaabfb5000 r-xp 00000000 fd:00 264083                     /usr/lib64/librt-2.17.so
+2aaaabfb5000-2aaaac1b4000 ---p 00007000 fd:00 264083                     /usr/lib64/librt-2.17.so
+2aaaac1b4000-2aaaac1b5000 r--p 00006000 fd:00 264083                     /usr/lib64/librt-2.17.so
+2aaaac1b5000-2aaaac1b6000 rw-p 00007000 fd:00 264083                     /usr/lib64/librt-2.17.so
+2aaaac1b6000-2aaaac1cb000 r-xp 00000000 fd:00 300609                     /usr/lib64/librdmacm.so.1.1.17.2
+2aaaac1cb000-2aaaac3ca000 ---p 00015000 fd:00 300609                     /usr/lib64/librdmacm.so.1.1.17.2
+2aaaac3ca000-2aaaac3cb000 r--p 00014000 fd:00 300609                     /usr/lib64/librdmacm.so.1.1.17.2
+2aaaac3cb000-2aaaac3cc000 rw-p 00015000 fd:00 300609                     /usr/lib64/librdmacm.so.1.1.17.2
+2aaaac3cc000-2aaaac3cd000 rw-p 00000000 00:00 0 
+2aaaac3cd000-2aaaac3e2000 r-xp 00000000 fd:00 300597                     /usr/lib64/libibverbs.so.1.1.17.2
+2aaaac3e2000-2aaaac5e2000 ---p 00015000 fd:00 300597                     /usr/lib64/libibverbs.so.1.1.17.2
+2aaaac5e2000-2aaaac5e3000 r--p 00015000 fd:00 300597                     /usr/lib64/libibverbs.so.1.1.17.2
+2aaaac5e3000-2aaaac5e4000 rw-p 00016000 fd:00 300597                     /usr/lib64/libibverbs.so.1.1.17.2
+2aaaac5e4000-2aaaac602000 r-xp 00000000 00:3e 1544116147                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-3.so.200.25.0
+2aaaac602000-2aaaac802000 ---p 0001e000 00:3e 1544116147                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-3.so.200.25.0
+2aaaac802000-2aaaac804000 r--p 0001e000 00:3e 1544116147                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-3.so.200.25.0
+2aaaac804000-2aaaac805000 rw-p 00020000 00:3e 1544116147                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-3.so.200.25.0
+2aaaac805000-2aaaac86f000 r-xp 00000000 00:3e 1544116151                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-route-3.so.200.25.0
+2aaaac86f000-2aaaaca6e000 ---p 0006a000 00:3e 1544116151                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-route-3.so.200.25.0
+2aaaaca6e000-2aaaaca71000 r--p 00069000 00:3e 1544116151                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-route-3.so.200.25.0
+2aaaaca71000-2aaaaca76000 rw-p 0006c000 00:3e 1544116151                 /g/g17/wood67/src/spack/opt/spack/linux-rhel7-x86_64/gcc-4.9.3/libnl-3.3.0-2cscqv3lmbamifzj72jm44j2mvb5j5ll/lib/libnl-route-3.so.200.25.0
+2aaaaca76000-2aaaaca78000 rw-p 00000000 00:00 0 
+2aaaaca78000-2aaaaca8f000 r-xp 00000000 fd:00 264079                     /usr/lib64/libpthread-2.17.so
+2aaaaca8f000-2aaaacc8e000 ---p 00017000 fd:00 264079                     /usr/lib64/libpthread-2.17.so
+2aaaacc8e000-2aaaacc8f000 r--p 00016000 fd:00 264079                     /usr/lib64/libpthread-2.17.so
+2aaaacc8f000-2aaaacc90000 rw-p 00017000 fd:00 264079                     /usr/lib64/libpthread-2.17.so
+2aaaacc90000-2aaaacc94000 rw-p 00000000 00:00 0 
+2aaaacc94000-2aaaacd95000 r-xp 00000000 fd:00 264061                     /usr/lib64/libm-2.17.so
+2aaaacd95000-2aaaacf94000 ---p 00101000 fd:00 264061                     /usr/lib64/libm-2.17.so
+2aaaacf94000-2aaaacf95000 r--p 00100000 fd:00 264061                     /usr/lib64/libm-2.17.so
+2aaaacf95000-2aaaacf96000 rw-p 00101000 fd:00 264061                     /usr/lib64/libm-2.17.so
+2aaaacf96000-2aaaacf98000 r-xp 00000000 fd:00 264059                     /usr/lib64/libdl-2.17.so
+2aaaacf98000-2aaaad198000 ---p 00002000 fd:00 264059                     /usr/lib64/libdl-2.17.so
+2aaaad198000-2aaaad199000 r--p 00002000 fd:00 264059                     /usr/lib64/libdl-2.17.so
+2aaaad199000-2aaaad19a000 rw-p 00003000 fd:00 264059                     /usr/lib64/libdl-2.17.so
+2aaaad19a000-2aaaad1d1000 r-xp 00000000 00:3e 1562950306                 /g/g17/wood67/src/sos_flow/build/lib/libsos.so
+2aaaad1d1000-2aaaad3d0000 ---p 00037000 00:3e 1562950306                 /g/g17/wood67/src/sos_flow/build/lib/libsos.so
+2aaaad3d0000-2aaaad3d1000 r--p 00036000 00:3e 1562950306                 /g/g17/wood67/src/sos_flow/build/lib/libsos.so
+2aaaad3d1000-2aaaad3d6000 rw-p 00037000 00:3e 1562950306                 /g/g17/wood67/src/sos_flow/build/lib/libsos.so
+2aaaad3d6000-2aaaad598000 r-xp 00000000 fd:00 264053                     /usr/lib64/libc-2.17.so
+2aaaad598000-2aaaad798000 ---p 001c2000 fd:00 264053                     /usr/lib64/libc-2.17.so
+2aaaad798000-2aaaad79c000 r--p 001c2000 fd:00 264053                     /usr/lib64/libc-2.17.so
+2aaaad79c000-2aaaad79e000 rw-p 001c6000 fd:00 264053                     /usr/lib64/libc-2.17.so
+2aaaad79e000-2aaaad7a3000 rw-p 00000000 00:00 0 
+2aaaad7a3000-2aaaad7ad000 r-xp 00000000 fd:00 264591                     /usr/lib64/libnuma.so.1
+2aaaad7ad000-2aaaad9ad000 ---p 0000a000 fd:00 264591                     /usr/lib64/libnuma.so.1
+2aaaad9ad000-2aaaad9ae000 r--p 0000a000 fd:00 264591                     /usr/lib64/libnuma.so.1
+2aaaad9ae000-2aaaad9af000 rw-p 0000b000 fd:00 264591                     /usr/lib64/libnuma.so.1
+2aaaad9af000-2aaaad9b6000 r-xp 00000000 fd:00 337911                     /usr/lib64/libpmi2.so.0.0.0
+2aaaad9b6000-2aaaadbb5000 ---p 00007000 fd:00 337911                     /usr/lib64/libpmi2.so.0.0.0
+2aaaadbb5000-2aaaadbb6000 r--p 00006000 fd:00 337911                     /usr/lib64/libpmi2.so.0.0.0
+2aaaadbb6000-2aaaadbb7000 rw-p 00007000 fd:00 337911                     /usr/lib64/libpmi2.so.0.0.0
+2aaaadbb7000-2aaaadbc7000 rw-p 00000000 00:00 0 
+2aaaadbc7000-2aaaadcb2000 r-xp 00000000 00:36 1578688707                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libstdc++.so.6.0.20
+2aaaadcb2000-2aaaadeb2000 ---p 000eb000 00:36 1578688707                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libstdc++.so.6.0.20
+2aaaadeb2000-2aaaadeba000 r--p 000eb000 00:36 1578688707                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libstdc++.so.6.0.20
+2aaaadeba000-2aaaadebc000 rw-p 000f3000 00:36 1578688707                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libstdc++.so.6.0.20
+2aaaadebc000-2aaaaded1000 rw-p 00000000 00:00 0 
+2aaaaded1000-2aaaadee7000 r-xp 00000000 00:36 1577986007                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgcc_s.so.1
+2aaaadee7000-2aaaae0e6000 ---p 00016000 00:36 1577986007                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgcc_s.so.1
+2aaaae0e6000-2aaaae0e7000 r--p 00015000 00:36 1577986007                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgcc_s.so.1
+2aaaae0e7000-2aaaae0e8000 rw-p 00016000 00:36 1577986007                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgcc_s.so.1
+2aaaae0e8000-2aaaae204000 r-xp 00000000 00:36 1577791046                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgfortran.so.3.0.0
+2aaaae204000-2aaaae404000 ---p 0011c000 00:36 1577791046                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgfortran.so.3.0.0
+2aaaae404000-2aaaae405000 r--p 0011c000 00:36 1577791046                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgfortran.so.3.0.0
+2aaaae405000-2aaaae407000 rw-p 0011d000 00:36 1577791046                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libgfortran.so.3.0.0
+2aaaae407000-2aaaae444000 r-xp 00000000 00:36 1577845180                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libquadmath.so.0.0.0
+2aaaae444000-2aaaae643000 ---p 0003d000 00:36 1577845180                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libquadmath.so.0.0.0
+2aaaae643000-2aaaae644000 r--p 0003c000 00:36 1577845180                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libquadmath.so.0.0.0
+2aaaae644000-2aaaae645000 rw-p 0003d000 00:36 1577845180                 /usr/tce/packages/gcc/gcc-4.9.3/lib64/libquadmath.so.0.0.0
+2aaaae645000-2aaaae653000 r-xp 00000000 fd:00 302359                     /usr/lib64/libinfinipath.so.4.0
+2aaaae653000-2aaaae852000 ---p 0000e000 fd:00 302359                     /usr/lib64/libinfinipath.so.4.0
+2aaaae852000-2aaaae853000 r--p 0000d000 fd:00 302359                     /usr/lib64/libinfinipath.so.4.0
+2aaaae853000-2aaaae854000 rw-p 0000e000 fd:00 302359                     /usr/lib64/libinfinipath.so.4.0
+2aaaae854000-2aaaae858000 r-xp 00000000 fd:00 264264                     /usr/lib64/libuuid.so.1.3.0
+2aaaae858000-2aaaaea57000 ---p 00004000 fd:00 264264                     /usr/lib64/libuuid.so.1.3.0
+2aaaaea57000-2aaaaea58000 r--p 00003000 fd:00 264264                     /usr/lib64/libuuid.so.1.3.0
+2aaaaea58000-2aaaaea59000 rw-p 00004000 fd:00 264264                     /usr/lib64/libuuid.so.1.3.0
+2aaaaea59000-2aaaaea5e000 r-xp 00000000 fd:00 403975                     /usr/lib64/libibverbs/libbnxt_re-rdmav17.so
+2aaaaea5e000-2aaaaec5d000 ---p 00005000 fd:00 403975                     /usr/lib64/libibverbs/libbnxt_re-rdmav17.so
+2aaaaec5d000-2aaaaec5e000 r--p 00004000 fd:00 403975                     /usr/lib64/libibverbs/libbnxt_re-rdmav17.so
+2aaaaec5e000-2aaaaec5f000 rw-p 00005000 fd:00 403975                     /usr/lib64/libibverbs/libbnxt_re-rdmav17.so
+2aaaaec5f000-2aaaaec67000 r-xp 00000000 fd:00 403987                     /usr/lib64/libibverbs/libqedr-rdmav17.so
+2aaaaec67000-2aaaaee66000 ---p 00008000 fd:00 403987                     /usr/lib64/libibverbs/libqedr-rdmav17.so
+2aaaaee66000-2aaaaee67000 r--p 00007000 fd:00 403987                     /usr/lib64/libibverbs/libqedr-rdmav17.so
+2aaaaee67000-2aaaaee68000 rw-p 00008000 fd:00 403987                     /usr/lib64/libibverbs/libqedr-rdmav17.so
+2aaaaee68000-2aaaaee6c000 r-xp 00000000 fd:00 403988                     /usr/lib64/libibverbs/librxe-rdmav17.so
+2aaaaee6c000-2aaaaf06b000 ---p 00004000 fd:00 403988                     /usr/lib64/libibverbs/librxe-rdmav17.so
+2aaaaf06b000-2aaaaf06c000 r--p 00003000 fd:00 403988                     /usr/lib64/libibverbs/librxe-rdmav17.so
+2aaaaf06c000-2aaaaf06d000 rw-p 00004000 fd:00 403988                     /usr/lib64/libibverbs/librxe-rdmav17.so
+2aaaaf06d000-2aaaaf072000 r-xp 00000000 fd:00 403976                     /usr/lib64/libibverbs/libcxgb3-rdmav17.so
+2aaaaf072000-2aaaaf271000 ---p 00005000 fd:00 403976                     /usr/lib64/libibverbs/libcxgb3-rdmav17.so
+2aaaaf271000-2aaaaf272000 r--p 00004000 fd:00 403976                     /usr/lib64/libibverbs/libcxgb3-rdmav17.so
+2aaaaf272000-2aaaaf273000 rw-p 00005000 fd:00 403976                     /usr/lib64/libibverbs/libcxgb3-rdmav17.so
+2aaaaf273000-2aaaaf278000 r-xp 00000000 fd:00 403985                     /usr/lib64/libibverbs/libnes-rdmav17.so
+2aaaaf278000-2aaaaf478000 ---p 00005000 fd:00 403985                     /usr/lib64/libibverbs/libnes-rdmav17.so
+2aaaaf478000-2aaaaf479000 r--p 00005000 fd:00 403985                     /usr/lib64/libibverbs/libnes-rdmav17.so
+2aaaaf479000-2aaaaf47a000 rw-p 00006000 fd:00 403985                     /usr/lib64/libibverbs/libnes-rdmav17.so
+2aaaaf47a000-2aaaaf481000 r-xp 00000000 fd:00 403977                     /usr/lib64/libibverbs/libcxgb4-rdmav17.so
+2aaaaf481000-2aaaaf681000 ---p 00007000 fd:00 403977                     /usr/lib64/libibverbs/libcxgb4-rdmav17.so
+2aaaaf681000-2aaaaf682000 r--p 00007000 fd:00 403977                     /usr/lib64/libibverbs/libcxgb4-rdmav17.so
+2aaaaf682000-2aaaaf683000 rw-p 00008000 fd:00 403977                     /usr/lib64/libibverbs/libcxgb4-rdmav17.so
+2aaaaf683000-2aaaaf68e000 r-xp 00000000 fd:00 300599                     /usr/lib64/libmlx4.so.1.0.17.2
+2aaaaf68e000-2aaaaf88d000 ---p 0000b000 fd:00 300599                     /usr/lib64/libmlx4.so.1.0.17.2
+2aaaaf88d000-2aaaaf88e000 r--p 0000a000 fd:00 300599                     /usr/lib64/libmlx4.so.1.0.17.2
+2aaaaf88e000-2aaaaf88f000 rw-p 0000b000 fd:00 300599                     /usr/lib64/libmlx4.so.1.0.17.2
+2aaaaf88f000-2aaaaf893000 r-xp 00000000 fd:00 403981                     /usr/lib64/libibverbs/libipathverbs-rdmav17.so
+2aaaaf893000-2aaaafa92000 ---p 00004000 fd:00 403981                     /usr/lib64/libibverbs/libipathverbs-rdmav17.so
+2aaaafa92000-2aaaafa93000 r--p 00003000 fd:00 403981                     /usr/lib64/libibverbs/libipathverbs-rdmav17.so
+2aaaafa93000-2aaaafa94000 rw-p 00004000 fd:00 403981                     /usr/lib64/libibverbs/libipathverbs-rdmav17.so
+2aaaafa94000-2aaaafa9b000 r-xp 00000000 fd:00 403980                     /usr/lib64/libibverbs/libi40iw-rdmav17.so
+2aaaafa9b000-2aaaafc9a000 ---p 00007000 fd:00 403980                     /usr/lib64/libibverbs/libi40iw-rdmav17.so
+2aaaafc9a000-2aaaafc9b000 r--p 00006000 fd:00 403980                     /usr/lib64/libibverbs/libi40iw-rdmav17.so
+2aaaafc9b000-2aaaafc9c000 rw-p 00007000 fd:00 403980                     /usr/lib64/libibverbs/libi40iw-rdmav17.so
+2aaaafc9c000-2aaaafca4000 r-xp 00000000 fd:00 403984                     /usr/lib64/libibverbs/libmthca-rdmav17.so
+2aaaafca4000-2aaaafea3000 ---p 00008000 fd:00 403984                     /usr/lib64/libibverbs/libmthca-rdmav17.so
+2aaaafea3000-2aaaafea4000 r--p 00007000 fd:00 403984                     /usr/lib64/libibverbs/libmthca-rdmav17.so
+2aaaafea4000-2aaaafea5000 rw-p 00008000 fd:00 403984                     /usr/lib64/libibverbs/libmthca-rdmav17.so
+2aaaafea5000-2aaaafea9000 r-xp 00000000 fd:00 403989                     /usr/lib64/libibverbs/libvmw_pvrdma-rdmav17.so
+2aaaafea9000-2aaab00a9000 ---p 00004000 fd:00 403989                     /usr/lib64/libibverbs/libvmw_pvrdma-rdmav17.so
+2aaab00a9000-2aaab00aa000 r--p 00004000 fd:00 403989                     /usr/lib64/libibverbs/libvmw_pvrdma-rdmav17.so
+2aaab00aa000-2aaab00ab000 rw-p 00005000 fd:00 403989                     /usr/lib64/libibverbs/libvmw_pvrdma-rdmav17.so
+2aaab00ab000-2aaab00af000 r-xp 00000000 fd:00 403978                     /usr/lib64/libibverbs/libhfi1verbs-rdmav17.so
+2aaab00af000-2aaab02ae000 ---p 00004000 fd:00 403978                     /usr/lib64/libibverbs/libhfi1verbs-rdmav17.so
+2aaab02ae000-2aaab02af000 r--p 00003000 fd:00 403978                     /usr/lib64/libibverbs/libhfi1verbs-rdmav17.so
+2aaab02af000-2aaab02b0000 rw-p 00004000 fd:00 403978                     /usr/lib64/libibverbs/libhfi1verbs-rdmav17.so
+2aaab02b0000-2aaab02d1000 r-xp 00000000 fd:00 300601                     /usr/lib64/libmlx5.so.1.4.17.2
+2aaab02d1000-2aaab04d1000 ---p 00021000 fd:00 300601                     /usr/lib64/libmlx5.so.1.4.17.2
+2aaab04d1000-2aaab04d2000 r--p 00021000 fd:00 300601                     /usr/lib64/libmlx5.so.1.4.17.2
+2aaab04d2000-2aaab04d3000 rw-p 00022000 fd:00 300601                     /usr/lib64/libmlx5.so.1.4.17.2
+2aaab04d3000-2aaab04da000 r-xp 00000000 fd:00 403979                     /usr/lib64/libibverbs/libhns-rdmav17.so
+2aaab04da000-2aaab06d9000 ---p 00007000 fd:00 403979                     /usr/lib64/libibverbs/libhns-rdmav17.so
+2aaab06d9000-2aaab06da000 r--p 00006000 fd:00 403979                     /usr/lib64/libibverbs/libhns-rdmav17.so
+2aaab06da000-2aaab06db000 rw-p 00007000 fd:00 403979                     /usr/lib64/libibverbs/libhns-rdmav17.so
+2aaab06db000-2aaab06e1000 r-xp 00000000 fd:00 403986                     /usr/lib64/libibverbs/libocrdma-rdmav17.so
+2aaab06e1000-2aaab08e0000 ---p 00006000 fd:00 403986                     /usr/lib64/libibverbs/libocrdma-rdmav17.so
+2aaab08e0000-2aaab08e1000 r--p 00005000 fd:00 403986                     /usr/lib64/libibverbs/libocrdma-rdmav17.so
+2aaab08e1000-2aaab08e2000 rw-p 00006000 fd:00 403986                     /usr/lib64/libibverbs/libocrdma-rdmav17.so
+2aaab08e2000-2aaab0ae4000 rw-s 00000000 00:13 58656309                   /dev/shm/ib_shmem_coll-3336368.50-quartz92-59088.tmp (deleted)
+2aaab0ae4000-2aaab12e4000 r--s dabbad0005030000 00:05 58797              /dev/hfi1_0
+2aaab12e4000-2aaab22ea000 rw-p 00000000 00:00 0 
+2aaab22ea000-2aaab22eb000 ---p 00000000 00:00 0 
+2aaab22eb000-2aaab2c8e000 rw-p 00000000 00:00 0 
+7ffffffd2000-7ffffffff000 rw-p 00000000 00:00 0                          [stack]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+[quartz92:mpi_rank_0][error_sighandler] Caught error: Aborted (signal 6)
+srun: error: quartz92: task 0: Aborted (core dumped)
+Killing SOS monitors:
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 11.1% in 2.99 seconds.  (65536 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 15.0% in 2.98 seconds.  (65536 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 12.9% in 2.98 seconds.  (65536 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 8.6% in 3.01 seconds.  (65536 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 8.0% in 3.06 seconds.  (65536 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 11.5% in 2.99 seconds.  (65536 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 8.8% in 3.11 seconds.  (65536 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 10.4% in 3.03 seconds.  (65536 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 10.9% in 3.08 seconds.  (65536 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 9.3% in 3.12 seconds.  (65536 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 9.5% in 3.09 seconds.  (65536 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 10.7% in 3.11 seconds.  (65536 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 12.8% in 3.18 seconds.  (65536 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 8.2% in 3.20 seconds.  (65536 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 11.4% in 3.20 seconds.  (65536 of 574967 pages)
+srun: error: quartz92: task 0: Killed
+srun: error: quartz825: task 7: Killed
+srun: error: quartz1286: task 11: Killed
+srun: error: quartz1285: task 10: Killed
+srun: error: quartz1138: task 9: Killed
+srun: error: quartz436: task 5: Killed
+srun: error: quartz1415: task 13: Killed
+srun: error: quartz437: task 6: Killed
+srun: error: quartz2012: task 15: Killed
+srun: error: quartz1099: task 8: Killed
+srun: error: quartz93: task 1: Killed
+srun: error: quartz326: task 2: Killed
+srun: error: quartz1351: task 12: Killed
+srun: error: quartz435: task 4: Killed
+OK!
+
+
+srun: error: quartz434: task 3: Killed
+srun: error: quartz1952: task 14: Killed
+srun: Force Terminated job step 3336368.16
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 30.1% in 5.96 seconds.  (131072 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 22.2% in 6.02 seconds.  (131072 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 25.8% in 6.06 seconds.  (131072 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 23.0% in 5.99 seconds.  (131072 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 17.2% in 6.09 seconds.  (131072 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 16.0% in 6.15 seconds.  (131072 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 20.8% in 6.08 seconds.  (131072 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 21.8% in 6.15 seconds.  (131072 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 17.6% in 6.30 seconds.  (131072 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 21.4% in 6.28 seconds.  (131072 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 16.4% in 6.31 seconds.  (131072 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 22.8% in 6.30 seconds.  (131072 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 19.1% in 6.28 seconds.  (131072 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 18.7% in 6.34 seconds.  (131072 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 25.6% in 6.34 seconds.  (131072 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 45.1% in 8.93 seconds.  (196608 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 33.3% in 9.09 seconds.  (196608 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 34.5% in 9.02 seconds.  (196608 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 23.9% in 9.14 seconds.  (196608 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 38.7% in 9.14 seconds.  (196608 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 31.2% in 9.12 seconds.  (196608 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 25.8% in 9.22 seconds.  (196608 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 32.7% in 9.25 seconds.  (196608 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 24.6% in 9.37 seconds.  (196608 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 34.2% in 9.41 seconds.  (196608 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 26.4% in 9.45 seconds.  (196608 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 32.0% in 9.45 seconds.  (196608 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 28.6% in 9.48 seconds.  (196608 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 38.4% in 9.50 seconds.  (196608 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 28.0% in 9.55 seconds.  (196608 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 60.1% in 11.95 seconds.  (262144 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 31.9% in 12.10 seconds.  (262144 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 45.9% in 12.02 seconds.  (262144 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 44.3% in 12.21 seconds.  (262144 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 51.5% in 12.20 seconds.  (262144 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 41.6% in 12.18 seconds.  (262144 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 34.4% in 12.34 seconds.  (262144 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 43.6% in 12.41 seconds.  (262144 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 32.8% in 12.43 seconds.  (262144 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 35.2% in 12.58 seconds.  (262144 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 45.6% in 12.56 seconds.  (262144 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 42.7% in 12.59 seconds.  (262144 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 51.2% in 12.66 seconds.  (262144 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 38.2% in 12.67 seconds.  (262144 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 37.3% in 12.80 seconds.  (262144 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 75.2% in 14.90 seconds.  (327680 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 57.4% in 15.03 seconds.  (327680 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 39.9% in 15.18 seconds.  (327680 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 64.4% in 15.28 seconds.  (327680 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 55.4% in 15.35 seconds.  (327680 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 52.0% in 15.24 seconds.  (327680 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 42.9% in 15.53 seconds.  (327680 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 41.0% in 15.59 seconds.  (327680 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 54.4% in 15.56 seconds.  (327680 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 57.0% in 15.69 seconds.  (327680 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 64.0% in 15.73 seconds.  (327680 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 44.0% in 15.78 seconds.  (327680 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 53.4% in 15.74 seconds.  (327680 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 47.7% in 15.85 seconds.  (327680 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 46.7% in 16.05 seconds.  (327680 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 90.2% in 17.87 seconds.  (393216 of 435909 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 68.9% in 18.04 seconds.  (393216 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 47.9% in 18.30 seconds.  (393216 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 66.5% in 18.40 seconds.  (393216 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 77.3% in 18.37 seconds.  (393216 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 62.3% in 18.29 seconds.  (393216 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 51.5% in 18.65 seconds.  (393216 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 49.2% in 18.74 seconds.  (393216 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 76.8% in 18.74 seconds.  (393216 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 65.3% in 18.76 seconds.  (393216 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 68.4% in 18.80 seconds.  (393216 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 64.1% in 18.93 seconds.  (393216 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 52.8% in 19.00 seconds.  (393216 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 57.3% in 19.00 seconds.  (393216 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 56.0% in 19.24 seconds.  (393216 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00013.db --> Exported 100.0% in 20.01 seconds.  (435909 of 435909 pages)
+** SHUTDOWN **: sosd(13) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 80.4% in 21.04 seconds.  (458752 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 77.6% in 21.37 seconds.  (458752 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 72.7% in 21.35 seconds.  (458752 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 55.9% in 21.45 seconds.  (458752 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 90.2% in 21.55 seconds.  (458752 of 508578 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 89.6% in 21.75 seconds.  (458752 of 511797 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 60.1% in 21.77 seconds.  (458752 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 57.4% in 21.82 seconds.  (458752 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 76.2% in 21.90 seconds.  (458752 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 79.8% in 22.01 seconds.  (458752 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 74.8% in 22.12 seconds.  (458752 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 61.5% in 22.20 seconds.  (458752 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 66.8% in 22.20 seconds.  (458752 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 65.3% in 22.53 seconds.  (458752 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 91.9% in 24.05 seconds.  (524288 of 570565 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00012.db --> Exported 100.0% in 24.19 seconds.  (508578 of 508578 pages)
+** SHUTDOWN **: sosd(12) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 88.7% in 24.37 seconds.  (524288 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00015.db --> Exported 100.0% in 24.39 seconds.  (511797 of 511797 pages)
+** SHUTDOWN **: sosd(15) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 83.1% in 24.41 seconds.  (524288 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 63.9% in 24.58 seconds.  (524288 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 65.6% in 24.83 seconds.  (524288 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 68.7% in 24.91 seconds.  (524288 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 87.1% in 25.06 seconds.  (524288 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 91.2% in 25.24 seconds.  (524288 of 574967 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 85.4% in 25.30 seconds.  (524288 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 70.3% in 25.42 seconds.  (524288 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 76.4% in 25.38 seconds.  (524288 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 74.7% in 25.76 seconds.  (524288 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00002.db --> Exported 100.0% in 26.53 seconds.  (570565 of 570565 pages)
+** SHUTDOWN **: sosd(2) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 99.8% in 27.36 seconds.  (589824 of 591107 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 93.5% in 27.48 seconds.  (589824 of 630720 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00014.db --> Exported 100.0% in 27.68 seconds.  (591107 of 591107 pages)
+** SHUTDOWN **: sosd(14) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 71.8% in 27.72 seconds.  (589824 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 73.7% in 27.84 seconds.  (589824 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00003.db --> Exported 100.0% in 27.94 seconds.  (574967 of 574967 pages)
+** SHUTDOWN **: sosd(3) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 77.3% in 28.03 seconds.  (589824 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 98.0% in 28.21 seconds.  (589824 of 601920 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 96.1% in 28.49 seconds.  (589824 of 613620 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 85.9% in 28.52 seconds.  (589824 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 79.1% in 28.63 seconds.  (589824 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 84.0% in 29.04 seconds.  (589824 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00006.db --> Exported 100.0% in 29.03 seconds.  (601920 of 601920 pages)
+** SHUTDOWN **: sosd(6) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00001.db --> Exported 100.0% in 29.68 seconds.  (630720 of 630720 pages)
+** SHUTDOWN **: sosd(1) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00008.db --> Exported 100.0% in 29.89 seconds.  (613620 of 613620 pages)
+** SHUTDOWN **: sosd(8) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 81.9% in 30.84 seconds.  (655360 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 79.8% in 30.89 seconds.  (655360 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 85.9% in 31.18 seconds.  (655360 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 95.4% in 31.70 seconds.  (655360 of 686605 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 87.9% in 31.89 seconds.  (655360 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 93.3% in 32.58 seconds.  (655360 of 702112 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00007.db --> Exported 100.0% in 33.63 seconds.  (686605 of 686605 pages)
+** SHUTDOWN **: sosd(7) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 90.1% in 33.98 seconds.  (720896 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 87.8% in 34.25 seconds.  (720896 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 94.5% in 34.50 seconds.  (720896 of 763023 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00010.db --> Exported 100.0% in 35.09 seconds.  (702112 of 702112 pages)
+** SHUTDOWN **: sosd(10) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 96.7% in 35.29 seconds.  (720896 of 745395 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00011.db --> Exported 100.0% in 36.63 seconds.  (745395 of 745395 pages)
+** SHUTDOWN **: sosd(11) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00005.db --> Exported 100.0% in 36.62 seconds.  (763023 of 763023 pages)
+** SHUTDOWN **: sosd(5) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 98.3% in 36.96 seconds.  (786432 of 799806 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 95.8% in 37.42 seconds.  (786432 of 820978 pages)
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00009.db --> Exported 100.0% in 37.66 seconds.  (799806 of 799806 pages)
+** SHUTDOWN **: sosd(9) is exiting cleanly!
+/p/lustre2/wood67/experiments/apollo/COMPARE.0016.cleverleaf.3336368/sosd.00004.db --> Exported 100.0% in 39.21 seconds.  (820978 of 820978 pages)
+** SHUTDOWN **: sosd(4) is exiting cleanly!
+--- Done! End of job script. ---

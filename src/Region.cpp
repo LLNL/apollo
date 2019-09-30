@@ -2,6 +2,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <algorithm>
+#include <limits>
 
 #include "assert.h"
 
@@ -9,6 +10,7 @@
 #include "sos_types.h"
 
 #include "apollo/Apollo.h"
+#include "apollo/Logging.h"
 #include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
 
@@ -30,13 +32,19 @@ typedef cali::Annotation note;
 int
 Apollo::Region::getPolicyIndex(void)
 {
-    if (not currently_inside_region) {
+    if ((not currently_inside_region)
+        and (is_timed)){
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
                         " while NOT inside the region. Please call"
                         " region->begin(step) first so the model has values to use"
                         " when selecting a policy. (region->name == %s)\n", name);
         fflush(stderr);
     }
+
+    //double evaluation_time_start;
+    //double evaluation_time_stop;
+    //double evaluation_time_total;
+    //SOS_TIME(evaluation_time_start);
 
     Apollo::ModelWrapper *model = getModel();
     assert (model != NULL);
@@ -49,6 +57,10 @@ Apollo::Region::getPolicyIndex(void)
     } else {
         exec_count_current_policy++;
     }
+
+    //SOS_TIME(evaluation_time_stop);
+    //evaluation_time_total = evaluation_time_stop - evaluation_time_start;
+    //log("getPolicyIndex took ", evaluation_time_total, " seconds.\n");
 
     return choice;
 }
@@ -63,13 +75,16 @@ Apollo::Region::Region(
     name   = strdup(regionName);
 
     current_step              = -1;
-    current_policy            = -1;
+    current_policy            = 0;
     exec_count_total          = 0;
     exec_count_current_step   = 0;
     exec_count_current_policy = 0;
     currently_inside_region   = false;
 
-    model = new Apollo::ModelWrapper(apollo_ptr, numAvailablePolicies);
+    is_timed = true;
+    minimum_elements_to_evaluate_model = -1;
+
+    model = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
     model->configure("");
 
     apollo->regions.insert({name, this});
@@ -102,6 +117,10 @@ Apollo::Region::~Region()
 //       calling context is typical.
 void
 Apollo::Region::begin(int for_experiment_time_step) {
+    if (is_timed == false) {
+        return;
+    }
+
     if (currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->begin(%d) called"
                         " while already inside the region. Please call"
@@ -110,6 +129,15 @@ Apollo::Region::begin(int for_experiment_time_step) {
                         current_step, name);
         fflush(stderr);
     }
+    note *t_flush =      (note *) apollo->note_flush;
+    note *t_for_region = (note *) apollo->note_time_for_region;
+    note *t_for_step   = (note *) apollo->note_time_for_step;
+    note *t_exec_count = (note *) apollo->note_time_exec_count;
+    note *t_last =       (note *) apollo->note_time_last;
+    note *t_min =        (note *) apollo->note_time_min;
+    note *t_max =        (note *) apollo->note_time_max;
+    note *t_avg =        (note *) apollo->note_time_avg;
+
     currently_inside_region = true;
 
 
@@ -132,11 +160,48 @@ Apollo::Region::begin(int for_experiment_time_step) {
 
     SOS_TIME(current_step_time_begin);
 
+    // Set the values we've got so the DecisionTree model is able to look them
+    // up in Caliper. We begin/end these things in Caliper but never flush them
+    // until we get to the actual flush event.
+    //
+    // TODO: Our redundant measures tracking is not ideal, but it works for now.
+    //
+    t_for_region->begin(name);
+    t_for_step->begin(current_step);
+    t_exec_count->begin(exec_count_current_step);
+    // NOTE: In case some other region used a different policy index elsewhere...
+    apollo->setFeature("policy_index", (double) current_policy);
+    // Grab our set of timers:
+    Apollo::Region::Measure *time = nullptr;
+    auto iter = measures.find(apollo->features);
+    if (iter == measures.end()) {
+        t_last->begin(0.0);
+        t_min->begin(0.0);
+        t_max->begin(0.0);
+        t_avg->begin(0.0);
+    } else {
+        Apollo::Region::Measure *time = iter->second;
+        t_last->begin(time->last);
+        t_min->begin(time->min);
+        t_max->begin(time->max);
+        t_avg->begin(time->avg);
+    }
+
+    // Also provide the current value of any user-defined features to Caliper.
+    // These may get stepped on inside the begin()/end() block by the user, but
+    // that's OK it's all by value.
+    for (Apollo::Feature ft : apollo->features) {
+        apollo->noteBegin(ft.name, ft.value);
+    }
+
     return;
 }
 
 void
 Apollo::Region::end(void) {
+    if (is_timed == false) {
+        return;
+    }
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
                         " while NOT inside the region. Please call"
@@ -147,9 +212,36 @@ Apollo::Region::end(void) {
 
     currently_inside_region = false;
 
+    // Do some basic bookkeeping, letting Caliper know these things have ended.
+    // We're still going to track the values in our own way.
+    //
+    // TODO: This is not ideal for now, but it works.
+    //
+    note *t_flush =      (note *) apollo->note_flush;
+    note *t_for_region = (note *) apollo->note_time_for_region;
+    note *t_for_step   = (note *) apollo->note_time_for_step;
+    note *t_exec_count = (note *) apollo->note_time_exec_count;
+    note *t_last =       (note *) apollo->note_time_last;
+    note *t_min =        (note *) apollo->note_time_min;
+    note *t_max =        (note *) apollo->note_time_max;
+    note *t_avg =        (note *) apollo->note_time_avg;
+    for (Apollo::Feature ft : apollo->features) {
+        apollo->noteEnd(ft.name);
+    }
+    t_avg->end();
+    t_max->end();
+    t_min->end();
+    t_last->end();
+    t_exec_count->end();
+    t_for_step->end();
+    t_for_region->end();
+
+    // Now make sure our buffered measurements are up to date:
+
     SOS_TIME(current_step_time_end);
     Apollo::Region::Measure *time = nullptr;
 
+    // In case this was changed by the DecisionTree after the begin() call...
     apollo->setFeature("policy_index", (double) current_policy);
 
     auto iter = measures.find(apollo->features);
@@ -164,6 +256,11 @@ Apollo::Region::end(void) {
         time = iter->second;
     }
 
+
+    // TODO: performance
+    //
+    // Turn this into TOTAL and COUND, do division once at the flush
+    //
     time->exec_count++;
     time->last = current_step_time_end - current_step_time_begin;
     time->min = std::min(time->min, time->last);
@@ -182,14 +279,14 @@ Apollo::Region::end(void) {
 
 void
 Apollo::Region::flushMeasurements(int assign_to_step) {
-    //note *t_flush =      (note *) Apollo::instance()->note_flush;
-    //note *t_for_region = (note *) Apollo::instance()->note_time_for_region;
-    //note *t_for_step   = (note *) Apollo::instance()->note_time_for_step;
-    //note *t_exec_count = (note *) Apollo::instance()->note_time_exec_count;
-    //note *t_last =       (note *) Apollo::instance()->note_time_last;
-    //note *t_min =        (note *) Apollo::instance()->note_time_min;
-    //note *t_max =        (note *) Apollo::instance()->note_time_max;
-    //note *t_avg =        (note *) Apollo::instance()->note_time_avg;
+    note *t_flush =      (note *) apollo->note_flush;
+    note *t_for_region = (note *) apollo->note_time_for_region;
+    note *t_for_step   = (note *) apollo->note_time_for_step;
+    note *t_exec_count = (note *) apollo->note_time_exec_count;
+    note *t_last =       (note *) apollo->note_time_last;
+    note *t_min =        (note *) apollo->note_time_min;
+    note *t_max =        (note *) apollo->note_time_max;
+    note *t_avg =        (note *) apollo->note_time_avg;
 
     for (auto iter_measure = measures.begin();
              iter_measure != measures.end();    ) {
@@ -197,40 +294,66 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
         const std::vector<Apollo::Feature>& these_features = iter_measure->first;
         Apollo::Region::Measure                  *time_set = iter_measure->second;
 
+        std::cout.precision(17);
+
         if (time_set->exec_count > 0) {
-            //t_flush->begin(0);
-            //t_for_region->begin(name);
-            //t_for_step->begin(assign_to_step);
-            //t_exec_count->begin(time_set->exec_count);
+            t_flush->begin(0);
+            t_for_region->begin(name);
+            t_for_step->begin(assign_to_step);
+            t_exec_count->begin(time_set->exec_count);
             //t_last->begin(time_set->last);
             //t_min->begin(time_set->min);
             //t_max->begin(time_set->max);
-            //t_avg->begin(time_set->avg);
-            // TODO: Turn all of this into an SOS_pack_related(...) call...
+            t_avg->begin(time_set->avg);
+
+            int num_elements = -1;
+            int num_threads  = -1;
             for (Apollo::Feature ft : these_features) {
-                //apollo->noteBegin(ft.name, ft.value);
+                apollo->noteBegin(ft.name, ft.value);
+                if (ft.name == "num_elements") {
+                    num_elements = (int) ft.value;
+                }
+                if (ft.name == "num_threads") {
+                    num_threads = (int) ft.value;
+                }
             }
 
             // TODO [optimize]: All of this can go away now.
             //     //t_flush->end(); // Triggers the consumption of our annotation stack
             //     //              // by the Caliper service
 
-            //     for (Apollo::Feature ft : these_features) {
-            //         //apollo->noteEnd(ft.name);
-            //     }
+            //std::cout \
+            //    << assign_to_step << ", " \
+            //    << name << ", " \
+            //    << time_set->exec_count << ", " \
+            //    << current_policy << ", " \
+            //    << num_threads << ", " \
+            //    << num_elements << ", " \
+            //    << std::fixed << time_set->avg << std::endl;
 
-            //     //t_for_region->end();
-            //     //t_for_step->end();
-            //     //t_exec_count->end();
-            //     //t_last->end();
-            //     //t_min->end();
-            //     //t_max->end();
-            //     //t_avg->end();
+            for (Apollo::Feature ft : these_features) {
+                apollo->noteEnd(ft.name);
+            }
 
+            t_avg->end();
+            //t_max->end();
+            //t_min->end();
+            //t_last->end();
+            t_exec_count->end();
+            t_for_step->end();
+            t_for_region->end();
         }
 
-        // TODO [optimize]: This can maybe stay?
+        //
+        //
+        //
+        //TODO: performance
+        //
+        // Zero out the time set instead of deleting them.
         delete time_set;
+        //
+        //
+        //
         measures.erase(iter_measure);
         iter_measure = measures.begin();
     }

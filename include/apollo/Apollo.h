@@ -6,34 +6,22 @@
 #include <mutex>
 #include <map>
 #include <unordered_map>
-
+#include <iostream>
 #include <type_traits>
 #include <list>
 #include <vector>
 
- 
-#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Random
-#define APOLLO_DEFAULT_MODEL_DEFINITION     "N/A (Random)"
+#include "apollo/Logging.h"
 
-#ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE -1 
-#endif
+#include "CallpathRuntime.h"
 
-#if (APOLLO_VERBOSE < 0)
-    // Nullify the variadic macro for production runs.
-    #define apollo_log(level, ...)
-#else
-    #define apollo_log(level, ...)                                      \
-    {   if (level <= APOLLO_VERBOSE) {                                  \
-            fprintf(stdout, "== APOLLO: ");                             \
-            fprintf(stdout, __VA_ARGS__);                               \
-            fflush(stdout);                                             \
-    }   };
-#endif
+#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
+#define APOLLO_DEFAULT_MODEL_DEFINITION     "0"
+
 
 extern "C" {
     // SOS will deliver triggers and query results here:
-    void  
+    void
     handleFeedback(void *sos_context,
                    int msg_type,
                    int msg_size,
@@ -49,8 +37,8 @@ class Apollo
 {
     public:
        ~Apollo();
-        // disallow copy constructor 
-        Apollo(const Apollo&) = delete; 
+        // disallow copy constructor
+        Apollo(const Apollo&) = delete;
         Apollo& operator=(const Apollo&) = delete;
 
         static Apollo* instance(void) {
@@ -72,7 +60,7 @@ class Apollo
         enum class Unit : int {
             INTEGER,
             DOUBLE,
-            CSTRING 
+            CSTRING
         };
 
 
@@ -81,7 +69,7 @@ class Apollo
         class Model;
         class ModelObject;
         class ModelWrapper;
-
+        class Explorable;
 
         class Feature
 		{
@@ -97,6 +85,14 @@ class Apollo
         std::vector<Apollo::Feature>            features;
         std::unordered_map<std::string, void *> feature_notes; // cali::Annotation *
         //
+        // Precalculated at Apollo::Init from evironment variable strings to
+        // facilitate quick calculations during model evaluation later.
+        int numNodes;
+        int numCPUsOnNode;
+        int numProcs;
+        int numProcsPerNode;
+        int numThreadsPerProcCap;
+        //
         void *  getNote(std::string &name);
         void    noteBegin(std::string &name, double with_value);
         void    noteEnd(std::string &name);
@@ -104,10 +100,12 @@ class Apollo
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
+        CallpathRuntime callpath;
+
         Apollo::Region *region(const char *regionName);
         //
         void attachModel(const char *modelEncoding);
-        // 
+        //
         bool        isOnline();
         std::string uniqueRankIDText(void);
         //
@@ -125,16 +123,6 @@ class Apollo
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
 
-        // cali::Annotation *
-        void *note_flush; // <-- caliper's SOS service triggering event
-        void *note_time_for_region;
-        void *note_time_for_step;
-        void *note_time_exec_count;
-        void *note_time_last;
-        void *note_time_min;
-        void *note_time_max;
-        void *note_time_avg;
-        //
         void *getContextHandle();
         bool  ynConnectedToSOS;
 

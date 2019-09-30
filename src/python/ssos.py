@@ -140,7 +140,7 @@ class SSOS:
         res_port = ffi.new("int*", int(port))
 
         # Send out the query...
-        print ("== SSOS.PY: Sending the query...")
+        #print ("== SSOS.PY: Sending the query...")
         lib.SSOS_query_exec(res_sql, res_host, res_port[0])
         # Grab the next available result.
         # NOTE: For queries submitted in a thread pool, this may not
@@ -148,14 +148,14 @@ class SSOS:
         #       Use of a thread pool requires that the results returned
         #       can be processed independently, for now.
         #print "Claiming the results..."
-        print ("== SSOS.PY: Claiming the results...")
+        #print ("== SSOS.PY: Claiming the results...")
         lib.SSOS_result_claim(res_obj);
 
         #print "Results received!"
         #print "   row_count = " + str(res_obj.row_count)
         #print "   col_count = " + str(res_obj.col_count)
 
-        print ("== SSOS.PY: Converting results to Python objects...")
+        #print ("== SSOS.PY: Converting results to Python objects...")
         results = []
         for row in range(res_obj.row_count):
             thisrow = []
@@ -168,13 +168,13 @@ class SSOS:
         col_names = []
         for col in range(0, res_obj.col_count):
             col_names.append(ffi.string(res_obj.col_names[col]).decode('ascii'))
-        print ("== SSOS.PY:     len(results)   == " + str(len(results)))
-        print ("== SSOS.PY:     len(col_names) == " + str(len(col_names)))
+        #print ("== SSOS.PY:     len(results)   == " + str(len(results)))
+        #print ("== SSOS.PY:     len(col_names) == " + str(len(col_names)))
 
-        print ("== SSOS.PY: Destroying the SOS results object...")
+        #print ("== SSOS.PY: Destroying the SOS results object...")
         lib.SSOS_result_destroy(res_obj)
 
-        print ("== SSOS.PY: Returning Python-formatted results to calling function.")
+        #print ("== SSOS.PY: Returning Python-formatted results to calling function.")
         return (results, col_names)
 
 

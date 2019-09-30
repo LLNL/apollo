@@ -1,0 +1,31 @@
+    {
+        "driver": {
+            "rules": {
+                "__ANY_REGION__" : "2"
+            },
+            "least": {
+                "__ANY_REGION__" : -1
+            },
+            "timed": {
+                "__ANY_REGION__" : true
+            }
+
+        },
+        "guid": 0,
+        "region_names": [
+            "__ANY_REGION__"
+        ],
+        "region_types": {
+            "__ANY_REGION__": "Static"
+        },
+        "region_sizes": {
+            "__ANY_REGION__": "(0, 0)"
+        },
+        "features": {
+            "count": 0,
+            "names": [
+                "NA"
+            ]
+        }
+    }
+
