@@ -193,9 +193,32 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
             apollo->sosPackRelatedDouble(relation_id, "time_avg",
                     (time_set->time_total / time_set->exec_count));
 
+            //----- exhaustive exploration report (begin)
+            //int num_threads    = -1;
+            //int num_elements   = -1;
+            //for (Apollo::Feature ft : these_features) {
+            //    if (ft.name == "num_threads") {
+            //        num_threads = (int) ft.value;
+            //    }
+            //    if (ft.name == "num_elements") {
+            //        num_elements = (int) ft.value;
+            //    }
+            //}
+            //std::cout \
+            //    << assign_to_step << ", " \
+            //    << name << ", " \
+            //    << time_set->exec_count << ", " \
+            //    << current_policy << ", " \
+            //    << num_threads << ", " \
+            //    << num_elements << ", " \
+            //    << std::fixed << (time_set->time_total / time_set->exec_count) << std::endl;
+            //----- exhaustive exploration report (end)
+
             time_set->exec_count = 0;
             time_set->time_total = 0.0;
         }
+
+
 
         // Note about optimization:
         //    We delete these because things like "step" might be used as a

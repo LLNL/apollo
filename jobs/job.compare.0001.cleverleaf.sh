@@ -306,8 +306,9 @@ echo ""
 
     export SRUN_CLEVERLEAF=" "
     export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
-    export SRUN_CLEVERLEAF+=" -c 32 "
-    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
+    export SRUN_CLEVERLEAF+=" -c 36 "
+    #export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
+    export SRUN_CLEVERLEAF+=" -o /dev/null "
     export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
     export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
     export SRUN_CLEVERLEAF+=" -r 1 "
@@ -329,14 +330,14 @@ echo ""
 
     function run_cleverleaf_with_model() {
         export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
-        echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
-            >> ./output/cleverleaf.0000.stdout
-        wipe_all_sos_data_from_database
+        #echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+        #    >> ./output/cleverleaf.0000.stdout
+        #wipe_all_sos_data_from_database
         cd output
 
-        echo ""
-        echo "srun ${SRUN_CLEVERLEAF} $1 $2"
-        echo ""
+        #echo ""
+        #echo "srun ${SRUN_CLEVERLEAF} $1 $2"
+        #echo ""
 
         printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
             $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
@@ -344,17 +345,18 @@ echo ""
         cd ${SOS_WORK}
     }
 
-    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
+set +m
 
+    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.previous"
+    run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
 
     # The static model doesn't adjust anything, and doesn't receive feedback from the controller,
     # there is no need to start it until now. SOS is still running and receiving data.
-    srun ${SRUN_CONTROLLER_START} &
-    sleep 4
+    #srun ${SRUN_CONTROLLER_START} &
+    #sleep 4
 
-    export OMP_DISPLAY_ENV=VERBOSE
-    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.4.openmp"
+#    export OMP_DISPLAY_ENV=VERBOSE
+#    run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.previous"
 
 #    export OMP_NUM_THREADS=32
 #    export OMP_SCHEDULE="auto"
@@ -382,13 +384,13 @@ echo ""
     echo "========== EXPERIMENTS COMPLETE =========="
     echo ""
 
-    echo ""
-    echo ">>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
-    echo ""
-    printf "== CONTROLLER: STOP\n" >> ./output/controller.out
-    srun ${SRUN_CONTROLLER_STOP}
-    echo ""
-    sleep 5
+    #echo ""
+    #echo ">>>> Bringing down the controller and waiting for 5 seconds (you may see 'kill' output)..."
+    #echo ""
+    #printf "== CONTROLLER: STOP\n" >> ./output/controller.out
+    #srun ${SRUN_CONTROLLER_STOP}
+    #echo ""
+    #sleep 5
 
 #
 #^
@@ -434,6 +436,7 @@ echo "Constructing / emailing a results summary:"
 ${RETURN_PATH}/end.emailresults.sh cleverleaf
 echo ""
 echo ""
+set -m
 echo " >>>>"
 echo " >>>>"
 echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"

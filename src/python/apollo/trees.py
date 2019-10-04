@@ -51,6 +51,7 @@ def generateDecisionTree(SOS, data, region_names):
     #       We want best on average.
     log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
 
+    # OLD technique:
     #start = time.time()
     #grp_data = data\
     #        .sort_values("time_avg")\
@@ -126,7 +127,7 @@ def generateDecisionTree(SOS, data, region_names):
         trained_model = model.named_steps['estimator']
 
         all_types_rule[region] = "DecisionTree"
-        all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap)
+        all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap, y)
         all_least_json[region] = element_minimum_to_evaluate_tree
         all_timed_json[region] = True
         all_sizes_data[region] = str(x.shape)
@@ -173,7 +174,7 @@ def generateDecisionTree(SOS, data, region_names):
     model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
     model_def["region_types"]["__ANY_REGION__"] = "Static"
     model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
-    model_def["driver"]["least"]["__ANY_REGION__"] = 4
+    model_def["driver"]["least"]["__ANY_REGION__"] = -1
     model_def["driver"]["timed"]["__ANY_REGION__"] = True
 
     model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
@@ -192,6 +193,90 @@ def generateDecisionTree(SOS, data, region_names):
     #    log(3, "\n".join([("    " + str(score)) for score in scores]))
     #    log(3, "    score.mean == " + str(np.mean(scores)))
     #    warnings.resetwarnings()
+
+
+
+
+def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
+    def node_to_data(tree, node_id, criterion):
+        if not isinstance(criterion, skl.tree.tree.six.string_types):
+            criterion = "impurity"
+
+        value = tree.value[node_id]
+        if tree.n_outputs == 1:
+            value = value[0, :]
+
+        if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
+            # Construct a padded value based on index position:
+            padval = [0.0] * 20
+            for i in range(0, (len(value) - 1)):
+                policy_positions = list(y)
+                policy_index = policy_positions[i]
+                padval[policy_index] += value[i]
+            return {
+                "id": node_id,
+                "criterion": criterion,
+                "impurity": tree.impurity[node_id],
+                "samples": tree.n_node_samples[node_id],
+                "value": padval,
+            }
+            #return {
+            #    "id": node_id,
+            #    "criterion": criterion,
+            #    "impurity": tree.impurity[node_id],
+            #    "samples": tree.n_node_samples[node_id],
+            #    "value": list(value),
+            #}
+        else:
+            if feature_names is not None:
+                feature = feature_names[tree.feature[node_id]]
+            else:
+                feature = tree.feature[node_id]
+
+            if "=" in feature:
+                ruleType = "="
+                ruleValue = "false"
+            else:
+                ruleType = "<="
+                ruleValue = "%.4f" % tree.threshold[node_id]
+
+            return {
+                "id": node_id,
+                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
+                criterion: tree.impurity[node_id],
+                "samples": tree.n_node_samples[node_id],
+            }
+
+    def recurse(tree, node_id, criterion, parent=None, depth=0):
+        left_child = tree.children_left[node_id]
+        right_child = tree.children_right[node_id]
+
+        node = node_to_data(tree, node_id, criterion)
+
+        if left_child != skl.tree._tree.TREE_LEAF:
+            node["left"] = recurse(tree,
+                                   left_child,
+                                   criterion=criterion,
+                                   parent=node_id,
+                                   depth=depth + 1)
+            node["right"] = recurse(tree,
+                                    right_child,
+                                    criterion=criterion,
+                                    parent=node_id,
+                                    depth=depth + 1)
+
+        return node
+
+    if isinstance(decision_tree, skl.tree.tree.Tree):
+        return recurse(decision_tree, 0, criterion="impurity")
+    else:
+        return recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
+
+
+
+
+##########################
+
 
 
 
@@ -355,71 +440,6 @@ def tree_to_json(decision_tree, feature_names=None, name_swap=None):
         js = js + recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
 
     return js
-
-
-
-
-def tree_to_data(decision_tree, feature_names=None, name_swap=None):
-    def node_to_data(tree, node_id, criterion):
-        if not isinstance(criterion, skl.tree.tree.six.string_types):
-            criterion = "impurity"
-
-        value = tree.value[node_id]
-        if tree.n_outputs == 1:
-            value = value[0, :]
-
-        if tree.children_left[node_id] == skl.tree._tree.TREE_LEAF:
-            return {
-                "id": node_id,
-                "criterion": criterion,
-                "impurity": tree.impurity[node_id],
-                "samples": tree.n_node_samples[node_id],
-                "value": list(value),
-            }
-        else:
-            if feature_names is not None:
-                feature = feature_names[tree.feature[node_id]]
-            else:
-                feature = tree.feature[node_id]
-
-            if "=" in feature:
-                ruleType = "="
-                ruleValue = "false"
-            else:
-                ruleType = "<="
-                ruleValue = "%.4f" % tree.threshold[node_id]
-
-            return {
-                "id": node_id,
-                "rule": "%s %s %s" % (feature, ruleType, ruleValue),
-                criterion: tree.impurity[node_id],
-                "samples": tree.n_node_samples[node_id],
-            }
-
-    def recurse(tree, node_id, criterion, parent=None, depth=0):
-        left_child = tree.children_left[node_id]
-        right_child = tree.children_right[node_id]
-
-        node = node_to_data(tree, node_id, criterion)
-
-        if left_child != skl.tree._tree.TREE_LEAF:
-            node["left"] = recurse(tree,
-                                   left_child,
-                                   criterion=criterion,
-                                   parent=node_id,
-                                   depth=depth + 1)
-            node["right"] = recurse(tree,
-                                    right_child,
-                                    criterion=criterion,
-                                    parent=node_id,
-                                    depth=depth + 1)
-
-        return node
-
-    if isinstance(decision_tree, skl.tree.tree.Tree):
-        return recurse(decision_tree, 0, criterion="impurity")
-    else:
-        return recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
 
 
 

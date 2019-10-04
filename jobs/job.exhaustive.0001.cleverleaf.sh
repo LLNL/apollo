@@ -275,10 +275,10 @@ cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
 cd ${SOS_WORK}
 #
-echo ""
-echo ">>>> Starting SOS daemon statistics monitoring..."
-echo ""
-srun ${SOS_MONITOR_START} &
+#echo ""
+#echo ">>>> Starting SOS daemon statistics monitoring..."
+#echo ""
+#srun ${SOS_MONITOR_START} &
 #
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
@@ -308,10 +308,10 @@ echo ""
     export SRUN_CLEVERLEAF=" "
     export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
     export SRUN_CLEVERLEAF+=" -c 36 "
-    export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
+    #export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
     export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
     export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
-    export SRUN_CLEVERLEAF+=" -r 1 "
+    #export SRUN_CLEVERLEAF+=" -r 1 "
 
     echo ">>>> Comparing cleverleaf-normal and cleverleaf-apollo..."
 
@@ -343,13 +343,27 @@ echo ""
 
     #export OMP_DISPLAY_ENV=VERBOSE
 
-    for POLICY_INDEX in $(seq 13 25)
+    set +m
+    for POLICY_INDEX_0 in $(seq 0 9)
     do
-        rm -f ${SOS_WORK}/model.current
-        sed s/SETMODELRULE/${POLICY_INDEX}/ ${SOS_WORK}/model.exhaustive.template > ${SOS_WORK}/model.current
-        run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.current" ${POLICY_INDEX}
+        let POLICY_INDEX_1=$[$POLICY_INDEX_0 + 10]
+        rm -f ${SOS_WORK}/model.node0
+        rm -f ${SOS_WORK}/model.node1
+        sed s/SETMODELRULE/${POLICY_INDEX_0}/ ${SOS_WORK}/model.exhaustive.template > ${SOS_WORK}/model.node0
+        sed s/SETMODELRULE/${POLICY_INDEX_1}/ ${SOS_WORK}/model.exhaustive.template > ${SOS_WORK}/model.node1
+        #run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.current" ${POLICY_INDEX}
+        export APOLLO_INIT_MODEL="${SOS_WORK}/model.node0"
+        srun ${SRUN_CLEVERLEAF}      -o ${SOS_WORK}/output/cleverleaf.node0.stdout ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} &
+        let NODE0_JOB_PID=$!
+        export APOLLO_INIT_MODEL="${SOS_WORK}/model.node1"
+        srun ${SRUN_CLEVERLEAF} -r 1 -o ${SOS_WORK}/output/cleverleaf.node1.stdout ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} &
+        let NODE1_JOB_PID=$!
+        printf "\tRunning  ==>  node0(%2s) @ pid:%s\t\tnode1(%2s) @ pid:%s\n ..." \
+            ${POLICY_INDEX_0} ${NODE0_JOB_PID} \
+            ${POLICY_INDEX_1} ${NODE1_JOB_PID}
+        wait ${NODE0_JOB_PID}
+        wait ${NODE1_JOB_PID}
     done
-
 
     cd ${SOS_WORK}
 
@@ -407,6 +421,7 @@ cd ${SOS_WORK}
 echo ""
 #echo "Constructing / emailing a results summary:"
 #${RETURN_PATH}/end.emailresults.sh cleverleaf
+set -m
 echo ""
 echo ""
 echo " >>>>"
