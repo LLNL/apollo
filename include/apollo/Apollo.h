@@ -11,6 +11,8 @@
 #include <list>
 #include <vector>
 
+#include <omp.h>
+
 #include "apollo/Logging.h"
 
 #include "CallpathRuntime.h"
@@ -92,6 +94,9 @@ class Apollo
         int numProcs;
         int numProcsPerNode;
         int numThreadsPerProcCap;
+        omp_sched_t ompDefaultSchedule;
+        int         ompDefaultNumThreads;
+        int         ompDefaultChunkSize;
         //
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);

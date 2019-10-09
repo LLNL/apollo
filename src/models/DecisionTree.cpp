@@ -124,6 +124,7 @@ Apollo::Model::DecisionTree::nodeFromJson(
     node->left_child    = nullptr;
     node->right_child   = nullptr;
     node->value_LEQ     = -1.0;
+    node->recommendation = -1;
 
     std::string indent = std::string(my_indent * 4, ' ');
 
@@ -175,39 +176,9 @@ Apollo::Model::DecisionTree::nodeFromJson(
         // [ ] Look at the vector and find the index with the most clients
         //     in it, that's where the best performing kernels were clustered
         //     at this point in the decision tree:
-        bool    duplicate_maximums_exist = false;
-        bool    more_than_one_best_fit   = false;
-        float   val_here   = -1.0;
-        float   max_seen   = -1.0;
-        int     max_pos    = 0;
-        int     pos        = 0;
-        for (pos = 0; pos < node->recommendation_vector.size(); pos++) {
-            val_here = node->recommendation_vector[pos];
-            if ((val_here > 0) && (max_seen >= 0.0)) {
-                more_than_one_best_fit = true;
-            }
-            if (val_here == max_seen) {
-                // NOTE: This means our tree may be a bit confused here
-                //       about what the best policy is for however some
-                //       measurements were binned for analysis by the
-                //       controller.
-                // NOTE: Be default, we move to this as the new max_pos.
-                duplicate_maximums_exist = true;
-                max_pos = pos;
-                // NOTE: We *could* get clever and look at the adjacent
-                //       leaves and take the average, but for now, we don't.
-            } else if (val_here > max_seen) {
-                // We have a new winner!
-                duplicate_maximums_exist = false;
-                max_pos = pos;
-                max_seen = val_here;
-            }
-        }
         //
-        node->recommendation = max_pos;
-        log(indent, "use kernel_variant ", node->recommendation,
-                    (more_than_one_best_fit   ? " [>1 advised policy]" : ""),
-                    (duplicate_maximums_exist ? " [duplicate maximum]" : ""));
+        node->recommendation = j["class"].get<int>();
+        log(indent, "use kernel_variant ", node->recommendation);
     }
 
     return node;

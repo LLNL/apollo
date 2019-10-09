@@ -248,10 +248,15 @@ env | grep SLURM                     > ${SOS_WORK}/launch/SLURM_ENV
 #
 #  Copy the applications into the experiment path:
 #
+cp ${HOME}/src/cleverleaf/package-apollo/Release/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-apollo-release
 cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-apollo
+    ${SOS_WORK}/bin/cleverleaf-apollo-relwithdebinfo
+cp ${HOME}/src/cleverleaf/package-normal/Release/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-normal-release
 cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-normal
+    ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo
+
 
 #
 #  Bring over the input deck[s]:
@@ -283,8 +288,8 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-    export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo "
-    export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal "
+    export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
+    export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
 
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
     #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <algorithm>
 
+#include <omp.h>
 
 #include "CallpathRuntime.h"
 
@@ -159,7 +160,6 @@ Apollo::Apollo()
     sos_handle = sos;
     pub_handle = pub;
 
-
     log("Reading SLURM env...");
     try {
         numNodes = std::stoi(getenv("SLURM_NNODES"));
@@ -194,6 +194,31 @@ Apollo::Apollo()
         exit(EXIT_FAILURE);
     }
 
+    log("Reading OMP env...");
+    ompDefaultSchedule   = omp_sched_dynamic;      //<-- libgomp.so default
+    ompDefaultNumThreads = numThreadsPerProcCap;   //<-- from SLURM calc above
+    ompDefaultChunkSize  = -1;                     //<-- let OMP decide
+    // Override the OMP defaults if there are environment variables set:
+    char *val = NULL;
+    val = getenv("OMP_NUM_THREADS");
+    if (val != NULL) {
+        ompDefaultNumThreads = std::stoi(val);
+    }
+    // We assume nonmonotinicity and chunk size of -1 for now.
+    val = getenv("OMP_SCHEDULE");
+    if (val != NULL) {
+        std::string sched = getenv("OMP_SCHEDULE");
+        if ((sched.find("static") != sched.npos)
+            || (sched.find("STATIC") != sched.npos)) {
+            ompDefaultSchedule = omp_sched_static;
+        } else if ((sched.find("dynamic") != sched.npos)
+            || (sched.find("DYNAMIC") != sched.npos)) {
+            ompDefaultSchedule = omp_sched_dynamic;
+        } else if ((sched.find("guided") != sched.npos)
+            || (sched.find("GUIDED") != sched.npos)) {
+            ompDefaultSchedule = omp_sched_guided;
+        }
+    }
 
 
     // At this point we have a valid SOS runtime and pub handle.

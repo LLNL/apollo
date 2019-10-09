@@ -67,9 +67,7 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
     # select region_name, policy_index, min(time_avg) from viewApollo2
     #      where step > 90 and exec_count > 10 and num_elements > 9 group by region_name;
     #
-    #sql_string = "SELECT * FROM viewApollo WHERE region_name IS NOT NULL;"
-
-    sql_string = "SELECT region_name, policy_index, step, num_elements, min(time_avg) AS time_avg FROM viewApollo GROUP BY region_name, num_elements;"
+    sql_string = "SELECT region_name, policy_index, step, num_elements, MIN(time_avg) AS time_avg FROM viewApollo GROUP BY region_name, num_elements, step;"
 
     # Skip the regrid steps:
     #   sql_string = """\

@@ -190,28 +190,28 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
 
             apollo->sosPackRelatedString(relation_id, "region_name", name);
             apollo->sosPackRelatedInt(relation_id, "step", assign_to_step);
+            apollo->sosPackRelatedInt(relation_id, "exec_count", time_set->exec_count);
             apollo->sosPackRelatedDouble(relation_id, "time_avg",
                     (time_set->time_total / time_set->exec_count));
 
             //----- exhaustive exploration report (begin)
-            //int num_threads    = -1;
-            //int num_elements   = -1;
-            //for (Apollo::Feature ft : these_features) {
-            //    if (ft.name == "num_threads") {
-            //        num_threads = (int) ft.value;
-            //    }
-            //    if (ft.name == "num_elements") {
-            //        num_elements = (int) ft.value;
-            //    }
-            //}
-            //std::cout \
-            //    << assign_to_step << ", " \
-            //    << name << ", " \
-            //    << time_set->exec_count << ", " \
-            //    << current_policy << ", " \
-            //    << num_threads << ", " \
-            //    << num_elements << ", " \
-            //    << std::fixed << (time_set->time_total / time_set->exec_count) << std::endl;
+            int num_threads    = -1;
+            int num_elements   = -1;
+            int policy_index   = -1;
+            for (Apollo::Feature ft : these_features)
+            {
+                if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
+                else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
+                else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
+            }
+            std::cout \
+                << assign_to_step << ", " \
+                << name << ", " \
+                << time_set->exec_count << ", " \
+                << policy_index << ", " \
+                << num_threads << ", " \
+                << num_elements << ", " \
+                << std::fixed << (time_set->time_total / time_set->exec_count) << std::endl;
             //----- exhaustive exploration report (end)
 
             time_set->exec_count = 0;
