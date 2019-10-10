@@ -95,7 +95,7 @@ def generateDecisionTree(SOS, data, region_names):
     all_sizes_data = {}
     overall_start = time.time()
 
-    one_big_tree = False
+    one_big_tree = True
 
     log(2, "Training...")
     for region in region_names:
@@ -127,7 +127,7 @@ def generateDecisionTree(SOS, data, region_names):
         #         presort=False, random_state=None, splitter='best'))]
 
         clf = DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=2,
+                 class_weight=None, criterion='gini', max_depth=4,
                  min_samples_leaf=1, min_samples_split=2)
 
         # Conduct some model evaluation:

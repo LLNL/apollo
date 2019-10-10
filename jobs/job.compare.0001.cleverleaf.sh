@@ -450,9 +450,9 @@ echo ""
 echo " *OK* Shutting down interactive experiment environment..."
 echo ""
 ${SOS_WORK}/sosd_stop.sh
+sleep 8
 echo ""
 echo ""
-sleep 20
 echo "--- Done! End of job script. ---"
 #
 # EOF
