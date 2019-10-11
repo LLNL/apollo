@@ -2,7 +2,9 @@ Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 
 Produced at the Lawrence Livermore National Laboratory
 
-This file is part of Apollo. OCEC-17-092 All rights reserved.
+Release code: OCEC-17-092
+
+All rights reserved.
 
 ## Authors
 
