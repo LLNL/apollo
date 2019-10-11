@@ -1,17 +1,14 @@
 Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 Produced at the Lawrence Livermore National Laboratory
 
-This file is part of Apollo.
-OCEC-17-092
-All rights reserved.
+This file is part of Apollo. OCEC-17-092 All rights reserved.
 
 ## Authors
 
 Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
 of many [collaborators](https://github.com/LLNL/apollo/graphs/contributors).
-Apollo was originally created by David Beckingsale, david@llnl.gov
 
-For details, see https://github.com/LLNL/apollo.
+Apollo was originally created by David Beckingsale, david@llnl.gov
 
 ## License
 
