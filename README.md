@@ -1,5 +1,3 @@
-## Copyright
-
 Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 Produced at the Lawrence Livermore National Laboratory
 
@@ -11,7 +9,6 @@ All rights reserved.
 
 Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
 of many [collaborators](https://github.com/LLNL/apollo/graphs/contributors).
-
 Apollo was originally created by David Beckingsale, david@llnl.gov
 
 For details, see https://github.com/LLNL/apollo.
