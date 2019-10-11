@@ -1,4 +1,37 @@
 
+// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory
+//
+// This file is part of Apollo.
+// OCEC-17-092
+// All rights reserved.
+//
+// Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
+// of many collaborators.
+//
+// Apollo was originally created by David Beckingsale, david@llnl.gov
+//
+// For details, see https://github.com/LLNL/apollo.
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -30,7 +63,7 @@ std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
     return os;
 }
 
-static constexpr 
+static constexpr
 unsigned int hash(const char* str, int h = 0)
 {
         return !str[h] ? 5381 : (hash(str, h+1)*33) ^ str[h];
@@ -41,7 +74,7 @@ class RunSettings {
     public:
         RunSettings() {};
         ~RunSettings() {};
-       
+
         class Behavior {
             public:
                 static constexpr int StaticMax      = 0;
@@ -59,7 +92,7 @@ class RunSettings {
             (void)expander{0, (void(std::cout << std::forward<Args>(args)), 0)...};
             std::cout << std::endl;
         };
- 
+
         bool verbose          = false;
         bool sim_sleep        = false;
         int  vector_size_min  = 10000;
@@ -105,7 +138,7 @@ RunSettings parse(int argc, char **argv) {
         cxxopts::Options options(argv[0], "");
         options.positional_help("[optional args]");
         options.show_positional_help();
-        
+
         options
             .add_options()
             ("h,help",
@@ -140,7 +173,7 @@ RunSettings parse(int argc, char **argv) {
             ;
 
         auto result = options.parse(argc, argv);
-   
+
         if (result.count("help")) {
             std::cout << options.help({"", "Experiment"}) << std::endl;
             exit(EXIT_SUCCESS);
@@ -204,7 +237,7 @@ RunSettings parse(int argc, char **argv) {
 
 int main(int argc, char **argv)
 {
-    auto run = parse(argc, argv);    
+    auto run = parse(argc, argv);
     Apollo *apollo = Apollo::instance();
 
     experimentLoop(apollo, run);
@@ -222,7 +255,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
     uint64_t prior_model_guid = 0;
     int      sweep_policy     = 0;
-    bool     sweep_complete   = false; 
+    bool     sweep_complete   = false;
     int      vector_size      = 1;
     int      policy_index     = 0;
 
@@ -235,11 +268,11 @@ void experimentLoop(Apollo *apollo, auto& run) {
         case RunSettings::Behavior::Random:    vector_size = random_sizes(run.rng); break;
         default: vector_size = run.vector_size_max;
     }
-    
+
     int iter = 1;
     while (true) {
 
-        
+
         // Allocate and initialize vector data (untimed)
         //
         int *a = memoryManager::allocate<int>(vector_size);
@@ -249,7 +282,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
             a[p] = -p;
             b[p] = p;
         }
- 
+
         // ##########
         // #
         // #
@@ -298,7 +331,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
             {
                 //Do the work of the kernel here.
                 c[j] = a[j] + b[j];
-                
+
             });
         });
         reg->end();

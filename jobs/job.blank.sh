@@ -12,190 +12,42 @@ export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. n
 #        variables are set correctly.
 #
 #
-export  EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
+export  EXPERIMENT_BASE="/p/lustre2/${USER}/experiments/apollo"
+#
+export  SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
+export  SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 #
 echo ""
 echo "  JOB TITLE.....: ${EXPERIMENT_JOB_TITLE}"
-echo "  WORKING PATH..: ${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
+echo "  WORKING PATH..: ${SOS_WORK}"
 echo ""
 #
-####
-
-
 export RETURN_PATH=`pwd`
 
 ####
 #
-#  Launch the SOS runtime:
 #
-#  Verify the environment has been configured:
 source ${RETURN_PATH}/common_unsetenv.sh
-#source ${RETURN_PATH}/common_spack.sh
+source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
+source ${RETURN_PATH}/common_copy_files.sh
+source ${RETURN_PATH}/common_launch_sos.sh
 #
-export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
-export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
-mkdir -p ${SOS_WORK}
-mkdir -p ${SOS_WORK}/output
-mkdir -p ${SOS_WORK}/output/models
-mkdir -p ${SOS_WORK}/launch
-mkdir -p ${SOS_WORK}/daemons
-#
-# Copy the binary, configuration, and plotting scripts into the folder
-# where the output of the job is being stored.
-#
-mkdir -p ${SOS_WORK}/lib
-mkdir -p ${SOS_WORK}/bin
-mkdir -p ${SOS_WORK}/bin/apollo
-#
-cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_probe                      ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/scripts/showdb                            ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
-#
-cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
-cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
-#
-cp ${HOME}/src/apollo/jobs/model.*                                ${SOS_WORK}
-#
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.sanityCheck                  ${SOS_WORK}
-#
-cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/lib
-cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
-cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
-cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib
-cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
-#
-export PYTHONPATH=${SOS_WORK}/lib:${SOS_WORK}/bin:${PYTHONPATH}
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SOS_WORK}/lib
-#
-# Make an archive of this script and the environment config script:
-#
-cp ${RETURN_PATH}/common_spack.sh           ${SOS_WORK}/launch/COMMON_SPACK.sh
-cp ${RETURN_PATH}/common_setenv.sh          ${SOS_WORK}/launch/COMMON_SETENV.sh
-cp ${RETURN_PATH}/common_unsetenv.sh        ${SOS_WORK}/launch/COMMON_UNSETENV.sh
-#
-export SOS_BATCH_ENVIRONMENT="TRUE"
-#
-if [ "x${SOS_ENV_SET}" == "x" ] ; then
-    echo "Please set up your SOS environment first."
-    kill -INT $$
-fi
-if ls ${SOS_EVPATH_MEETUP}/sosd.*.key 1> /dev/null 2>&1
-then
-    echo "WARNING: Aggregator KEY and ID file[s] exist already.  Deleting them."
-    rm -f ${SOS_EVPATH_MEETUP}/sosd.*.key
-    rm -f ${SOS_EVPATH_MEETUP}/sosd.*.id
-fi
-if ls ${SOS_WORK}/sosd.*.db 1> /dev/null 2>&1
-then
-    echo "WARNING: SOSflow DATABASE file[s] exist already.  Deleting them."
-    rm -rf ${SOS_WORK}/sosd.*.db
-    rm -rf ${SOS_WORK}/sosd.*.db.export
-    rm -rf ${SOS_WORK}/sosd.*.db.lock
-    rm -rf ${SOS_WORK}/sosd.*.db-journal
-fi
-#
-echo ""
-echo "Launching SOS daemons..."
-echo ""
-echo "    SOS_WORK=${SOS_WORK}"
-echo "    SOS_EVPATH_MEETUP=${SOS_EVPATH_MEETUP}"
-echo ""
-#
-#
-let SOS_LISTENER_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
-let SOS_DAEMON_TOTAL=$[$SOS_AGGREGATOR_COUNT + $SOS_LISTENER_COUNT]
-#
-#
-for AGGREGATOR_RANK in $(seq 0 $[$SOS_AGGREGATOR_COUNT - 1])
-do
-    srun -N 1 -n 1 -r 0 \
-        ${SOS_WORK}/bin/sosd \
-        -k ${AGGREGATOR_RANK} \
-        -r aggregator \
-        -l ${SOS_LISTENER_COUNT} \
-        -a ${SOS_AGGREGATOR_COUNT} \
-        -w ${SOS_WORK} &
-    echo "  --> sosd.aggregator(${AGGREGATOR_RANK}) starting..."
-done
-for WORK_NODE_INDEX in $(seq 1 $[$EXPERIMENT_NODE_COUNT - 1])
-do
-    let LISTENER_RANK=$[$SOS_AGGREGATOR_COUNT - 1 + $WORK_NODE_INDEX]
-    srun -N 1 -n 1 -r ${WORK_NODE_INDEX} \
-        ${SOS_WORK}/bin/sosd \
-        -k ${LISTENER_RANK} \
-        -r listener \
-        -l ${SOS_LISTENER_COUNT} \
-        -a ${SOS_AGGREGATOR_COUNT} \
-        -w ${SOS_WORK} &
-    echo "  --> sosd.listener(${LISTENER_RANK}) starting..."
-done
-#
-#
-echo ""
-echo "Pausing to ensure runtime is completely established..."
-echo ""
-SOS_DAEMONS_SPAWNED="0"
-while [ ${SOS_DAEMONS_SPAWNED} -lt ${SOS_DAEMON_TOTAL} ]
-do
-
-    if ls ${SOS_EVPATH_MEETUP}/sosd.*.id 1> /dev/null 2>&1
-    then
-        SOS_DAEMONS_SPAWNED="$(ls -l ${SOS_EVPATH_MEETUP}/sosd.*.id | grep -v ^d | wc -l)"
-    else
-        SOS_DAEMONS_SPAWNED="0"
-    fi
-
-    if [ "x${SOS_BATCH_ENVIRONMENT}" == "x" ]; then
-        for STEP in $(seq 1 20)
-        do
-            echo -n "  ["
-            for DOTS in $(seq 1 ${STEP})
-            do
-                echo -n "#"
-            done
-            for SPACES in $(seq ${STEP} 19)
-            do
-                echo -n " "
-            done
-            echo -n "]  ${SOS_DAEMONS_SPAWNED} of ${SOS_DAEMON_TOTAL} daemons running..."
-            echo -ne "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-            echo -ne "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-            sleep 0.1
-        done
-    fi
-done
-echo ""
-echo ""
-echo "SOS is ready for use!"
-echo ""
-echo ""
-echo "--------------------------------------------------------------------------------"
-echo ""
 #
 #### -------------------------------------------------------------------------
-#vvv
-#vvv  --- SPECIFIC EXPERIMENT CODE HERE ---
-#vv
-#v
 #
 #  Configure Caliper settings for this run:
 #
-export CALI_LOG_VERBOSITY=0
-export CALI_AGGREGATE_KEY="APOLLO_time_flush"
-export CALI_SOS_TRIGGER_ATTR="APOLLO_time_flush"
-export CALI_SERVICES_ENABLE="sos,timestamp"
-export CALI_TIMER_SNAPSHOT_DURATION="false"
-export CALI_SOS_ITER_PER_PUBLISH="1"
+#export CALI_LOG_VERBOSITY=0
+#export CALI_AGGREGATE_KEY="APOLLO_time_flush"
+#export CALI_SOS_TRIGGER_ATTR="APOLLO_time_flush"
+#export CALI_SERVICES_ENABLE="sos,timestamp"
+#export CALI_TIMER_SNAPSHOT_DURATION="false"
+#export CALI_SOS_ITER_PER_PUBLISH="1"
 #
-env | grep CALI > ${SOS_WORK}/launch/CALIPER_SETTINGS
+#env | grep -F "CALI_" > ${SOS_WORK}/launch/caliper_env_settings
 #
+
 #  Set up the commands we'll use for this experiment kit:
 #
 let    WORK_NODE_COUNT=$[$EXPERIMENT_NODE_COUNT - 1]
@@ -246,18 +98,6 @@ export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/SRUN_CONTROLLER
 env | grep SLURM                     > ${SOS_WORK}/launch/SLURM_ENV
 #
-#  Copy the applications into the experiment path:
-#
-cp ${HOME}/src/cleverleaf/package-apollo/Release/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-apollo-release
-cp ${HOME}/src/cleverleaf/package-apollo/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-apollo-relwithdebinfo
-cp ${HOME}/src/cleverleaf/package-normal/Release/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-normal-release
-cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
-    ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo
-
-
 #
 #  Bring over the input deck[s]:
 cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}

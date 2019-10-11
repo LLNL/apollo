@@ -24,15 +24,24 @@ export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. n
 #        variables are set correctly.
 #
 #
-export  EXPERIMENT_BASE="/p/lustre2/wood67/experiments/apollo"
+export  EXPERIMENT_BASE="/p/lustre2/${USER}/experiments/apollo"
+#
+export  SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
+export  SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
+#
+#
+mkdir -p ${SOS_WORK}
+mkdir -p ${SOS_WORK}/output
+mkdir -p ${SOS_WORK}/output/models
+mkdir -p ${SOS_WORK}/launch
+mkdir -p ${SOS_WORK}/daemons
 #
 echo ""
 echo "  JOB TITLE.....: ${EXPERIMENT_JOB_TITLE}"
-echo "  WORKING PATH..: ${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}"
+echo "  WORKING PATH..: ${SOS_WORK}"
 echo ""
 #
 ####
-
 
 export RETURN_PATH=`pwd`
 
@@ -44,14 +53,6 @@ export RETURN_PATH=`pwd`
 source ${RETURN_PATH}/common_unsetenv.sh
 #source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
-#
-export SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
-export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
-mkdir -p ${SOS_WORK}
-mkdir -p ${SOS_WORK}/output
-mkdir -p ${SOS_WORK}/output/models
-mkdir -p ${SOS_WORK}/launch
-mkdir -p ${SOS_WORK}/daemons
 #
 # Copy the binary, configuration, and plotting scripts into the folder
 # where the output of the job is being stored.

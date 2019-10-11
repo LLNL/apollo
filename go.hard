@@ -20,7 +20,6 @@ cmake   \
         -DCMAKE_BUILD_TYPE=Release \
         -DSOS_DIR=$HOME/src/sos_flow/build \
         -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/RelWithDebInfo/install/RAJA/include \
-        -DCALIPER_DIR=$HOME/src/caliper/install \
         -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
         ..
 make -j && make -j install && cd .. && tree install
