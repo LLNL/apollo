@@ -8,9 +8,11 @@ fi
 set +m
 rm -f ./sosd.00000.pid
 source ${SOS_BUILD_DIR}/../hosts/linux/setenv.sh quiet
+export SOS_BATCH_ENVIRONMENT="TRUE"
 export SOS_DB_DISABLED="FALSE"
 export SOS_UPDATE_LATEST_FRAME="TRUE"
 export SOS_IN_MEMORY_DATABASE="TRUE"
 export SOS_EXPORT_DB_AT_EXIT="FALSE"
-${SOS_BUILD_DIR}/bin/sosd -l 0 -a 1 -r aggregator -k 0 -w ${SOS_WORK} &
+echo ""
+SOS_CMD_PORT=22888 ${SOS_BUILD_DIR}/bin/sosd -l 0 -a 1 -r aggregator -k 0 -w ${SOS_WORK} &
 set -m

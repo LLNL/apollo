@@ -1,0 +1,15 @@
+#!/bin/bash
+if [ "x${SOS_BUILD_DIR}" == "x" ] ; then
+    echo ""
+    echo "ERROR: Please set \$\{SOS_BUILD_DIR\} before running this script."
+    echo ""
+    kill -INT $$
+fi
+
+EXISTING_SOS_CMD_PORT=${SOS_CMD_PORT}
+export SOS_CMD_PORT=22888
+
+
+
+export SOS_CMD_PORT=${EXISTING_SOS_CMD_PORT}
+unset EXISTING_SOS_CMD_PORT

@@ -6,6 +6,6 @@ if [ "x$SOS_BUILD_DIR" == "x" ] ; then
     kill -INT $$
 fi
 set +m
-${SOS_BUILD_DIR}/bin/sosd_stop
+SOS_CMD_PORT=22888 ${SOS_BUILD_DIR}/bin/sosd_stop
 rm -f ./sosd.00000.id
 set -m
