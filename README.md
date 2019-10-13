@@ -9,7 +9,7 @@ All rights reserved.
 ## Authors
 
 Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
-of many [collaborators](https://github.com/LLNL/apollo/graphs/contributors).
+of many [contributors](https://github.com/LLNL/apollo/graphs/contributors).
 
 Apollo was originally created by David Beckingsale, david@llnl.gov
 
