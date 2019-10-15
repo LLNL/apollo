@@ -2,12 +2,12 @@
 ## Dependencies
 
 Apollo requires the following dependencies to build:
-* SOSflow
-** EVPath
-** Python 2.7 w/CFFI enabled
-* Callpath
-* RAJA
-* Cleverleaf (for custom RAJA Apollo policy and default example code)
+*SOSflow
+**EVPath
+**Python 2.7 w/CFFI enabled
+*Callpath
+*RAJA
+*Cleverleaf (for custom RAJA Apollo policy and default example code)
 
 Apollo is currently built and tested with **GCC 4.9.3** in a **TOSS3**
 environment on **CZQuartz**. Make sure to load
