@@ -2,7 +2,7 @@
 
 Apollo is a distributed tuning framework for parallel applications.  You
 instrument your code with the Apollo API, tell Apollo what the tuning
-options are, and Apollo recommendations tuning options so that your code
+options are, and Apollo recommends tuning options so that your code
 runs faster.
 
 ## Authors
