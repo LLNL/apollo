@@ -1,10 +1,9 @@
-Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+# Apollo
 
-Produced at the Lawrence Livermore National Laboratory
-
-Release code: OCEC-17-092
-
-All rights reserved.
+Apollo is a distributed tuning framework for parallel applications.  You
+instrument your code with the Apollo API, tell Apollo what the tuning
+options are, and Apollo recommendations tuning options so that your code
+runs faster.
 
 ## Authors
 
@@ -15,20 +14,12 @@ Apollo was originally created by David Beckingsale, david@llnl.gov
 
 ## License
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+Apollo is distributed under the terms of both the MIT license.  All new
+contributions must be made under the MIT license.
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+See [LICENSE](https://github.com/LLNL/apollo/blob/master/LICENSE) and
+[NOTICE](https://github.com/LLNL/apollo/blob/master/NOTICE) for details.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+SPDX-License-Identifier: MIT
+
+LLNL-CODE-733798
