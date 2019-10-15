@@ -15,8 +15,8 @@ or swap in the correct compiler module before initializing this build process:
 
 `module swap -q intel/18.0.1 gcc/4.9.3`
 
-Other and more recent compilers may work, but can get caught on warnings or
-impost stricter rules which may trip you up.
+More recent compilers may work, but can get caught on warnings or
+impose stricter rules which may trip you up.
 
 ## Basic Installation Process
 
