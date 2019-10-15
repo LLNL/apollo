@@ -7,6 +7,7 @@
 #include <map>
 #include <unordered_map>
 #include <iostream>
+#include <fstream>
 #include <type_traits>
 #include <list>
 #include <vector>
@@ -18,9 +19,6 @@
 #include "CallpathRuntime.h"
 
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
-
-// TODO: Add MACRO to get callpath here
-
 
 extern "C" {
     // SOS will deliver triggers and query results here:
@@ -102,6 +100,9 @@ class Apollo
         double  getFeature(std::string ft_name);
 
         CallpathRuntime callpath;
+
+        // TODO: [LOGGING] This is a pending improvement, ignore for now. -Chad
+        //Apollo::Logging log;
 
         Apollo::Region *region(const char *regionName);
         //
