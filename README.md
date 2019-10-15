@@ -12,6 +12,12 @@ of many [contributors](https://github.com/LLNL/apollo/graphs/contributors).
 
 Apollo was originally created by David Beckingsale, david@llnl.gov
 
+If you are referencing Apollo in a publication, please cite this repo and
+the following paper:
+
+* David Beckingsale and Olga Pearce and Ignacio Laguna and Todd Gamblin.
+  [**Apollo: Fast, Dynamic Tuning for Data-Dependent Code**](https://computing.llnl.gov/projects/apollo/apollo-fast-lightweight-dynamic-tuning-data-dependent-code-llnl-paper_0.pdf). In *IEEE International Parallel & Distributed Processing Symposium (IPDPS'17)*, Orlando, FL, May 29-June 2 2017. LLNL-CONF-723337.
+
 ## License
 
 Apollo is distributed under the terms of both the MIT license.  All new
