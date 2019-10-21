@@ -3,8 +3,8 @@
 
 Apollo requires the following dependencies to build:
 * SOSflow
-** EVPath
-** Python 2.7 w/CFFI enabled
+* EVPath
+* Python 2.7 w/CFFI enabled
 * Callpath
 * RAJA
 * Cleverleaf (for custom RAJA Apollo policy and default example code)
@@ -54,6 +54,8 @@ perl ./chaos_build.pl
 cd $HOME/src
 git clone https://github.com/cdwdirect/sos_flow.git
 cd sos_flow
+#  NOTE: Pulling the chad_dev branch @ a6eeed7 ...
+git checkout a6eeed7
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=`pwd` -DEVPath_DIR=$HOME/src/evpath/install ..
