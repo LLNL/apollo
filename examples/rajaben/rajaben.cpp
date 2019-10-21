@@ -21,7 +21,6 @@
 //
 #include "apollo/Apollo.h"
 
-void experimentLoop(Apollo *apollo, auto& run);
 
 template<typename T>
 std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
@@ -202,18 +201,7 @@ RunSettings parse(int argc, char **argv) {
 }
 
 
-int main(int argc, char **argv)
-{
-    auto run = parse(argc, argv);
-    Apollo *apollo = Apollo::instance();
-
-    experimentLoop(apollo, run);
-
-    return EXIT_SUCCESS;
-}
-
-
-void experimentLoop(Apollo *apollo, auto& run) {
+void experimentLoop(Apollo *apollo, RunSettings run) {
     std::uniform_int_distribution<uint32_t>
         random_sizes(run.vector_size_min, run.vector_size_max);
     RunSettings::Behavior b;
@@ -362,6 +350,16 @@ void experimentLoop(Apollo *apollo, auto& run) {
 
     delete reg; // tear down the region
     return;
+}
+
+int main(int argc, char **argv)
+{
+    auto run = parse(argc, argv);
+    Apollo *apollo = Apollo::instance();
+
+    experimentLoop(apollo, run);
+
+    return EXIT_SUCCESS;
 }
 
 

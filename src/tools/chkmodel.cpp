@@ -226,12 +226,12 @@ int main(int argc, char **argv)
     if (model_errors > 0) {
         fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"
                 " the supplied model definition.\n", model_errors);
-        exit(1);
+        exit(EXIT_FAILURE);
     } else {
         log("Imported model successfully!\n");
     }
 
-    return true;
+    return EXIT_SUCCESS;
 }
 
 

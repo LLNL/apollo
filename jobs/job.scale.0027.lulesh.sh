@@ -236,6 +236,19 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
+##### --- OpenMP Settings ---
+# General:
+export OMP_DISPLAY_ENV=VERBOSE
+export OMP_NUM_THREADS=36
+# Intel:
+export KMP_AFFINITY="verbose,norespect,none"
+#    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
+#    Intel's OMP will otherwise pin all the threads to the same core that the MPI process is
+#    assigned to, basically idling the entire machine in cases where one process is running
+#    per node, because of some of the settings Slurm places in the environment which are geared
+#    towards GCC 4.9.3's OpenMP library.
+##### --- OpenMP Settings ---
+
 echo ""
 printf "\t%4s, %4s, %4s, %-30s, time(sec)\n" "proc" "size" "iter" "application"
 #

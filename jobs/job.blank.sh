@@ -102,9 +102,24 @@ function run_cleverleaf_with_model() {
 }
 
 
-export OMP_NUM_THREADS=36
+##### --- OpenMP Settings ---
+# General:
+#export OMP_DISPLAY_ENV=VERBOSE
+#export OMP_NUM_THREADS=36
+# Intel:
+#export KMP_AFFINITY="verbose,norespect,none"
+#    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
+#    Intel's OpenMP will pin all the threads to the same core that the MPI process is
+#    assigned to, basically idling the entire machine in cases where one process is running
+#    per node, because of some of the settings Slurm places in the environment which are geared
+#    towards GCC 4.9.3's OpenMP library.
+echo "To configure OpenMP like other job scripts:"
+echo "    export KMP_AFFINITY=\"verbose,norespect,none\""
+echo "    export OMP_DISPLAY_ENV=VERBOSE"
+echo "    export OMP_NUM_THREADS=36"
+##### --- OpenMP Settings ---
+
 export APOLLO_INIT_MODEL=${SOS_WORK}/model.static.0.default
-#export OMP_DISPLAY_ENV=verbose
 cd ${SOS_WORK}
 
 #####

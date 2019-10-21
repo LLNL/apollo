@@ -56,8 +56,8 @@ class Apollo::Region {
         //
         Apollo::ModelWrapper  *model;
         //
-        double         current_step_time_begin;
-        double         current_step_time_end;
+        double         current_exec_time_begin;
+        double         current_exec_time_end;
         //
         uint64_t       id;
         uint64_t       parent_id;

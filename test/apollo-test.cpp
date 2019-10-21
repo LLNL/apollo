@@ -42,7 +42,7 @@ int main()
     int rc = 0;
     fprintf(stdout, "testing Apollo.\n");
 
-    Apollo *apollo = Apollo::instance();
+    //Apollo *apollo = Apollo::instance();
 
 
 

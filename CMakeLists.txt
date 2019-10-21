@@ -59,8 +59,8 @@ set(APOLLO_MINOR_VERSION 0)
 set(APOLLO_PATCH_VERSION 0)
 set(APOLLO_VERSION "${APOLLO_MAJOR_VERSION}.${APOLLO_MINOR_VERSION}.${APOLLO_PATCH_VERSION}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -fPIC -fdiagnostics-color=always")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable -fPIC -fdiagnostics-color=always")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -fPIC ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable -fPIC ")
 
 set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 
@@ -174,6 +174,11 @@ if(SOS_FOUND)
 else()
     message(STATUS "---- SOS:  ** ERROR ** Could not locate SOS installation.")
 endif(SOS_FOUND)
+
+find_package(MPI REQUIRED)
+if (MPI_FOUND)
+    message(STATUS "---- MPI:  Found!")
+endif()
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

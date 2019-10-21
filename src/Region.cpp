@@ -142,7 +142,7 @@ Apollo::Region::begin(void) {
     }
     currently_inside_region = true;
 
-    SOS_TIME(current_step_time_begin);
+    SOS_TIME(current_exec_time_begin);
 
     // NOTE: Features are tracked globally within the process.
     //       Apollo semantics require that region.begin/end calls happen
@@ -155,6 +155,7 @@ Apollo::Region::begin(void) {
     //       region.getPolicyIndex ...
     //
     apollo->setFeature("policy_index", (double) current_policy);
+
 
     return;
 }
@@ -174,7 +175,7 @@ Apollo::Region::end(void) {
 
     currently_inside_region = false;
 
-    SOS_TIME(current_step_time_end);
+    SOS_TIME(current_exec_time_end);
     Apollo::Region::Measure *time = nullptr;
 
     // In case this was changed by the DecisionTree after the begin() call...
@@ -190,11 +191,35 @@ Apollo::Region::end(void) {
     }
 
     time->exec_count++;
-    time->time_total += (current_step_time_end - current_step_time_begin);
+    time->time_total += (current_exec_time_end - current_exec_time_begin);
 
     if (iter == measures.end()) {
         std::vector<Apollo::Feature> feat_copy = apollo->features;
         measures.insert({std::move(feat_copy), time});
+    }
+
+    if (false) {
+        SOS_runtime *sos = (SOS_runtime *) apollo->sos_handle;
+        int num_threads    = -1;
+        int num_elements   = -1;
+        int policy_index   = -1;
+        for (Apollo::Feature ft : apollo->features)
+        {
+            if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
+            else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
+            else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
+        }
+        std::cout \
+            << "TRACE," \
+            << current_exec_time_end << "," \
+            << sos->config.node_id << ","
+            << sos->config.comm_rank << ","
+            << name << "," \
+            << policy_index << "," \
+            << num_threads << "," \
+            << num_elements << "," \
+            << std::fixed << (current_exec_time_end - current_exec_time_begin) \
+            << std::endl;
     }
 
     return;
@@ -227,34 +252,35 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
             apollo->sosPackRelatedDouble(relation_id, "time_avg",
                     (time_set->time_total / time_set->exec_count));
 
-            //----- exhaustive exploration report (begin)
-            int num_threads    = -1;
-            int num_elements   = -1;
-            int policy_index   = -1;
-            for (Apollo::Feature ft : these_features)
-            {
-                if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
-                else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
-                else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
+            if (false) {
+                //----- exhaustive exploration report (begin)
+                int num_threads    = -1;
+                int num_elements   = -1;
+                int policy_index   = -1;
+                for (Apollo::Feature ft : these_features)
+                {
+                    if (     ft.name == "policy_index") {policy_index = (int)ft.value;}
+                    else if (ft.name == "num_threads")  {num_threads  = (int)ft.value;}
+                    else if (ft.name == "num_elements") {num_elements = (int)ft.value;}
+                }
+                std::cout \
+                    << "REGION," \
+                    << assign_to_step << "," \
+                    << name << "," \
+                    << time_set->exec_count << "," \
+                    << policy_index << "," \
+                    << num_threads << "," \
+                    << num_elements << "," \
+                    << std::fixed << (time_set->time_total / time_set->exec_count) \
+                    << std::endl;
+                //----- exhaustive exploration report (end)
             }
-            std::cout \
-                << assign_to_step << ", " \
-                << name << ", " \
-                << time_set->exec_count << ", " \
-                << policy_index << ", " \
-                << num_threads << ", " \
-                << num_elements << ", " \
-                << std::fixed << (time_set->time_total / time_set->exec_count) << std::endl;
-            //----- exhaustive exploration report (end)
 
             time_set->exec_count = 0;
             time_set->time_total = 0.0;
         }
-
-
-
         // Note about optimization:
-        //    We delete these because things like "step" might be used as a
+        //    We might delete these because things like "step" might be used as a
         //    feature, which means that time_set and the copy of the features vector
         //    used as a key to this measurement would never be revisited. For long
         //    running simulations that could lead to ugly memory leaks, esp.

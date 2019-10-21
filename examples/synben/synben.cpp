@@ -41,9 +41,6 @@
 void configureKernelVariants(void);
 int  syntheticKernelVariantRecommendation(int op_count);
 
-int  syntheticRegion(auto& run, auto& kernel_variant, int op_weight);
-void experimentLoop(Apollo *apollo, auto& run);
-
 template<typename T>
 std::ostream &operator <<(std::ostream &os, const std::vector<T> &v) {
     using namespace std;
@@ -244,14 +241,17 @@ RunSettings parse(int argc, char **argv) {
     return run;
 }
 
-void configureKernelVariants(auto& run) {
+void configureKernelVariants(RunSettings& run) {
     run.kernel_variants.push_back(KernelVariant(10,  2, "[cpu     ]"));
     run.kernel_variants.push_back(KernelVariant(32,  1, "[cuda    ]"));
     if (run.verbose) { for (const auto& k : run.kernel_variants) { run.log(k); }}
     return;
 }
 
-int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight) {
+// Forward declaration:
+int  syntheticRegion(RunSettings& run, KernelVariant& kernel, int op_count, int t_noise);
+
+int syntheticKernelVariantRecommendation(RunSettings& run, int op_count, int op_weight) {
     int this_cost = 0;
     int best_cost_seen = 99999999;
     int best_kernel = -1;
@@ -268,25 +268,8 @@ int syntheticKernelVariantRecommendation(auto& run, int op_count, int op_weight)
 }
 
 
-int main(int argc, char **argv)
-{
-    //auto run = parse(argc, argv);
-    Apollo *apollo = Apollo::instance();
 
-    unsigned int i;
-    Callpath path = apollo->callpath.doStackwalk();
-    for (i = 0; i < path.size(); i++) {
-        std::cout << "path.get(" << i << ") == " << path.get(i) << std::endl;
-    }
-
-    //configureKernelVariants(run);
-    //experimentLoop(apollo, run);
-
-    return EXIT_SUCCESS;
-}
-
-
-void experimentLoop(Apollo *apollo, auto& run) {
+void experimentLoop(Apollo *apollo, RunSettings& run) {
     std::string runMaxDesc;
     if (run.iter_max > 0) {
         runMaxDesc = " of " + std::to_string(run.iter_max);
@@ -465,7 +448,7 @@ void experimentLoop(Apollo *apollo, auto& run) {
 }
 
 
-int syntheticRegion(auto& run, auto& kernel, int op_count, int t_noise)
+int syntheticRegion(RunSettings& run, KernelVariant& kernel, int op_count, int t_noise)
 {
     int t_total = kernel.t_fixed + (op_count * (kernel.t_op + t_noise));
     if (not run.sim_sleep) {
@@ -474,6 +457,23 @@ int syntheticRegion(auto& run, auto& kernel, int op_count, int t_noise)
     return t_total;
 }
 
+
+int main(int argc, char **argv)
+{
+    //auto run = parse(argc, argv);
+    Apollo *apollo = Apollo::instance();
+
+    unsigned int i;
+    Callpath path = apollo->callpath.doStackwalk();
+    for (i = 0; i < path.size(); i++) {
+        std::cout << "path.get(" << i << ") == " << path.get(i) << std::endl;
+    }
+
+    //configureKernelVariants(run);
+    //experimentLoop(apollo, run);
+
+    return EXIT_SUCCESS;
+}
 
 
 

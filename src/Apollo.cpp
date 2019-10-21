@@ -254,6 +254,10 @@ Apollo::Apollo()
         }
     }
 
+    // Explicitly set the current OMP defaults, so LLVM's OMP library doesn't
+    // run really slow for no reason:
+    omp_set_num_threads(ompDefaultNumThreads);
+    omp_set_schedule(ompDefaultSchedule, -1);
 
     // At this point we have a valid SOS runtime and pub handle.
     // NOTE: The assumption here is that there is 1:1 ratio of Apollo

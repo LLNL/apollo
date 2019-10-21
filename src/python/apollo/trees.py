@@ -162,7 +162,7 @@ def generateDecisionTree(SOS, data, region_names):
         #         presort=False, random_state=None, splitter='best'))]
 
         clf = DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=4,
+                 class_weight=None, criterion='gini', max_depth=1,
                  min_samples_leaf=1, min_samples_split=2)
 
         # Conduct some model evaluation:
@@ -207,21 +207,38 @@ def generateDecisionTree(SOS, data, region_names):
 
     json_start = time.time()
 
-    model_def = {
-        "guid": SOS.get_guid(),
-        "driver": {
-            "rules": all_rules_json,
-            "least": all_least_json,
-            "timed": all_timed_json,
-        },
-        "region_names": list(region_names),
-        "region_sizes": all_sizes_data,
-        "region_types": all_types_rule,
-        "features": {
-            "count": len(feature_names),
-            "names": feature_names,
-        },
-    }
+    if one_big_tree == False:
+        model_def = {
+                "guid": SOS.get_guid(),
+                "driver": {
+                    "rules": all_rules_json,
+                    "least": all_least_json,
+                    "timed": all_timed_json,
+                    },
+                "region_names": list(region_names),
+                "region_sizes": all_sizes_data,
+                "region_types": all_types_rule,
+                "features": {
+                    "count": len(feature_names),
+                    "names": feature_names,
+                    },
+                }
+    else:
+        model_def = {
+                "guid": SOS.get_guid(),
+                "driver": {
+                    "rules": all_rules_json,
+                    "least": all_least_json,
+                    "timed": all_timed_json,
+                    },
+                "region_names": "__ANY_REGION__",
+                "region_sizes": all_sizes_data,
+                "region_types": all_types_rule,
+                "features": {
+                    "count": len(feature_names),
+                    "names": feature_names,
+                    },
+                }
 
 
     #IDEA: Create bins of regions. If some region doesn't have a model, figure out what bin

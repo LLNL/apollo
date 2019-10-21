@@ -9,6 +9,7 @@ cd build
 #  the proxy app is using so the compiler doesn't get confused.
 #
 #cmake -DCMAKE_INSTALL_PREFIX=../install \
+#        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 #        -DCMAKE_BUILD_TYPE=Debug \
 #        -DSOS_DIR=$HOME/src/sos_flow/build \
 #        -DRAJA_DIR=$(spack location -i raja) \
@@ -16,10 +17,11 @@ cd build
 #        -Dcallpath_DIR=$HOME/src/callpath/install \
 #        ..
 cmake   \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX=../install \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=Debug \
         -DSOS_DIR=$HOME/src/sos_flow/build \
-        -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/RelWithDebInfo/install/RAJA/include \
+        -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/Release/install/RAJA/include \
         -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
         ..
-make -j && make -j install && cd .. && tree install
+make -j VERBOSE=1 && make -j install && cd .. && tree install

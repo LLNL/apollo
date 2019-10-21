@@ -1,4 +1,4 @@
 #!/bin/bash
 cd build
-make -j && make install && cd .. && tree install
+make -j 8 && make install && cd .. && tree install
 
