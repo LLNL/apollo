@@ -9,14 +9,11 @@ Apollo requires the following dependencies to build:
 * RAJA
 * Cleverleaf (for custom RAJA Apollo policy and default example code)
 
-Apollo is currently built and tested with **GCC 4.9.3** in a **TOSS3**
-environment on **CZQuartz**. Make sure to load
+Apollo is currently built and tested with **GCC 4.9.3** or **Intel/19**
+in a **TOSS3** environment on **CZQuartz**. Make sure to load
 or swap in the correct compiler module before initializing this build process:
 
-`module swap -q intel/18.0.1 gcc/4.9.3`
-
-More recent compilers may work, but can get caught on warnings or
-impose stricter rules which may trip you up.
+`module swap gcc/4.9.3 intel/19` or `module load intel/19`
 
 ## Basic Installation Process
 
