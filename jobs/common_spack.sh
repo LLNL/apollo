@@ -1,10 +1,23 @@
 #!/bin/bash
-echo "module swap intel/18.0.1 gcc/4.9.3"
-module swap intel/18.0.1 gcc/4.9.3
-echo ""
-echo "Compiler path: '$(which gcc)'"
-echo "Compiler version:"
-gcc --version
+#echo "module swap gcc/4.9.3 intel/19.0.4 "
+#module swap gcc/4.9.3 intel/19.0.4
+echo "module load intel/19.0.4"
+module load intel/19.0.4
+if [ "x${CC}" == "x" ] ; then
+    export CC=$(which icc)
+fi
+if [ "x${CXX}" == "x" ] ; then
+    export CXX=$(which icpc)
+fi
+if [ "x${FC}" == "x" ] ; then
+    export FC=$(which ifort)
+fi
+if [ "x${F90}" == "x" ] ; then
+    export F90=$(which ifort)
+fi
+export MPICXX=mpicxx
+export MPI_CXX=mpicxx
+
 echo ""
 # Absolute path this script is in:
 export SETENV_SCRIPT_PATH="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"

@@ -89,8 +89,8 @@ export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "
-#export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
-#export SRUN_CLEVERLEAF+=" -c 36 "
+export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
+export SRUN_CLEVERLEAF+=" -c 36 "
 export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
 export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
 export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
@@ -130,9 +130,9 @@ set +m
 ##### --- OpenMP Settings ---
 # General:
 export OMP_DISPLAY_ENV=VERBOSE
-#export OMP_NUM_THREADS=36
+export OMP_NUM_THREADS=36
 # Intel:
-#export KMP_AFFINITY="verbose,norespect,none"
+export KMP_AFFINITY="verbose,norespect,none"
 #    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
 #    Intel's OMP will otherwise pin all the threads to the same core that the MPI process is
 #    assigned to, basically idling the entire machine in cases where one process is running
@@ -141,7 +141,6 @@ export OMP_DISPLAY_ENV=VERBOSE
 ##### --- OpenMP Settings ---
 
 run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.defaultopenmp"
-
 run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.previous"
 run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.twopolicy"
 

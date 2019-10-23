@@ -209,6 +209,7 @@ Apollo::Region::end(void) {
             else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
             else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
         }
+        std::cout.precision(17);
         std::cout \
             << "TRACE," \
             << current_exec_time_end << "," \
@@ -237,7 +238,6 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
         const std::vector<Apollo::Feature>& these_features = iter_measure->first;
         Apollo::Region::Measure                  *time_set = iter_measure->second;
 
-        std::cout.precision(17);
 
         if (time_set->exec_count > 0) {
             relation_id = SOS_uid_next(sos->uid.my_guid_pool);
@@ -263,6 +263,7 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
                     else if (ft.name == "num_threads")  {num_threads  = (int)ft.value;}
                     else if (ft.name == "num_elements") {num_elements = (int)ft.value;}
                 }
+                std::cout.precision(17);
                 std::cout \
                     << "REGION," \
                     << assign_to_step << "," \

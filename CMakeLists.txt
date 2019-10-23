@@ -59,8 +59,8 @@ set(APOLLO_MINOR_VERSION 0)
 set(APOLLO_PATCH_VERSION 0)
 set(APOLLO_VERSION "${APOLLO_MAJOR_VERSION}.${APOLLO_MINOR_VERSION}.${APOLLO_PATCH_VERSION}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -fPIC ")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable -fPIC ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -fPIC  ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -Wno-unused-variable -fPIC  ")
 
 set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 

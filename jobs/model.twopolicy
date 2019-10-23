@@ -1,0 +1,56 @@
+{
+    "features": {
+        "count": 1,
+        "names": [
+            "num_elements"
+        ]
+    },
+    "region_types": {
+        "__ANY_REGION__": "DecisionTree"
+    },
+    "driver": {
+        "rules": {
+            "__ANY_REGION__": {
+                "gini": 0.4491083814301835,
+                "rule": "num_elements <= 95.5000",
+                "right": {
+                    "impurity": 0.36710240302939445,
+                    "value": [
+                        1486.0,
+                        475.0
+                    ],
+                    "id": 2,
+                    "criterion": "gini",
+                    "samples": 1961,
+                    "class": 0
+                },
+                "samples": 2611,
+                "id": 0,
+                "left": {
+                    "impurity": 0.4625041420118343,
+                    "value": [
+                        236.0,
+                        414.0
+                    ],
+                    "id": 1,
+                    "criterion": "gini",
+                    "samples": 650,
+                    "class": 1
+                }
+            }
+        },
+        "timed": {
+            "__ANY_REGION__": true
+        },
+        "least": {
+            "__ANY_REGION__": -1
+        }
+    },
+    "region_names": [
+        "__ANY_REGION__"
+    ],
+    "guid": 16002063,
+    "region_sizes": {
+        "__ANY_REGION__": "(2611, 1)"
+    }
+}
