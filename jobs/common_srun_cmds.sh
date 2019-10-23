@@ -43,7 +43,10 @@ export SOS_SHUTDOWN_COMMAND+=" ./bin/sosd_stop "
 export SQL_DELETE_VALS="DELETE FROM tblVals;"
 export SQL_DELETE_DATA="DELETE FROM tblData;"
 export SQL_DELETE_PUBS="DELETE FROM tblPubs;"
-#
+export SQL_APOLLO_VIEW=`cat CREATE.viewApollo`
+export SQL_APOLLO_INDEX=`cat CREATE.indexApollo`
+export SQL_SANITYCHECK=`cat SELECT.sanityCheck`
+##
 echo "srun ${SRUN_CONTROLLER}"       > ${SOS_WORK}/launch/srun_controller
 env | grep SLURM                     > ${SOS_WORK}/launch/slurm_env
 

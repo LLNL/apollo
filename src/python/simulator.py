@@ -38,27 +38,61 @@ import sys
 import time
 import pickle
 
-import apollo.trees as trees
-import apollo.query as query
-import apollo.utils as utils
+import pandas as pd
+import matplotlib as plt
+
+##########
+
+def process_trace(csv, flush):
+
+    # pre-process / group data
+    # build an initial model from flush data
+
+    # go through the trace and evaluate the model
+    for row in csv.head().itertuples():
+        step          = int(row.step)
+        region_name   = str(row.region_name)
+        policy_index  = int(row.policy_index)
+        num_threads   = int(row.num_threads)
+        num_elements  = int(row.num_elements)
+        time_exec     = float(row.time_exec)
+
+        print("region_name: %s num_elements: %d" % (region_name, num_elements))
+        if (row.Index > 10):
+            break
+
+
+    return
 
 ##########
 
 def main():
     simulator_start = time.time()
 
-    data, region_names = trace.getTrainingData(SOS, sos_host, sos_port, row_limit=0);
-
     model_def = ""
     model_len = 0
 
     # DECISIONTREE
-    model_def = trees.generateDecisionTree(SOS, data, region_names)
-    model_len = len(model_def)
+    #model_def = trees.generateDecisionTree(SOS, data, region_names)
+    #model_len = len(model_def)
 
-    #with open("./output/models/latest_model.json", "w") as mf:
-    #    mf.write(model_def)
+    if len(sys.argv) < 3:
+        print("USAGE: ./simulator.py <apollo_trace> <apollo_flush>\n")
+        return
 
+    print("Arguments:\n%s\n" % str(sys.argv))
+
+    print("Loading trace into Pandas...)")
+    csv = pd.read_csv(str(sys.argv[1]))
+    print("  OK!\n")
+
+    print("Loading flush (training) data into Pandas...")
+    flush = pd.read_csv(str(sys.argv[2]))
+    print("  OK!\n")
+
+    process_trace(csv, flush)
+
+    return
 #########
 
 

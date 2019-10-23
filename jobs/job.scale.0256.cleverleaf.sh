@@ -67,13 +67,9 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
-export SQL_APOLLO_VIEW=`cat SQL.CREATE.viewApollo`
-export SQL_APOLLO_INDEX=`cat SQL.CREATE.indexApollo`
 #
 SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
 #SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
-#
-export SQL_SANITYCHECK=`cat SQL.sanityCheck`
 #
 echo ""
 echo ">>>> Launching experiment codes..."
@@ -89,7 +85,7 @@ export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "
-export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
+export SRUN_CLEVERLEAF+=" --cpu-bind=none "
 export SRUN_CLEVERLEAF+=" -c 36 "
 export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
 export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
@@ -119,6 +115,17 @@ function run_cleverleaf_with_model() {
     cd ${SOS_WORK}
 }
 
+##### --- OpenMP Settings ---
+# General:
+export KMP_WARNINGS="0"
+export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
+export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
+export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
+export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
+printf "\nKMP_AFFINITY=${KMP_AFFINITY}\n"
+##### --- OpenMP Settings ---
+
+
 set +m
 
 # The static model doesn't adjust anything, and doesn't receive feedback from the controller,
@@ -126,19 +133,6 @@ set +m
 #srun ${SRUN_CONTROLLER_START} &
 #sleep 4
 
-
-##### --- OpenMP Settings ---
-# General:
-export OMP_DISPLAY_ENV=VERBOSE
-export OMP_NUM_THREADS=36
-# Intel:
-export KMP_AFFINITY="verbose,norespect,none"
-#    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
-#    Intel's OMP will otherwise pin all the threads to the same core that the MPI process is
-#    assigned to, basically idling the entire machine in cases where one process is running
-#    per node, because of some of the settings Slurm places in the environment which are geared
-#    towards GCC 4.9.3's OpenMP library.
-##### --- OpenMP Settings ---
 
 run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.defaultopenmp"
 run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.previous"

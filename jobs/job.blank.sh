@@ -55,10 +55,7 @@ srun ${SOS_MONITOR_START} &
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
-export SQL_APOLLO_VIEW=`cat SQL.CREATE.viewApollo`
-export SQL_APOLLO_INDEX=`cat SQL.CREATE.indexApollo`
-export SQL_SANITYCHECK=`cat SQL.sanityCheck`
-#
+
 SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
 #SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
 #
@@ -67,22 +64,33 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
+
 export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
 export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
 
-#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
+export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "
-export SRUN_CLEVERLEAF+=" --cpu-bind=cores "
+export SRUN_CLEVERLEAF+=" --cpu-bind=none "
 export SRUN_CLEVERLEAF+=" -c 32 "
 export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
 export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
 export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
 export SRUN_CLEVERLEAF+=" -r 1 "
 
+##### --- OpenMP Settings ---
+export KMP_WARNINGS="0"
+export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
+export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
+export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
+export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
+echo ""
+echo "KMP_AFFINITY=${KMP_AFFINITY}"
+echo ""
+##### --- OpenMP Settings ---
 
 function wipe_all_sos_data_from_database() {
     SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
@@ -102,23 +110,6 @@ function run_cleverleaf_with_model() {
 }
 
 
-##### --- OpenMP Settings ---
-# General:
-#export OMP_DISPLAY_ENV=VERBOSE
-#export OMP_NUM_THREADS=36
-# Intel:
-#export KMP_AFFINITY="verbose,norespect,none"
-#    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
-#    Intel's OpenMP will pin all the threads to the same core that the MPI process is
-#    assigned to, basically idling the entire machine in cases where one process is running
-#    per node, because of some of the settings Slurm places in the environment which are geared
-#    towards GCC 4.9.3's OpenMP library.
-echo "To configure OpenMP like other job scripts:"
-echo "    export KMP_AFFINITY=\"verbose,norespect,none\""
-echo "    export OMP_DISPLAY_ENV=VERBOSE"
-echo "    export OMP_NUM_THREADS=36"
-##### --- OpenMP Settings ---
-
 export APOLLO_INIT_MODEL=${SOS_WORK}/model.static.0.default
 cd ${SOS_WORK}
 
@@ -127,20 +118,8 @@ cd ${SOS_WORK}
 source ${RETURN_PATH}/common_parting.sh
 #
 echo ""
+echo "OK!  You are now ready to run Apollo experiments."
 echo ""
-echo " >>>>"
-echo " >>>>"
-echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
-echo " >>>>"
-read -t 120 -p " >>>> "
-echo ""
-echo " *OK* Shutting down interactive experiment environment..."
-echo ""
-${SOS_WORK}/sosd_stop.sh
-echo ""
-echo ""
-sleep 8
-echo "--- Done! End of job script. ---"
 #
 #####
 

@@ -67,13 +67,9 @@ cd ${SOS_WORK}
 echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
-export SQL_APOLLO_VIEW=`cat SQL.CREATE.viewApollo`
-export SQL_APOLLO_INDEX=`cat SQL.CREATE.indexApollo`
 #
 SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
 #SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
-#
-export SQL_SANITYCHECK=`cat SQL.sanityCheck`
 #
 echo ""
 echo ">>>> Launching experiment codes..."
@@ -124,6 +120,7 @@ export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
 export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
 export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
 export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
+printf "\nKMP_AFFINITY=${KMP_AFFINITY}\n"
 ##### --- OpenMP Settings ---
 
 set +m

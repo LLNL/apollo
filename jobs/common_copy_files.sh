@@ -25,9 +25,9 @@ cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bi
 #
 cp ${HOME}/src/apollo/jobs/model.*                                ${SOS_WORK}
 #
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.sanityCheck                  ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/CREATE.viewApollo                   ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/CREATE.indexApollo                  ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/SELECT.sanityCheck                  ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib

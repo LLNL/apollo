@@ -33,6 +33,14 @@ export SOS_SYSTEM_MONITOR_ENABLED="FALSE"
 export SOS_SYSTEM_MONITOR_FREQ_USEC="0"
 export SOS_ENV_SET=1
 #
+echo ""
+echo -E "                \     _ \   _ \  |     |      _ \  "
+echo -E "               _ \   |   | |   | |     |     |   | "
+echo -E "              ___ \  ___/  |   | |     |     |   | "
+echo -E "            _/    _\_|    \___/ _____|_____|\___/  "
+echo -E "                                                   "
+echo -E "           -  -  -  --  --  ---  --= --== ==*# ###>"
+echo ""
 #
 #
 #

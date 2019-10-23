@@ -2,12 +2,12 @@
 
 export PARTING_NOTE=${SOS_WORK}/launch/parting_instructions
 #
-echo "--------------------------------------------------------------------------------"
-echo ""
-echo "\$SOS_WORK = ${SOS_WORK}"
-echo ""
-tree ${SOS_WORK}/daemons
-ls ${SOS_WORK}/output
+#echo "--------------------------------------------------------------------------------"
+#echo ""
+#echo "\$SOS_WORK = ${SOS_WORK}"
+#echo ""
+#tree ${SOS_WORK}/daemons
+#ls ${SOS_WORK}/output
 echo "" > ${PARTING_NOTE}
 echo "--------------------------------------------------------------------------------"
 echo "The SOS RUNTIME IS STILL UP so you can interactively query / run visualizations." >> ${PARTING_NOTE}

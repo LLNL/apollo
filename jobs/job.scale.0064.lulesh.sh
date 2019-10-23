@@ -99,9 +99,9 @@ cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bi
 #
 cp ${HOME}/src/apollo/jobs/APOLLO.model*                          ${SOS_WORK}
 #
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.viewApollo            ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.CREATE.indexApollo           ${SOS_WORK}
-cp ${HOME}/src/apollo/src/python/SQL.sanityCheck                  ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/CREATE.viewApollo                   ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/CREATE.indexApollo                  ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/SELECT.sanityCheck                  ${SOS_WORK}
 #
 cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
@@ -303,9 +303,9 @@ echo ""
 echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 echo ""
 
-export SQL_APOLLO_VIEW="$(cat SQL.CREATE.viewApollo)"
-export SQL_APOLLO_INDEX="$(cat SQL.CREATE.indexApollo)"
-export SQL_APOLLO_SANITY="$(cat SQL.sanityCheck)"
+export SQL_APOLLO_VIEW="$(cat CREATE.viewApollo)"
+export SQL_APOLLO_INDEX="$(cat CREATE.indexApollo)"
+export SQL_APOLLO_SANITY="$(cat SELECT.sanityCheck)"
 #srun ${SRUN_SQL_EXEC} SQL_APOLLO_INDEX
 srun ${SRUN_SQL_EXEC} SQL_APOLLO_VIEW
 #
@@ -317,15 +317,12 @@ echo ""
 
 ##### --- OpenMP Settings ---
 # General:
-export OMP_DISPLAY_ENV=VERBOSE
-export OMP_NUM_THREADS=36
-# Intel:
-export KMP_AFFINITY="verbose,norespect,none"
-#    The "norespect" modifier above is needed to prevent use of default thread affinity masks.
-#    Intel's OMP will otherwise pin all the threads to the same core that the MPI process is
-#    assigned to, basically idling the entire machine in cases where one process is running
-#    per node, because of some of the settings Slurm places in the environment which are geared
-#    towards GCC 4.9.3's OpenMP library.
+export KMP_WARNINGS="0"
+export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
+export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
+export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
+export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
+printf "\nKMP_AFFINITY=${KMP_AFFINITY}\n"
 ##### --- OpenMP Settings ---
 
 echo ""
@@ -342,6 +339,8 @@ do
         export LULESH_BASELINE_BINARY=" ./bin/lulesh-v2.0-RAJA-seq.exe "
         ###### ####################
         export SRUN_LULESH_BASELINE=" "
+        export SRUN_LULESH_BASELINE+=" --cpu-bind=none "
+        export SRUN_LULESH_BASELINE+=" -c 36 "
         export SRUN_LULESH_BASELINE+=" -o ./output/lulesh-baseline.out "
         export SRUN_LULESH_BASELINE+=" -N ${WORK_NODE_COUNT} "
         export SRUN_LULESH_BASELINE+=" -n ${APPLICATION_RANKS} "
@@ -368,6 +367,8 @@ do
         export LULESH_APOLLO_BINARY=" ./bin/lulesh-apollo "
         ###### ##################
         export SRUN_LULESH_APOLLO=" "
+        export SRUN_LULESH_APOLLO+=" --cpu-bind=none "
+        export SRUN_LULESH_APOLLO+=" -c 36 "
         export SRUN_LULESH_APOLLO+=" -o ./output/lulesh-apollo.out "
         export SRUN_LULESH_APOLLO+=" -N ${WORK_NODE_COUNT} "
         export SRUN_LULESH_APOLLO+=" -n ${APPLICATION_RANKS} "
