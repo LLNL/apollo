@@ -39,7 +39,7 @@ import time
 import pickle
 
 import pandas as pd
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 ##########
 
@@ -61,6 +61,10 @@ def process_trace(csv, flush):
         if (row.Index > 10):
             break
 
+    print("Generating plot...")
+    csv.groupby('policy_index').plot(x='num_elements', y='time_exec')
+    print("Displaying plot...")
+    plt.show()
 
     return
 
@@ -82,16 +86,15 @@ def main():
 
     print("Arguments:\n%s\n" % str(sys.argv))
 
-    print("Loading trace into Pandas...)")
+    print("Loading trace into Pandas...")
     csv = pd.read_csv(str(sys.argv[1]))
-    print("  OK!\n")
 
     print("Loading flush (training) data into Pandas...")
     flush = pd.read_csv(str(sys.argv[2]))
-    print("  OK!\n")
 
     process_trace(csv, flush)
 
+    print("Done.")
     return
 #########
 
