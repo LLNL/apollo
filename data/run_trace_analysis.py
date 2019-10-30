@@ -20,18 +20,10 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm             import SVC
 
+data = {}
+
 def main():
-    print(
-    """
-                \     _ \   _ \  |     |      _ \\
-               _ \   |   | |   | |     |     |   |
-              ___ \  ___/  |   | |     |     |   |
-            _/    _\_|    \___/ _____|_____|\___/
-
-           -  -  -  --  --  ---  --= --== ==*# ###>\n\n
-    """)
-
-    data = {}
+    global data
     data['path'] = '/g/g17/wood67/src/apollo/data/intel/001.node.001.rank'
     data['apollo.tracefile'] = 'trace.policy.0.csv'
     data['apollo.flushfile'] = 'flush.grouped.csv'
@@ -40,15 +32,14 @@ def main():
     data['policy.times.bestfile']  = 'policy.times.best.csv'
     data['policy.times.defaultfile'] = 'policy.times.default.csv'
 
-    data = load_csv_data(data)
+    load_csv_data()
 
     #trace_thread = threading.Thread(
     #    target=project_model_over_trace,
     #    args=(data))
     #trace_thread.start()
 
-    project_model_over_trace(data)
-    #plot_apollo_vs_normal(data)
+    project_model_over_trace()
 
     print("\nDone.")
     return
@@ -57,27 +48,78 @@ def main():
 
 
 
-def project_model_over_trace(data):
+def project_model_over_trace():
+    global data
     # compile a model
     print("Constructing models.")
-    all_models = construct_model_from_flush(data, 'apollo.flush')
+    all_models = construct_model_from_flush('apollo.flush')
 
-    print("Processing trace.")
+    print("Processing trace.\n")
 
     trace_pos = 0
     trace_pos_total = len(data['apollo.trace'].index)
-    all_times = []
+
+    all_times = np.zeros((trace_pos_total,6))
 
     dfb = data['policy.times.best']
     dfd = data['policy.times.default']
+    dff = data['apollo.flush']
     best_col_time    = dfb.columns.get_loc('min_time')
     best_col_policy  = dfb.columns.get_loc('policy_index')
     default_col_time = dfd.columns.get_loc('min_time')
 
-    print("trace_pos,step,region_name,policy_index,model_policy,best_policy," \
-          + "num_elements,time_exec,default_time,best_time")
+    print("dfb: %d" % len(dfb.index))
+    print("dfd: %d" % len(dfd.index))
+
+    rt_total = 0.0
+    rt_avg   = 0.0
+    rt_left  = 0.0
+
+
+    # Set up accelleration structure for searching the known times:
+    most = {}
+    for row in dff.itertuples():
+        key = (row.region_name, row.num_elements, row.policy_index)
+        if key not in most:
+            most[key] = row.time_avg
+        else:
+            cur_time = most[key]
+            if cur_time > row.time_avg:
+                most[key] = row.time_avg
+
+    best = {}
+    for row in dfb.itertuples():
+        key = (row.region_name, row.num_elements)
+        if key not in best:
+            best[key] = (row.min_time, row.policy_index)
+        else:
+            cur_time, cur_index = best[key]
+            if cur_time > row.min_time:
+                best[key] = (row.min_time, row.policy_index)
+    deft = {}
+    for row in dfd.itertuples():
+        key = (row.region_name, row.num_elements)
+        if key not in deft:
+            deft[key] = row.min_time
+        else:
+            cur_time = deft[key]
+            if cur_time > row.min_time:
+                deft[key] = row.min_time
+
+    total_default = 0.0
+    total_best    = 0.0
+    total_trace   = 0.0
+    total_model   = 0.0
+
+    model_key_error = 0
+    best_key_error = 0
+    default_key_error = 0
 
     for row in data['apollo.trace'].itertuples():
+
+
+        rt_start = time.time()
+
         step          = int(row.step)
         region_name   = str(row.region_name)
         policy_index  = int(row.policy_index)
@@ -85,51 +127,72 @@ def project_model_over_trace(data):
         num_elements  = int(row.num_elements)
         time_exec     = float(row.time_exec)
 
-        if (trace_pos > 1000):
-            break
-
-        #TODO: Lookup table for model_time
         model_policy = int(all_models[region_name].predict([[num_elements]]))
-        model_time   = 0.0
+        try:
+            model_time   = most[(region_name, num_elements, model_policy)]
+        except KeyError:
+            model_key_error += 1
+            model_time = 0.0
 
+        try:
+            best_time, best_policy = best[(region_name, num_elements)]
+        except KeyError:
+            best_key_error += 1
+            best_time, best_policy = (0.0, -1.0)
+        try:
+            default_time = deft[(region_name, num_elements)]
+        except KeyError:
+            default_key_error += 1
+            default_time = 0.0
 
-        best_row = dfb[(dfb.step==(step + 1))
-                     & (dfb.region_name==region_name)
-                     & (dfb.num_elements==num_elements)].first_valid_index()
-
-        default_row = dfd[(dfd.step==(step + 1))
-                        & (dfd.region_name==region_name)
-                        & (dfd.num_elements==num_elements)].first_valid_index()
-
-
-        best_time     = dfb.iat[best_row,    best_col_time]
-        best_policy   = dfb.iat[best_row,    best_col_policy]
-        default_time  = dfd.iat[default_row, default_col_time]
-
-        all_times.append([trace_pos, step, time_exec, best_time, default_time])
-
-        print("%d,%d,%s,%d,%d,%d,%d,%1.8f,%1.8f,%1.8f" % (
-            trace_pos,
-            step,
-            region_name,
-            policy_index,
-            model_policy,
-            best_policy,
-            num_elements,
-            time_exec,
-            default_time,
-            best_time))
-
+        all_times[trace_pos][0] = trace_pos
+        all_times[trace_pos][1] = step
+        all_times[trace_pos][2] = time_exec
+        all_times[trace_pos][3] = best_time
+        all_times[trace_pos][4] = default_time
+        all_times[trace_pos][5] = model_time
 
         trace_pos += 1
-    #
 
+        rt_stop   = time.time()
+        rt_total += (rt_stop - rt_start)
+        rt_avg    = (rt_total / trace_pos)
+        rt_left   = 0.01667 * (rt_avg * (trace_pos_total - trace_pos))
+        sys.stdout.write("%7d of %7d [%25s] %2.2f min. left.\r" % (
+                (trace_pos - 1),
+                trace_pos_total,
+                progressBar(trace_pos, trace_pos_total, 25, fill='>'),
+                rt_left))
+
+        total_best += best_time
+        total_default += default_time
+        total_trace += row.time_exec
+        total_model += model_time
+
+    #
+    print(' '*80)
+    print("\nExporting .CSV file.")
+    with open('trace_times.csv', 'w') as f:
+        f.write("trace_pos,step,time_exec,best_time,default_time\n")
+        for row in all_times:
+            f.write("%d,%d,%1.8f,%1.8f,%1.8f\n" % \
+                    (row[0], row[1], row[2], row[3], row[4]))
+
+    print("\ttrace: %1.8f\n\tdefault: %1.8f\n\tbest: %1.8f\n\tmodel: %1.8f\n" % \
+        (total_trace, total_default, total_best, total_model))
+
+    print("key errors:\n\tb: %d\n\tm: %d\n\td: %d\n" % \
+            (best_key_error, model_key_error, default_key_error))
+
+    print("Generating plot.")
     dft = pd.DataFrame(all_times,
-                       columns=('trace_pos', 'step', 'time_exec', 'time_best', 'time_default'))
+                       columns=('trace_pos', 'step', 'time_exec', 'time_best', 'time_default', 'time_model'))
     fig,ax = plt.subplots()
+
     fig.set_size_inches(8, 3, forward=True)
     dft.plot(x='trace_pos', y='time_exec', ax=ax, linestyle='-', title="Cleverleaf Trace and Model Analysis")
     dft.plot(x='trace_pos', y='time_best', ax=ax, linestyle='--')
+    dft.plot(x='trace_pos', y='time_model', ax=ax, linestyle='-.')
     dft.plot(x='trace_pos', y='time_default', ax=ax, linestyle=':')
     ax.legend(["trace", "best", "default"], loc='upper right')
     ax.tick_params(axis='y', which='minor', left=True)
@@ -143,6 +206,15 @@ def project_model_over_trace(data):
 
 
 #------------
+def progressBar(amount, total, length, fill='='):
+    if amount >= total:
+        return fill * length
+    if length < 4: length = 4
+    fillLen = int(length * amount // total)
+    emptyLen = length - 1 - fillLen
+    bar = (fill * fillLen) + ">" + (" " * emptyLen)
+    return bar
+
 
 def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
     def node_to_data(tree, node_id, criterion):
@@ -263,7 +335,8 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
         return recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
 
 
-def construct_model_from_flush(data, flush_key):
+def construct_model_from_flush(flush_key):
+    global data
     # Grab the table
     td = data[flush_key]
 
@@ -426,7 +499,8 @@ def format_bytes(size):
         n += 1
     return str("%3.3f " % size + power_labels[n] + 'B')
 
-def load_csv_data(data):
+def load_csv_data():
+    global data
     def load_and_report(data, dfkey, csvfile):
         data[dfkey] = pd.read_csv(data['path'] + '/' + csvfile)
         dfbytes = data[dfkey].memory_usage(index=False, deep=True).sum()
@@ -443,6 +517,19 @@ def load_csv_data(data):
     data = load_and_report(data, 'policy.times.default', data['policy.times.defaultfile'])
     print("")
     return data
+
+
+
+    #print(
+    #"""
+    #            \     _ \   _ \  |     |      _ \\
+    #           _ \   |   | |   | |     |     |   |
+    #          ___ \  ___/  |   | |     |     |   |
+    #        _/    _\_|    \___/ _____|_____|\___/
+
+    #       -  -  -  --  --  ---  --= --== ==*# ###>\n\n
+    #""")
+
 
 if __name__ == "__main__":
     main()
