@@ -46,8 +46,6 @@ def main():
 
 
 
-
-
 def project_model_over_trace():
     global data
     # compile a model
@@ -68,26 +66,60 @@ def project_model_over_trace():
     best_col_policy  = dfb.columns.get_loc('policy_index')
     default_col_time = dfd.columns.get_loc('min_time')
 
-    print("dfb: %d" % len(dfb.index))
-    print("dfd: %d" % len(dfd.index))
-    print("dff: %d" % len(dff.index))
+    print("Size of input data sets:")
+    print("\tdfb [policy.times.best] .....: %d" % len(dfb.index))
+    print("\tdfd [policy.times.default] ..: %d" % len(dfd.index))
+    print("\tdff [intel.combined.out] ....: %d" % len(dff.index))
     rt_total = 0.0
     rt_avg   = 0.0
     rt_left  = 0.0
 
-    model_hist = np.zeros(20)
+    ### Gather some stats about our data set ###
 
-    # Set up accelleration structure for searching the known times:
+    # Purpose:
+    #       Look up the execution time for any given region/elem/policy
+    #       combination. This is needed for predicting the runtime of
+    #       policies that might get recommended by a model.
     most = {}
     for row in dff.itertuples():
         key = (row.region_name, row.num_elements, row.policy_index)
         if key not in most:
-            most[key] = row.time_avg
+            most[key] = (row.time_avg, row.policy_index)
         else:
-            cur_time = most[key]
+            cur_time, cur_idx = most[key]
             if cur_time > row.time_avg:
-                most[key] = row.time_avg
+                most[key] = (row.time_avg, row.policy_index)
 
+    # Purpose:
+    #       Track the number of times the model ended up recommending
+    #       each policy as the trace was evaluated.
+    policy_recommended = np.zeros(20)
+
+    # Purpose:
+    #       Assemble a dictionary of the fastest performing loops from
+    #       the integrated flush data. Walk through this to assess what
+    #       loops are likely going to get recommended by the model.
+    #       This is useful for assessing whether the model generation is
+    #       biased or broken, or if the data set is simply strongly
+    #       skewed to favor a particular policy.
+    policy_fastest    = np.zeros(20)
+    fast = {}
+    for row in dff.itertuples():
+        key = (row.region_name, row.num_elements)
+        if key not in fast:
+            fast[key] = (row.time_avg, row.policy_index)
+        else:
+            cur_time, cur_pol = fast[key]
+            if cur_time > row.time_avg:
+                fast[key] = (row.time_avg, row.policy_index)
+    for entry in fast.items():
+        key, value = entry
+        cur_time, cur_pol = value
+        policy_fastest[cur_pol] += 1
+
+    # Purpose:
+    #       This is an externally calculated "best-possible" run.
+    #       TODO: Validate this compared to our own internal calculations.
     best = {}
     for row in dfb.itertuples():
         key = (row.region_name, row.num_elements)
@@ -98,6 +130,9 @@ def project_model_over_trace():
             if cur_time > row.min_time:
                 best[key] = (row.min_time, row.policy_index)
 
+    # Purpose:
+    #       An externally filtered set of flush data for policy 0, the
+    #       OpenMP defaults.
     deft = {}
     for row in dfd.itertuples():
         key = (row.region_name, row.num_elements)
@@ -108,22 +143,24 @@ def project_model_over_trace():
             if cur_time > row.min_time:
                 deft[key] = row.min_time
 
-    print("len(best) = %d" % len(best))
-    print("len(deft) = %d" % len(deft))
-    print("len(most) = %d\n" % len(most))
+    print("\nSize of lookup dictionaries:")
+    print("\tlen(best) .....: %d" % len(best))
+    print("\tlen(deft) .....: %d" % len(deft))
+    print("\tlen(most) .....: %d" % len(most))
+    print("\tlen(fast) .....: %d" % len(fast))
+
 
     total_default = 0.0
     total_best    = 0.0
     total_trace   = 0.0
     total_model   = 0.0
 
-    model_key_error = 0
-    best_key_error = 0
+    model_key_error   = 0
+    best_key_error    = 0
     default_key_error = 0
 
+    print("\nProcessing application trace:")
     for row in data['apollo.trace'].itertuples():
-
-
         rt_start = time.time()
 
         step          = int(row.step)
@@ -135,9 +172,9 @@ def project_model_over_trace():
 
 
         model_policy = int(all_models[region_name].predict([[num_elements]]))
-        model_hist[model_policy] += 1
+        policy_recommended[model_policy] += 1
         try:
-            model_time   = most[(region_name, num_elements, model_policy)]
+            model_time, cur_pol   = most[(region_name, num_elements, model_policy)]
         except KeyError:
             model_key_error += 1
             model_time = 0.0
@@ -166,58 +203,96 @@ def project_model_over_trace():
         rt_total += (rt_stop - rt_start)
         rt_avg    = (rt_total / trace_pos)
         rt_left   = 0.01667 * (rt_avg * (trace_pos_total - trace_pos))
-        sys.stdout.write("%7d of %7d [%25s] %2.2f min. left.\r" % (
+        sys.stdout.write("\t%7d of %-7d [%25s] %2.2f min. left.\r" % (
                 (trace_pos - 1),
                 trace_pos_total,
                 progressBar(trace_pos, trace_pos_total, 25, fill='>'),
                 rt_left))
 
-        total_best += best_time
+        total_best    += best_time
         total_default += default_time
-        total_trace += row.time_exec
-        total_model += model_time
+        total_trace   += row.time_exec
+        total_model   += model_time
 
     #
-    print(' '*80)
+    print(' '*80 + "\nTrace simulation is complete!\n")
 
+    ### The main analysis / trace simulation loop is complete.
+    ### Output the results...
 
-    print("\n\nModel recommendations:")
-    for i in range(0, 19):
-        print("\tpolicy %2d: %d" % (i, model_hist[i]))
-    print("")
-
-
-    print("\nExporting .CSV file.")
+    print("Exporting .CSV file.")
     with open('trace_times.csv', 'w') as f:
         f.write("trace_pos,step,time_exec,best_time,default_time,model_time\n")
         for row in all_times:
             f.write("%d,%d,%1.8f,%1.8f,%1.8f,%1.8f\n" %
                     (row[0], row[1], row[2], row[3], row[4], row[5]))
 
-    print("\ttrace: %1.8f\n\tdefault: %1.8f\n\tbest: %1.8f\n\tmodel: %1.8f\n" % \
-        (total_trace, total_default, total_best, total_model))
+    if os.environ.get("DISPLAY") is None:
+        print("NOTE: Skipping plot generation, your connection does not support a display.")
+    else:
+        print("Generating plot.")
+        dft = pd.DataFrame(all_times,
+                           columns=('trace_pos', 'step', 'time_exec', 'time_best', 'time_default', 'time_model'))
+        fig,ax = plt.subplots()
 
-    print("key errors:\n\tb: %d\n\tm: %d\n\td: %d\n" % \
+        dft.plot(x='trace_pos', y='time_exec', ax=ax, linestyle='-', title="Cleverleaf Trace and Model Analysis")
+        dft.plot(x='trace_pos', y='time_best', ax=ax, linestyle='--')
+        dft.plot(x='trace_pos', y='time_model', ax=ax, linestyle='-.')
+        dft.plot(x='trace_pos', y='time_default', ax=ax, linestyle=':')
+        ax.legend(["trace", "best", "model", "default"], loc='upper right')
+        ax.tick_params(axis='y', which='minor', left=True)
+        ax.tick_params(axis='x', which='minor', bottom=True)
+        plt.grid(True)
+        plt.xlabel('Cleverleaf Trace Progress')
+        plt.ylabel('Time (seconds)')
+        plt.savefig('trace_times.png')
+        plt.show()
+
+
+    total_recommendations = 0
+    total_count_of_fastest = 0
+    print("\nPolicy recommendation count               |   Flush entries being fastest:")
+    print("------------------------------------------+------------------------------------------")
+    for i in range(0, 20):
+        print(" [%2d]: %8d  %21s    |  [%2d]: %8d  %21s" % (
+            i, policy_recommended[i],
+            progressBar(policy_recommended[i], trace_pos_total, 21, fill='#'),
+            i, policy_fastest[i],
+            progressBar(policy_fastest[i], len(best), 21, fill='#')))
+        total_recommendations += policy_recommended[i]
+        total_count_of_fastest += policy_fastest[i]
+    print("------------------------------------------+------------------------------------------")
+    print("Total: %-8d                           | Total: %-8d" % (
+        total_recommendations, total_count_of_fastest))
+
+    print("\nSimulated execution times:")
+    print(("\tRaw trace time ..............: %4.8f\n" + \
+          "\tOpenMP defaults .............: %4.8f\n" + \
+          "\tBest-possible policy ........: %4.8f\n" + \
+          "\tModel-recommended policy ....: %4.8f\n") % \
+          (total_trace, total_default, total_best, total_model))
+
+    # Done with the principle part of the simulation.
+    # Emit any warnings last so that they show up very clearly.
+
+    if total_recommendations != trace_pos_total:
+        print("WARNING: The number of recommendations for all policies\n" + \
+              "         does not match the number of loops encountered!")
+
+    if total_count_of_fastest != len(best):
+        print("WARNING: The number of fastest policies counted when scanning\n" + \
+              "         the integrated flush file does not match the size of the\n" + \
+              "         data set used for the best policy times!")
+
+
+    if ((best_key_error > 0) or (model_key_error > 0) or (default_key_error > 0)):
+        print("WARNING: There were key errors (unfound region/elem combinations)\n" + \
+              "         when looking up execution times in the dictionaries!\n" + \
+              "         This will result in predicted runtimes appearing faster\n" + \
+              "         than they actually are.\nKey errors:")
+        print("\tbest .....: %d\n\tmodel ....: %d\n\tdefault ..: %d\n" % \
             (best_key_error, model_key_error, default_key_error))
 
-    print("Generating plot.")
-    dft = pd.DataFrame(all_times,
-                       columns=('trace_pos', 'step', 'time_exec', 'time_best', 'time_default', 'time_model'))
-    fig,ax = plt.subplots()
-
-    fig.set_size_inches(8, 3, forward=True)
-    dft.plot(x='trace_pos', y='time_exec', ax=ax, linestyle='-', title="Cleverleaf Trace and Model Analysis")
-    dft.plot(x='trace_pos', y='time_best', ax=ax, linestyle='--')
-    dft.plot(x='trace_pos', y='time_model', ax=ax, linestyle='-.')
-    dft.plot(x='trace_pos', y='time_default', ax=ax, linestyle=':')
-    ax.legend(["trace", "best", "model", "default"], loc='upper right')
-    ax.tick_params(axis='y', which='minor', left=True)
-    ax.tick_params(axis='x', which='minor', bottom=True)
-    plt.grid(True)
-    plt.xlabel('Cleverleaf Trace Progress')
-    plt.ylabel('Time (seconds)')
-    plt.savefig('trace_times.png')
-    plt.show()
     return
 
 
@@ -228,7 +303,7 @@ def progressBar(amount, total, length, fill='='):
     if length < 4: length = 4
     fillLen = int(length * amount // total)
     emptyLen = length - 1 - fillLen
-    bar = (fill * fillLen) + ">" + (" " * emptyLen)
+    bar = (fill * fillLen) + fill + (" " * emptyLen)
     return bar
 
 
@@ -521,7 +596,7 @@ def load_csv_data():
     def load_and_report(data, dfkey, csvfile):
         data[dfkey] = pd.read_csv(data['path'] + '/' + csvfile)
         dfbytes = data[dfkey].memory_usage(index=False, deep=True).sum()
-        print("       data[%s]   %10s   %s" % (dfkey, format_bytes(dfbytes), csvfile))
+        print("       data[%22s]   %10s   %s" % (dfkey, format_bytes(dfbytes), csvfile))
         return data
     ###
     print("Data source:\n\t%s\n" % data['path'])
