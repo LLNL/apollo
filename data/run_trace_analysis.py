@@ -26,7 +26,7 @@ def main():
     global data
     data['path'] = '/g/g17/wood67/src/apollo/data/intel/001.node.001.rank'
     data['apollo.tracefile'] = 'trace.policy.0.csv'
-    data['apollo.flushfile'] = 'flush.grouped.csv'
+    data['apollo.flushfile'] = 'intel.combined.out'
     data['apollo.stepsfile'] = 'steps.apollo.silent.csv'
     data['normal.stepsfile'] = 'steps.normal.silent.csv'
     data['policy.times.bestfile']  = 'policy.times.best.csv'
@@ -70,11 +70,12 @@ def project_model_over_trace():
 
     print("dfb: %d" % len(dfb.index))
     print("dfd: %d" % len(dfd.index))
-
+    print("dff: %d" % len(dff.index))
     rt_total = 0.0
     rt_avg   = 0.0
     rt_left  = 0.0
 
+    model_hist = np.zeros(20)
 
     # Set up accelleration structure for searching the known times:
     most = {}
@@ -96,6 +97,7 @@ def project_model_over_trace():
             cur_time, cur_index = best[key]
             if cur_time > row.min_time:
                 best[key] = (row.min_time, row.policy_index)
+
     deft = {}
     for row in dfd.itertuples():
         key = (row.region_name, row.num_elements)
@@ -105,6 +107,10 @@ def project_model_over_trace():
             cur_time = deft[key]
             if cur_time > row.min_time:
                 deft[key] = row.min_time
+
+    print("len(best) = %d" % len(best))
+    print("len(deft) = %d" % len(deft))
+    print("len(most) = %d\n" % len(most))
 
     total_default = 0.0
     total_best    = 0.0
@@ -127,7 +133,9 @@ def project_model_over_trace():
         num_elements  = int(row.num_elements)
         time_exec     = float(row.time_exec)
 
+
         model_policy = int(all_models[region_name].predict([[num_elements]]))
+        model_hist[model_policy] += 1
         try:
             model_time   = most[(region_name, num_elements, model_policy)]
         except KeyError:
@@ -171,12 +179,20 @@ def project_model_over_trace():
 
     #
     print(' '*80)
+
+
+    print("\n\nModel recommendations:")
+    for i in range(0, 19):
+        print("\tpolicy %2d: %d" % (i, model_hist[i]))
+    print("")
+
+
     print("\nExporting .CSV file.")
     with open('trace_times.csv', 'w') as f:
-        f.write("trace_pos,step,time_exec,best_time,default_time\n")
+        f.write("trace_pos,step,time_exec,best_time,default_time,model_time\n")
         for row in all_times:
-            f.write("%d,%d,%1.8f,%1.8f,%1.8f\n" % \
-                    (row[0], row[1], row[2], row[3], row[4]))
+            f.write("%d,%d,%1.8f,%1.8f,%1.8f,%1.8f\n" %
+                    (row[0], row[1], row[2], row[3], row[4], row[5]))
 
     print("\ttrace: %1.8f\n\tdefault: %1.8f\n\tbest: %1.8f\n\tmodel: %1.8f\n" % \
         (total_trace, total_default, total_best, total_model))
@@ -194,7 +210,7 @@ def project_model_over_trace():
     dft.plot(x='trace_pos', y='time_best', ax=ax, linestyle='--')
     dft.plot(x='trace_pos', y='time_model', ax=ax, linestyle='-.')
     dft.plot(x='trace_pos', y='time_default', ax=ax, linestyle=':')
-    ax.legend(["trace", "best", "default"], loc='upper right')
+    ax.legend(["trace", "best", "model", "default"], loc='upper right')
     ax.tick_params(axis='y', which='minor', left=True)
     ax.tick_params(axis='x', which='minor', bottom=True)
     plt.grid(True)
@@ -398,7 +414,7 @@ def construct_model_from_flush(flush_key):
         #         presort=False, random_state=None, splitter='best'))]
 
         clf = DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=2,
+                 class_weight=None, criterion='gini', max_depth=4,
                  min_samples_leaf=1, min_samples_split=2)
 
         # Conduct some model evaluation:
@@ -425,10 +441,11 @@ def construct_model_from_flush(flush_key):
         #print("model[\"" + str(region) + "\"].x_shape" + "%-12s" % str(x.shape) \
         #        + ".y_shape" + "%-12s" % str(y.shape) \
         #        + "%22s" % ("Acc%: " + "%6s" % ("%3.2f" % (100.0 * metrics.accuracy_score(y_test, y_pred)))))
+        #print(tree_to_simple_str(trained_model, feature_names, name_swap, y))
 
         if one_big_tree:
             #print("")
-            #print(tree_to_simple_str(trained_model, feature_names, name_swap, y))
+            print(tree_to_simple_str(trained_model, feature_names, name_swap, y))
             #print("")
             break
 
