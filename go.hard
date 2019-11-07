@@ -19,7 +19,7 @@ cd build
 cmake   \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX=../install \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DSOS_DIR=$HOME/src/sos_flow/build \
         -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/Release/install/RAJA/include \
         -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \

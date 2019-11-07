@@ -61,7 +61,7 @@ from apollo.config import ONCE_THEN_EXIT
 import apollo.utils
 
 
-def getTrainingData(SOS, sos_host, sos_port, row_limit):
+def getTrainingData(SOS, sos_host, sos_port, row_limit=0):
     #####
     #
     #  NOTE: We can split the results up in Pandas to train each region
@@ -114,8 +114,6 @@ def getTrainingData(SOS, sos_host, sos_port, row_limit):
                 region_name, policy_index, step, num_elements, MIN(time_avg) AS time_avg
             FROM
                 viewApollo
-            WHERE
-                step > 10
             GROUP BY
                 region_name, num_elements, step
             ;

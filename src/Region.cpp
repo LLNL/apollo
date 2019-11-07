@@ -198,7 +198,7 @@ Apollo::Region::end(void) {
         measures.insert({std::move(feat_copy), time});
     }
 
-    if (false) {
+    if (true) {
         SOS_runtime *sos = (SOS_runtime *) apollo->sos_handle;
         int num_threads    = -1;
         int num_elements   = -1;
@@ -252,7 +252,7 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
             apollo->sosPackRelatedDouble(relation_id, "time_avg",
                     (time_set->time_total / time_set->exec_count));
 
-            if (false) {
+            if (true) {
                 //----- exhaustive exploration report (begin)
                 int num_threads    = -1;
                 int num_elements   = -1;

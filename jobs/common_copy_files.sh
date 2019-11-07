@@ -8,6 +8,7 @@ mkdir -p ${SOS_WORK}/output
 mkdir -p ${SOS_WORK}/output/models
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
+mkdir -p ${SOS_WORK}/sql
 mkdir -p ${SOS_WORK}/lib
 mkdir -p ${SOS_WORK}/bin
 mkdir -p ${SOS_WORK}/bin/apollo
@@ -25,9 +26,9 @@ cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bi
 #
 cp ${HOME}/src/apollo/jobs/model.*                                ${SOS_WORK}
 #
-cp ${HOME}/src/apollo/src/sql/CREATE.viewApollo                   ${SOS_WORK}
-cp ${HOME}/src/apollo/src/sql/CREATE.indexApollo                  ${SOS_WORK}
-cp ${HOME}/src/apollo/src/sql/SELECT.sanityCheck                  ${SOS_WORK}
+cp ${HOME}/src/apollo/src/sql/CREATE.viewApollo                   ${SOS_WORK}/sql
+cp ${HOME}/src/apollo/src/sql/CREATE.indexApollo                  ${SOS_WORK}/sql
+cp ${HOME}/src/apollo/src/sql/SELECT.sanityCheck                  ${SOS_WORK}/sql
 #
 cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/lib
 cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib

@@ -36,6 +36,7 @@
 
 import os
 import sys
+import csv
 import json
 import time
 import datetime
@@ -57,9 +58,6 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm             import SVC
 
-from ssos import SSOS
-
-from apollo.debug import log
 from apollo.config import VERBOSE
 from apollo.config import DEBUG
 from apollo.config import FRAME_INTERVAL
@@ -67,9 +65,27 @@ from apollo.config import ONCE_THEN_EXIT
 
 from apollo.utils import tablePrint
 
+def generateDecisionTree(log, data,
+        assign_guid=0,
+        tree_max_depth=2,
+        one_big_tree=False):
 
 
-def generateDecisionTree(SOS, data, region_names):
+    region_name_dict = {}
+    for row in data.itertuples():
+        key = (row.region_name)
+        if key not in region_name_dict:
+            region_name_dict[key] = str(row.region_name)
+    region_names = []
+    for entry in region_name_dict.items():
+        key, value = entry
+        region_names.append(value)
+
+    #tablePrint(data.values)
+    #with open("data.csv", "w") as f:
+    #    csv_dump = csv.writer(f, delimiter=',')
+    #    csv_dump.writerows(data.values)
+
     log(3, "Creating categorical values for unique regions.")
     data["region_name"] = pd.Categorical(data["region_name"])
     data["region_name_id"] = data["region_name"].cat.codes
@@ -98,12 +114,16 @@ def generateDecisionTree(SOS, data, region_names):
     #elapsed_chain = time.time() - start
 
     start = time.time()
-    grp_data = data.groupby(
-            ["region_name", "region_name_id", "num_elements", "policy_index"],
-            as_index=False).agg({'time_avg':min})
-    elapsed_agg = time.time() - start
-    log(3, "data.groupby.agg(" + str(grp_data.shape) + ") took " + str(elapsed_agg) + " seconds.")
-    #grp_data = data
+
+    #
+    #  NOTE: We feed in previously-grouped data, we don't do the aggregation here.
+    #
+    grp_data = data
+    #grp_data = data.groupby(
+    #        ["region_name", "region_name_id", "num_elements", "policy_index"],
+    #        as_index=False).agg({'time_avg':min})
+    #elapsed_agg = time.time() - start
+    #log(3, "data.groupby.agg(" + str(grp_data.shape) + ") took " + str(elapsed_agg) + " seconds.")
 
     # if (VERBOSE >= 9):
     #    log(9, "Grouped data:")
@@ -123,6 +143,7 @@ def generateDecisionTree(SOS, data, region_names):
     log(9, "Creating a vector for regional data and models ...")
 
     model_count = 0
+    all_skl_models = {}
     all_types_rule = {}
     all_rules_json = {}
     all_least_json = {}
@@ -130,7 +151,6 @@ def generateDecisionTree(SOS, data, region_names):
     all_sizes_data = {}
     overall_start = time.time()
 
-    one_big_tree = True
 
     log(2, "Training...")
     for region in region_names:
@@ -151,8 +171,13 @@ def generateDecisionTree(SOS, data, region_names):
         # if (seq_winners.shape[0] > 0):
         #     element_minimum_to_evaluate_tree = seq_winners.max('num_elements').astype(int)
 
-        y = rd["policy_index"].astype(int)
-        x = rd.drop(drop_fields, axis="columns").values.astype(float)
+        #y = rd["policy_index"].astype(int)
+        #x = rd.drop(drop_fields, axis="columns").values.astype(float)
+
+        feature_cols = ['num_elements']
+
+        y = rd.policy_index
+        x = rd[feature_cols]
 
         #example = DecisionTreeClassifier(
         #         class_weight=None, criterion='gini', max_depth=6,
@@ -162,7 +187,7 @@ def generateDecisionTree(SOS, data, region_names):
         #         presort=False, random_state=None, splitter='best'))]
 
         clf = DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=1,
+                 class_weight=None, criterion='gini', max_depth=tree_max_depth,
                  min_samples_leaf=1, min_samples_split=2)
 
         # Conduct some model evaluation:
@@ -176,14 +201,12 @@ def generateDecisionTree(SOS, data, region_names):
         trained_model = model.named_steps['estimator']
         y_pred = trained_model.predict(x_test)
 
-        # Does not work for small splits:
-        #scores = cross_val_score(model, x, y, cv=5)
-
         all_types_rule[region] = "DecisionTree"
         all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap, y)
         all_least_json[region] = element_minimum_to_evaluate_tree
         all_timed_json[region] = True
         all_sizes_data[region] = str(x.shape)
+        all_skl_models[region] = trained_model
 
         this_elapsed = time.time() - this_start
 
@@ -195,9 +218,9 @@ def generateDecisionTree(SOS, data, region_names):
         #_tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
         #dotfile.close()
 
-        print("")
-        print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True))
-        print("")
+        #print("")
+        #print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True))
+        #print("")
 
         if one_big_tree:
             break
@@ -209,7 +232,7 @@ def generateDecisionTree(SOS, data, region_names):
 
     if one_big_tree == False:
         model_def = {
-                "guid": SOS.get_guid(),
+                "guid": assign_guid,
                 "driver": {
                     "rules": all_rules_json,
                     "least": all_least_json,
@@ -225,7 +248,7 @@ def generateDecisionTree(SOS, data, region_names):
                 }
     else:
         model_def = {
-                "guid": SOS.get_guid(),
+                "guid": assign_guid,
                 "driver": {
                     "rules": all_rules_json,
                     "least": all_least_json,
@@ -258,21 +281,7 @@ def generateDecisionTree(SOS, data, region_names):
     json_elapsed = time.time() - json_start
     log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
 
-
-
-
-    return model_as_json
-
-    #  Keeping this here for an example.
-    #  Cross-Validation doesn't work well with the simplified/conditioned data.
-    #if (VERBOSE > 3 and x.shape[0] > 2):
-    #    warnings.filterwarnings("ignore")
-    #    cv_folds = 10
-    #    log(3, "Cross-validation... (" + str(cv_folds) + "-fold)")
-    #    scores = cross_val_score(model, x, y, cv=cv_folds)
-    #    log(3, "\n".join([("    " + str(score)) for score in scores]))
-    #    log(3, "    score.mean == " + str(np.mean(scores)))
-    #    warnings.resetwarnings()
+    return model_as_json, all_skl_models
 
 
 
@@ -405,7 +414,7 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
 
 
 
-def generateRegressionTree(SOS, data, region_names):
+def generateRegressionTree(log, data, assign_guid):
     # Make a numeric representation of loop name strings:
     data["loop"] = pd.Categorical(data["loop"])
     data["loop_id"] = data["loop"].cat.codes

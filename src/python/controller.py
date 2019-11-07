@@ -80,13 +80,19 @@ def main():
 
         model_def = ""
         model_len = 0
+        model_set_guid = SOS.get_guid()
 
         # DECISIONTREE
-        model_def = trees.generateDecisionTree(SOS, data, region_names)
+        model_def, all_skl_models = trees.generateDecisionTree(
+                log,
+                data,
+                assign_guid=model_set_guid,
+                tree_max_depth=3,
+                one_big_tree=False)
         model_len = len(model_def)
 
         # REGRESSIONTREE
-        #model_def = trees.generateRegressionTree(SOS, data, region_names)
+        #model_def = trees.generateRegressionTree(log, data, model_set_guid)
         #model_len = len(model_def)
 
         if model_len > 0:
