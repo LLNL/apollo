@@ -136,7 +136,7 @@ def generateDecisionTree(log, data,
     #    log(9, "Name swapping table:")
     #    tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
 
-    drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg"]
+    drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg", "step"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
     log(9, "Feature names: " + str(feature_names))

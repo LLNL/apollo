@@ -42,7 +42,7 @@ class Apollo
         Apollo(const Apollo&) = delete;
         Apollo& operator=(const Apollo&) = delete;
 
-        static Apollo* instance(void) {
+        static Apollo* instance(void) noexcept {
             static Apollo the_instance;
             return &the_instance;
         }
@@ -96,13 +96,12 @@ class Apollo
         int         ompDefaultNumThreads;
         int         ompDefaultChunkSize;
         //
+        int numThreads;  // <-- how many to use / are in use
+        //
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
         CallpathRuntime callpath;
-
-        // TODO: [LOGGING] This is a pending improvement, ignore for now. -Chad
-        //Apollo::Logging log;
 
         Apollo::Region *region(const char *regionName);
         //

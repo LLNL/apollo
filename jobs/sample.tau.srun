@@ -1,1 +1,15 @@
-srun -N 1 tau_exec -T mpi,pthread,papi -ebs ./bin/cleverleaf-normal cleaf_triple_pt_25.in
+
+cd $HOME/src/apollo/data/
+rm -rf omp_comp
+mkdir omp_comp
+cd omp_comp
+mkdir normal
+mkdir apollo
+cd normal
+srun -N 1 -r 0 -o $HOME/src/apollo/data/omp_comp/normal/cleverleaf.out tau_exec -T mpi,pthread,papi -ebs $SOS_WORK/bin/cleverleaf-normal-release $SOS_WORK/cleaf_triple_pt_25.in &
+cd ..
+cd apollo
+srun -N 1 -r 1 -o $HOME/src/apollo/data/omp_comp/apollo/cleverleaf.out tau_exec -T mpi,pthread,papi -ebs $SOS_WORK/bin/cleverleaf-apollo-release $SOS_WORK/cleaf_triple_pt_25.in &
+cd ..
+tail -f apollo/cleverleaf.out
+

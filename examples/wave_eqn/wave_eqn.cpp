@@ -14,6 +14,7 @@
     #include "TAU.h"
 #endif
 
+#include "mpi.h"
 #include "omp.h"
 
 #ifdef RAJA_ENABLE_APOLLO
@@ -81,8 +82,9 @@ double waveSol(double t, double x, double y);
 void setIC(double *P1, double *P2, double t0, double t1, grid_s grid);
 void computeErr(double *P, double tf, grid_s grid);
 
-int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
+int main(int argc, char **argv)
 {
+  MPI_Init(&argc, &argv);
 #ifdef USE_TAU
   TAU_PROFILE_SET_NODE(0);
   TAU_PROFILE(__func__, "", TAU_DEFAULT);
@@ -142,7 +144,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
     //RAJA::statement::For<1, RAJA::seq_exec,
     //RAJA::statement::For<0, RAJA::seq_exec, RAJA::statement::Lambda<0> > > >;
 
-#ifdef RAJA_ENABLE_APOLLO
+#ifdef WAVE_EQN_ENABLE_APOLLO
   // OpenMP policy
   using fdPolicy = RAJA::KernelPolicy<
     RAJA::statement::For<0, RAJA::apollo_exec >,
@@ -197,8 +199,11 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
 #ifdef USE_TAU
         TAU_PROFILE("FLUSH", "", TAU_DEFAULT);
 #endif
+    #ifdef WAVE_EQN_ENABLE_APOLLO
         apollo->flushAllRegionMeasurements(k);
-        //printf("."); fflush(stdout);
+    #else
+        printf("."); fflush(stdout);
+    #endif
     }
 #endif
   }
@@ -216,6 +221,7 @@ int main(int RAJA_UNUSED_ARG(argc), char **RAJA_UNUSED_ARG(argv[]))
   memoryManager::deallocate(P1);
   memoryManager::deallocate(P2);
 
+  MPI_Finalize();
   return 0;
 }
 

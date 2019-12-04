@@ -78,7 +78,8 @@ echo ""
 export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
 export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
 
-export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
+export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_12.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
@@ -132,8 +133,9 @@ set +m
 #sleep 4
 
 
-run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........sequential"
-run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.1.sequential"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
+run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
+run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.twopolicy"
 
 #run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.twopolicy"
 
