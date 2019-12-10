@@ -8,7 +8,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include "memoryManager.hpp"
 
 #ifdef USE_TAU
     #include "TAU.h"
@@ -21,6 +20,7 @@
 #include "apollo/Apollo.h"
 #else
 #include "RAJA/RAJA.hpp"
+#include "memoryManager.hpp"
 #endif
 
 /*

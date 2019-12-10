@@ -75,14 +75,14 @@ echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
-export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
+export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-relwithdebinfo "
+export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo "
 
-export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_12.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_12.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "

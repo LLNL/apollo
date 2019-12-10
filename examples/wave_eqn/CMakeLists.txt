@@ -28,7 +28,7 @@ set(RAJA_COHERENCE_BLOCK_SIZE  64  )
 
 add_executable(wave_eqn_apollo wave_eqn.cpp)
 set_target_properties(wave_eqn_apollo PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_definitions(wave_eqn_apollo PRIVATE " -DWAVE_EQN_ENABLE_APOLLO ")
+target_compile_definitions(wave_eqn_apollo PRIVATE " -DWAVE_EQN_ENABLE_APOLLO -DRAJA_ENABLE_APOLLO ")
 target_link_libraries(wave_eqn_apollo apollo)
 
 add_executable(wave_eqn_normal wave_eqn.cpp)
