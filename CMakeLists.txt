@@ -162,6 +162,10 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
 #
 # External libraries
 #
+    find_package(MPI REQUIRED)
+    if (MPI_FOUND)
+        message(STATUS "---- MPI:  Found!")
+    endif()
 
 find_package(SOS REQUIRED)
 if(SOS_FOUND)
@@ -174,11 +178,6 @@ if(SOS_FOUND)
 else()
     message(STATUS "---- SOS:  ** ERROR ** Could not locate SOS installation.")
 endif(SOS_FOUND)
-
-find_package(MPI REQUIRED)
-if (MPI_FOUND)
-    message(STATUS "---- MPI:  Found!")
-endif()
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

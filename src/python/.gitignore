@@ -1,4 +1,8 @@
 trace_times.csv
+trace_times.png
+trace_model.json
+trace_models
+trace_keyerror.log
 output
 ssos_python.so
 model.dot
