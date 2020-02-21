@@ -37,7 +37,7 @@ def no_log(level, msg):
 
 def main():
     global data
-    data['path'] = '/g/g17/wood67/src/apollo/data/intel/001.node.001.rank'
+    data['path'] = '../../data/intel/001.node.001.rank'
     data['apollo.tracefile']         = 'trace.policy.0.csv'
     data['apollo.flushfile']         = 'intel.combined.out'
     data['apollo.stepsfile']         = 'steps.apollo.silent.csv'

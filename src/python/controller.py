@@ -70,6 +70,8 @@ def main():
     #query.wipeAllExistingData(SOS, sos_host, sos_port)
 
     while (os.environ.get("SOS_SHUTDOWN") != "TRUE"):
+        # Clearing prior training data
+        # query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
         prior_frame_max    = query.waitForMoreRowsUsingSQL(
                                 SOS, sos_host, sos_port,
                                 prior_frame_max)
@@ -78,64 +80,57 @@ def main():
         with open(("./output/models/step.%d.region_names.pickle" % prior_frame_max), "w") as f:
             pickle.dump(region_names, f)
 
-        model_def = ""
-        model_len = 0
-        model_set_guid = SOS.get_guid()
+        dataset_guid = SOS.get_guid()
 
-        # DECISIONTREE
-        model_def, all_skl_models = trees.generateDecisionTree(
-                log,
-                data,
+        # Model: DecisionTree
+        dtree_def, dtree_skl = trees.generateDecisionTree(log, data,
                 assign_guid=model_set_guid,
                 tree_max_depth=3,
                 one_big_tree=False)
-        model_len = len(model_def)
+        dtree_len = len(dtree_def)
 
-        # REGRESSIONTREE
-        #model_def = trees.generateRegressionTree(log, data, model_set_guid)
-        #model_len = len(model_def)
+        # Model: RegressionTree
+        rtree_skl = trees.generateRegressionTree(log, data,
+                assign_guid=model_set_guid,
+                tree_max_depth=3,
+                one_big_tree=False)
 
-        if model_len > 0:
+        # TODO(chad): Add NN models / streaming models here
+
+        # TODO(chad): Drop models into an arena to fight, and only send models
+        #             out when they are better than some prior model for any
+        #             given loop. Could use async queues for analysis and for
+        #             model distribution.
+
+        if dtree_len > 0:
             trigger_start = time.time()
-            SOS.trigger("APOLLO_MODELS", model_len, model_def)
+            SOS.trigger("APOLLO_MODELS", dtree_len, dtree_def)
             trigger_elapsed = time.time() - trigger_start
             log(1, "Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds.")
             log(1, "Writing models to \"prev_model.json\" ...")
 
-            with open(("./output/models/step.%d.decisiontree.json" % prior_frame_max), "w") as mf:
+            with open(("./output/models/step.%d.dtree.json" % prior_frame_max), "w") as mf:
                 mf.write(model_def)
-            with open("./output/models/latest_model.json", "w") as mf:
+            with open("./output/models/latest_dtree.json", "w") as mf:
                 mf.write(model_def)
 
             if (ONCE_THEN_EXIT):
                 controller_elapsed = time.time() - controller_start
-                log(1, "Done.  Full cycle of controller took " + str(controller_elapsed) + "seconds.")
+                log(1, "Done.  Full cycle of controller took "
+                       + str(controller_elapsed) + "seconds.")
                 return
-
-            #if (VERBOSE): print "== CONTROLLER:  Pausing to allow new model to run for a fresh interval ..."
-            #query.waitForMoreRows(SOS, sos_host, sos_port, prior_frame_max);
-
-            #log(1, "Clearing prior training data...")
-            #query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
-
-            #trigger_start = time.time()
-            #SOS.trigger("APOLLO_MODELS", model_len, model_def)
-            #trigger_elapsed = time.time() - trigger_start
-            #if (VERBOSE):
-            #    print "== CONTROLLER:  Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds."
-
-            #prior_frame_max, pub_titles, col_names = \
-            #    SOS.request_pub_manifest("", sos_host, sos_port)
         else:
             if (VERBOSE):
                 log(1, "NOTICE: Model was not generated, nothing to send.")
             if (ONCE_THEN_EXIT):
                 log(1, "Done.")
                 return
-        #
-        step += 1
 
-    ########## end main loop ##########
+        step += 1
+        ##### return to top of loop until shut down #####
+
+
+    ########## end of controller.py  ##########
     log(1, "Done.")
     return
 

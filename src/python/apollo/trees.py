@@ -65,11 +65,210 @@ from apollo.config import ONCE_THEN_EXIT
 
 from apollo.utils import tablePrint
 
+
+def generateRegressionTree(log, data,
+        assign_guid=0,
+        tree_max_depthj=2,
+        one_big_tree=False):
+
+    log(3, "Creating categorical values for unique regions.")
+    data["region_name"] = pd.Categorical(data["region_name"])
+    data["region_name_id"] = data["region_name"].cat.codes
+    log(3, "== CONTROLLER:  Generating name-swapping table.")
+    name_swap = data[["region_name", "region_name_id"]]\
+            .groupby(["region_name_id"], as_index=False, sort=True)\
+            .first()
+
+    log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
+    grp_data = data # This is done in SQL for now.
+
+    drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg", "step"]
+
+    feature_names = [f for f in grp_data.columns if f not in drop_fields]
+    log(9, "Feature names: " + str(feature_names))
+    log(9, "Creating a vector for regional data and models ...")
+
+    model_count = 0
+    all_skl_models = {}
+    all_types_rule = {}
+    all_rules_json = {}
+    all_least_json = {}
+    all_timed_json = {}
+    all_sizes_data = {}
+    overall_start = time.time()
+
+    log(2, "Training...")
+    for region in region_names:
+        model_count += 1
+        this_start = time.time()
+
+        if one_big_tree:
+            rd = grp_data
+            region = "__ANY_REGION__"
+        else:
+            rd = grp_data[grp_data['region_name'] == region]
+
+        if (rd.shape[0] < 1):
+            continue
+
+        element_minimum_to_evaluate_tree = -1
+        # seq_winners =  rd[rd['policy_index']==1]
+        # if (seq_winners.shape[0] > 0):
+        #     element_minimum_to_evaluate_tree = seq_winners.max('num_elements').astype(int)
+
+        #y = rd["policy_index"].astype(int)
+        #x = rd.drop(drop_fields, axis="columns").values.astype(float)
+
+        feature_cols = ['num_elements']
+
+        y = rd.policy_index
+        x = rd[feature_cols]
+
+        #example = DecisionTreeClassifier(
+        #         class_weight=None, criterion='gini', max_depth=6,
+        #         max_features=x.shape[1], max_leaf_nodes=None,
+        #         min_impurity_decrease=1e-07, min_samples_leaf=1,
+        #         min_samples_split=2, min_weight_fraction_leaf=0.0,
+        #         presort=False, random_state=None, splitter='best'))]
+
+        clf = DecisionTreeClassifier(
+                 class_weight=None, criterion='gini', max_depth=tree_max_depth,
+                 min_samples_leaf=1, min_samples_split=2)
+
+        # Conduct some model evaluation:
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=1) # 75% training and 25% test
+
+        pipe = [('estimator', clf)]
+        model = Pipeline(pipe)
+
+        model.fit(x, y)
+
+        trained_model = model.named_steps['estimator']
+        y_pred = trained_model.predict(x_test)
+
+        all_types_rule[region] = "DecisionTree"
+        all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap, y)
+        all_least_json[region] = element_minimum_to_evaluate_tree
+        all_timed_json[region] = True
+        all_sizes_data[region] = str(x.shape)
+        all_skl_models[region] = trained_model
+
+        this_elapsed = time.time() - this_start
+
+        log(3, "model[\"" + str(region) + "\"].x_shape" + "%-12s" % str(x.shape) \
+                + "%22s" % ("Acc%: " + "%6s" % ("%3.2f" % (100.0 * metrics.accuracy_score(y_test, y_pred)))))
+
+        #dotfile = open("model.dot", 'w')
+        #from sklearn import tree as _tree
+        #_tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
+        #dotfile.close()
+
+        #print("")
+        #print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True))
+        #print("")
+
+        if one_big_tree:
+            break
+
+    overall_elapsed = time.time() - overall_start
+    log(2, "Done. Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds.")
+
+    json_start = time.time()
+
+    if one_big_tree == False:
+        model_def = {
+                "guid": assign_guid,
+                "driver": {
+                    "rules": all_rules_json,
+                    "least": all_least_json,
+                    "timed": all_timed_json,
+                    },
+                "region_names": list(region_names),
+                "region_sizes": all_sizes_data,
+                "region_types": all_types_rule,
+                "features": {
+                    "count": len(feature_names),
+                    "names": feature_names,
+                    },
+                }
+    else:
+        model_def = {
+                "guid": assign_guid,
+                "driver": {
+                    "rules": all_rules_json,
+                    "least": all_least_json,
+                    "timed": all_timed_json,
+                    },
+                "region_names": "__ANY_REGION__",
+                "region_sizes": all_sizes_data,
+                "region_types": all_types_rule,
+                "features": {
+                    "count": len(feature_names),
+                    "names": feature_names,
+                    },
+                }
+
+
+    # Add in a default model (Static, OMP defaults) for any unnamed region:
+    if one_big_tree == False:
+        model_def["region_names"].append("__ANY_REGION__")
+        model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
+        model_def["region_types"]["__ANY_REGION__"] = "Static"
+        model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
+        model_def["driver"]["least"]["__ANY_REGION__"] = -1
+        model_def["driver"]["timed"]["__ANY_REGION__"] = True
+
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
+    json_elapsed = time.time() - json_start
+    log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
+
+    return model_as_json, all_skl_models
+
+
+    #region_name_dict = {}
+    #for row in data.itertuples():
+    #    key = (row.region_name)
+    #    if key not in region_name_dict:
+    #        region_name_dict[key] = str(row.region_name)
+    #region_names = []
+    #for entry in region_name_dict.items():
+    #    key, value = entry
+    #    region_names.append(value)
+
+
+    #predictedTime = DecisionTreeRegressor()
+    #predictedTime.fit(x, y)
+
+    ##leafStdDev = np.std(y)
+
+    #log(9, "predictedTime = " + str(predictedTime))
+    #log(9, "predictions table:")
+    #comp = ""
+    #for row in x:
+    #    for column in row:
+    #        comp += ("[" + str(int(column)) + "]")
+    #    comp += (" == " + str(predictedTime.predict(row.reshape(1, -1))))
+    #    #comp += (" @ " + str(leafStdDev))
+    #    #comp += (" @ " + str(pol_stds[row["policy_index"]))
+    #    comp += "\n"
+    #log(9, comp)
+
+    ##with open("regress.dot", 'w') as dotfile:
+    ##    from sklearn import tree as _tree
+    ##    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
+
+    ##reg_tree = json.dumps(serializeRegressor(predictedTime))
+    ##with open("regress.json", 'w') as regfile:
+    ##    regfile.write(reg_tree)
+
+    #return reg_tree
+
+
+
 def generateDecisionTree(log, data,
         assign_guid=0,
         tree_max_depth=2,
         one_big_tree=False):
-
 
     region_name_dict = {}
     for row in data.itertuples():
@@ -80,11 +279,6 @@ def generateDecisionTree(log, data,
     for entry in region_name_dict.items():
         key, value = entry
         region_names.append(value)
-
-    #tablePrint(data.values)
-    #with open("data.csv", "w") as f:
-    #    csv_dump = csv.writer(f, delimiter=',')
-    #    csv_dump.writerows(data.values)
 
     log(3, "Creating categorical values for unique regions.")
     data["region_name"] = pd.Categorical(data["region_name"])
@@ -97,28 +291,14 @@ def generateDecisionTree(log, data,
     # NOTE: How to create a column of binned values for a column:
     #data["op_count_binned"] = pd.qcut(data["op_count"].astype(float), 50, duplicates="drop")
 
-    # NOTE: We use time_avg instead of time_min/max/last because there will be
-    #       different numbers of operations as we sweep through different
-    #       dimensions/configs. We don't want to be picking some kernel
-    #       just because it got a super low time doing only 1 operation.
-    #       We want best on average.
     log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
-
-    # OLD technique:
-    #start = time.time()
-    #grp_data = data\
-    #        .sort_values("time_avg")\
-    #        .groupby(["region_name", "num_elements", "policy_index"], as_index=False, sort=False)\
-    #        .first()\
-    #        .dropna()
-    #elapsed_chain = time.time() - start
-
-    start = time.time()
 
     #
     #  NOTE: We feed in previously-grouped data, we don't do the aggregation here.
     #
     grp_data = data
+
+    #start = time.time()
     #grp_data = data.groupby(
     #        ["region_name", "region_name_id", "num_elements", "policy_index"],
     #        as_index=False).agg({'time_avg':min})
@@ -136,6 +316,11 @@ def generateDecisionTree(log, data,
     #    log(9, "Name swapping table:")
     #    tablePrint(name_swap[["region_name", "region_name_id"]].astype(str).values.tolist())
 
+    # NOTE: We use time_avg instead of time_min/max/last because there will be
+    #       different numbers of operations as we sweep through different
+    #       dimensions/configs. We don't want to be picking some kernel
+    #       just because it got a super low time doing only 1 operation.
+    #       We want best on average.
     drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg", "step"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
@@ -411,64 +596,6 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
 
 ##########################
 
-
-
-
-def generateRegressionTree(log, data, assign_guid):
-    # Make a numeric representation of loop name strings:
-    data["loop"] = pd.Categorical(data["loop"])
-    data["loop_id"] = data["loop"].cat.codes
-
-    # TODO: This is all out of date...
-
-    drop_fields =[
-            "frame",
-            "loop",
-            "loop_id",
-            "t_op_avg",
-            "t_total"
-        ]
-
-    y = data["t_total"].astype(float)
-    x = data.drop(drop_fields, axis="columns").values.astype(float)
-
-    pol_stds = data.groupby(["policy_index"], as_index=False)\
-        [["t_total"]].apply(np.std)
-
-    log(9, str(pol_stds))
-    quit()
-
-    feature_names = []
-    raw_names = data.drop(drop_fields, axis="columns").columns
-    for name in raw_names:
-        feature_names.append(name)
-
-    predictedTime = DecisionTreeRegressor()
-    predictedTime.fit(x, y)
-
-    #leafStdDev = np.std(y)
-
-    log(9, "predictedTime = " + str(predictedTime))
-    log(9, "predictions table:")
-    comp = ""
-    for row in x:
-        for column in row:
-            comp += ("[" + str(int(column)) + "]")
-        comp += (" == " + str(predictedTime.predict(row.reshape(1, -1))))
-        #comp += (" @ " + str(leafStdDev))
-        #comp += (" @ " + str(pol_stds[row["policy_index"]))
-        comp += "\n"
-    log(9, comp)
-
-    #with open("regress.dot", 'w') as dotfile:
-    #    from sklearn import tree as _tree
-    #    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
-
-    #reg_tree = json.dumps(serializeRegressor(predictedTime))
-    #with open("regress.json", 'w') as regfile:
-    #    regfile.write(reg_tree)
-
-    return reg_tree
 
 
 
