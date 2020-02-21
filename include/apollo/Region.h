@@ -37,7 +37,7 @@ class Apollo::Region {
         bool     is_timed;
         int      minimum_elements_to_evaluate_model; //deprecated
 
-        Apollo::ModelWrapper *getModel(void);
+        Apollo::ModelWrapper *getModelWrapper(void);
         int                   getPolicyIndex(void);
 
         std::unordered_map<std::vector<Apollo::Feature>, Apollo::Region::Measure *>
@@ -54,7 +54,7 @@ class Apollo::Region {
         Apollo        *apollo;
         bool           currently_inside_region;
         //
-        Apollo::ModelWrapper  *model;
+        Apollo::ModelWrapper  *model_wrapper;
         //
         double         current_exec_time_begin;
         double         current_exec_time_end;

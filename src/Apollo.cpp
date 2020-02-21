@@ -142,14 +142,14 @@ Apollo::attachModel(const char *def)
         if (def_has_wildcard_model) {
             // Everyone will get either a specific model from the definintion, or
             // the __ANY_REGION__ fallback.
-            region->getModel()->configure(def);
+            region->getModelWrapper()->configure(def);
             // TODO: We need a version that only attaches models to unassigned regions,
             // that does not update ALL regions, for instances where we have some regions
             // explicitly retraining and don't want to interrupt them
         } else {
             if (std::find(std::begin(region_names), std::end(region_names),
                         region->name) != std::end(region_names)) {
-                region->getModel()->configure(def);
+                region->getModelWrapper()->configure(def);
             }
         }
     };

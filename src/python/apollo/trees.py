@@ -80,9 +80,12 @@ def generateRegressionTree(log, data,
             .first()
 
     log(3, "Sorting, grouping, and pruning data.shape(" + str(data.shape) + ")")
-    grp_data = data # This is done in SQL for now.
+    grp_data = data # Grouping is done in SQL for now.
 
-    drop_fields = ["region_name", "region_name_id", "policy_index", "time_avg", "step"]
+    # Drop "step" because that's going to be asymptotically increasing as
+    # the simulation proceeds, not useful for making time predictions of
+    # future data, but might come in handy if we start to re-use models.
+    drop_fields = ["region_name", "region_name_id", "time_avg", "step"]
 
     feature_names = [f for f in grp_data.columns if f not in drop_fields]
     log(9, "Feature names: " + str(feature_names))
@@ -90,14 +93,11 @@ def generateRegressionTree(log, data,
 
     model_count = 0
     all_skl_models = {}
-    all_types_rule = {}
-    all_rules_json = {}
-    all_least_json = {}
-    all_timed_json = {}
     all_sizes_data = {}
     overall_start = time.time()
 
-    log(2, "Training...")
+    log(2, "Training regression tree...")
+    log(3, "Feature names: " + str(feature_names))
     for region in region_names:
         model_count += 1
         this_start = time.time()
@@ -109,63 +109,30 @@ def generateRegressionTree(log, data,
             rd = grp_data[grp_data['region_name'] == region]
 
         if (rd.shape[0] < 1):
+            log(4, "Region " + str(region) + " had no data.")
             continue
 
-        element_minimum_to_evaluate_tree = -1
-        # seq_winners =  rd[rd['policy_index']==1]
-        # if (seq_winners.shape[0] > 0):
-        #     element_minimum_to_evaluate_tree = seq_winners.max('num_elements').astype(int)
+        feature_cols = [feature_names]
 
-        #y = rd["policy_index"].astype(int)
-        #x = rd.drop(drop_fields, axis="columns").values.astype(float)
-
-        feature_cols = ['num_elements']
-
-        y = rd.policy_index
+        y = rd.time_avg
         x = rd[feature_cols]
 
-        #example = DecisionTreeClassifier(
-        #         class_weight=None, criterion='gini', max_depth=6,
-        #         max_features=x.shape[1], max_leaf_nodes=None,
-        #         min_impurity_decrease=1e-07, min_samples_leaf=1,
-        #         min_samples_split=2, min_weight_fraction_leaf=0.0,
-        #         presort=False, random_state=None, splitter='best'))]
+        reg = DecisionTreeRegressor(random_state=0)
 
-        clf = DecisionTreeClassifier(
-                 class_weight=None, criterion='gini', max_depth=tree_max_depth,
-                 min_samples_leaf=1, min_samples_split=2)
+        reg.fit(x, y)
 
-        # Conduct some model evaluation:
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=1) # 75% training and 25% test
+        y_pred = reg.predict(x_test)
 
-        pipe = [('estimator', clf)]
-        model = Pipeline(pipe)
-
-        model.fit(x, y)
-
-        trained_model = model.named_steps['estimator']
-        y_pred = trained_model.predict(x_test)
-
-        all_types_rule[region] = "DecisionTree"
-        all_rules_json[region] = tree_to_data(trained_model, feature_names, name_swap, y)
-        all_least_json[region] = element_minimum_to_evaluate_tree
-        all_timed_json[region] = True
-        all_sizes_data[region] = str(x.shape)
         all_skl_models[region] = trained_model
 
         this_elapsed = time.time() - this_start
 
-        log(3, "model[\"" + str(region) + "\"].x_shape" + "%-12s" % str(x.shape) \
-                + "%22s" % ("Acc%: " + "%6s" % ("%3.2f" % (100.0 * metrics.accuracy_score(y_test, y_pred)))))
+        log(3, "regression[\"" + str(region) + "\"].x_shape" + "%-12s" % str(x.shape))
 
         #dotfile = open("model.dot", 'w')
         #from sklearn import tree as _tree
         #_tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
         #dotfile.close()
-
-        #print("")
-        #print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True))
-        #print("")
 
         if one_big_tree:
             break
@@ -173,56 +140,7 @@ def generateRegressionTree(log, data,
     overall_elapsed = time.time() - overall_start
     log(2, "Done. Fit " + str(model_count) + " models in " + str(overall_elapsed) + " seconds.")
 
-    json_start = time.time()
-
-    if one_big_tree == False:
-        model_def = {
-                "guid": assign_guid,
-                "driver": {
-                    "rules": all_rules_json,
-                    "least": all_least_json,
-                    "timed": all_timed_json,
-                    },
-                "region_names": list(region_names),
-                "region_sizes": all_sizes_data,
-                "region_types": all_types_rule,
-                "features": {
-                    "count": len(feature_names),
-                    "names": feature_names,
-                    },
-                }
-    else:
-        model_def = {
-                "guid": assign_guid,
-                "driver": {
-                    "rules": all_rules_json,
-                    "least": all_least_json,
-                    "timed": all_timed_json,
-                    },
-                "region_names": "__ANY_REGION__",
-                "region_sizes": all_sizes_data,
-                "region_types": all_types_rule,
-                "features": {
-                    "count": len(feature_names),
-                    "names": feature_names,
-                    },
-                }
-
-
-    # Add in a default model (Static, OMP defaults) for any unnamed region:
-    if one_big_tree == False:
-        model_def["region_names"].append("__ANY_REGION__")
-        model_def["region_sizes"]["__ANY_REGION__"] = "(0, 0)"
-        model_def["region_types"]["__ANY_REGION__"] = "Static"
-        model_def["driver"]["rules"]["__ANY_REGION__"] = "0"
-        model_def["driver"]["least"]["__ANY_REGION__"] = -1
-        model_def["driver"]["timed"]["__ANY_REGION__"] = True
-
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
-    json_elapsed = time.time() - json_start
-    log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
-
-    return model_as_json, all_skl_models
+    return all_skl_models
 
 
     #region_name_dict = {}
@@ -263,6 +181,11 @@ def generateRegressionTree(log, data,
 
     #return reg_tree
 
+
+
+
+
+#--------------------------------------------
 
 
 def generateDecisionTree(log, data,

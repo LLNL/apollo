@@ -162,11 +162,6 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
 #
 # External libraries
 #
-    find_package(MPI REQUIRED)
-    if (MPI_FOUND)
-        message(STATUS "---- MPI:  Found!")
-    endif()
-
 find_package(SOS REQUIRED)
 if(SOS_FOUND)
     message(STATUS "---- SOS:  Found!")
@@ -233,6 +228,12 @@ include_directories("${RAJA_DIR}/include")
 add_subdirectory(src)
 
 if(APOLLO_ENABLE_EXAMPLES)
+    find_package(MPI REQUIRED)
+    if (MPI_FOUND)
+        message(STATUS "---- MPI:  Found!")
+    else()
+        message(STATUS "---- MPI:  ** ERROR ** Could not locate MPI installation.")
+    endif()
     add_subdirectory(examples)
 endif(APOLLO_ENABLE_EXAMPLES)
 

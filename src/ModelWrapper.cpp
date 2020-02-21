@@ -83,8 +83,13 @@ Apollo::ModelWrapper::getPolicyCount(void)
 bool
 Apollo::ModelWrapper::isTraining(void)
 {
-    Apollo::ModelObject *lnm = model_sptr.get();
-    return lnm->training;
+    std::shared_ptr<Apollo::ModelObject> lm = model_sptr;
+
+    if (lm != nullptr) {
+        return lm->training;
+    } else {
+        return false;
+    }
 }
 
 bool
@@ -305,6 +310,8 @@ Apollo::ModelWrapper::configure(
     else                                    { model_type = MT.Default; }
 
     if (model_type == MT.Default) { model_type = APOLLO_DEFAULT_MODEL_TYPE; }
+
+    // Since we can't make declarations inside of a switch statement... :)
     shared_ptr<Apollo::ModelObject> nm = nullptr;
 
     switch (model_type) {
@@ -357,8 +364,16 @@ Apollo::ModelWrapper::configure(
     lnm->configure(num_policies, m_drv_rules);
     lnm->setGuid(m_guid);
 
-    model_sptr.reset(); // Release ownership of the prior model's shared ptr
-    model_sptr = nm;    // Make this new model available for use.
+    // Make our new model available for use.
+    // NOTE: This is an atomic operation, and will decrement the
+    //       reference count for the previous model, if any.
+    //       If the application is currently using the previous model
+    //       via their thread-local copy of the shared_ptr, nothing
+    //       bad will happen. The copy constructor for a shared
+    //       pointer is also atomic, in the event there is some
+    //       super rare thread interleaving between these two
+    //       single-line commands.
+    model_sptr = nm;
 
     return true;
 }
@@ -392,13 +407,11 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
     //       though Apollo is not prevented from setting up
     //       a new model that other threads will be getting, all
     //       without global mutex synchronization.
-    shared_ptr<Apollo::ModelObject> lm_sptr = model_sptr;
-    Apollo::ModelObject *model = lm_sptr.get();
+    shared_ptr<Apollo::ModelObject> model = model_sptr;
 
     static int err_count = 0;
     if (model == nullptr) {
         err_count++;
-        lm_sptr.reset();
         if (err_count < 10) {
             log("[WARNING] requestPolicyIndex() called before model"
                     " has been loaded. Returning index 0 (default).");
@@ -422,7 +435,6 @@ Apollo::ModelWrapper::requestPolicyIndex(void) {
 
 Apollo::ModelWrapper::~ModelWrapper() {
     id = "";
-    model_sptr.reset(); // Release access to the shared object.
 }
 
 

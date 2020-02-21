@@ -64,10 +64,10 @@ Apollo::Region::getPolicyIndex(void)
     //double evaluation_time_total;
     //SOS_TIME(evaluation_time_start);
 
-    Apollo::ModelWrapper *model = getModel();
-    assert (model != NULL);
+    Apollo::ModelWrapper *mw = getModelWrapper();
+    assert (mw != NULL);
 
-    int choice = model->requestPolicyIndex();
+    int choice = mw->requestPolicyIndex();
     if (choice != current_policy) {
         apollo->setFeature("policy_index", (double) choice);
     }
@@ -95,8 +95,8 @@ Apollo::Region::Region(
     is_timed = true;
     minimum_elements_to_evaluate_model = -1;
 
-    model = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
-    model->configure("");
+    model_wrapper = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
+    model_wrapper->configure("");
 
     apollo->regions.insert({name, this});
 
@@ -304,8 +304,8 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
 
 
 Apollo::ModelWrapper *
-Apollo::Region::getModel(void) {
-    return model;
+Apollo::Region::getModelWrapper(void) {
+    return model_wrapper;
 }
 
 

@@ -103,17 +103,6 @@ def main():
         #             model distribution.
 
         if dtree_len > 0:
-            trigger_start = time.time()
-            SOS.trigger("APOLLO_MODELS", dtree_len, dtree_def)
-            trigger_elapsed = time.time() - trigger_start
-            log(1, "Sent models to SOS for Apollo in " + str(trigger_elapsed) + " seconds.")
-            log(1, "Writing models to \"prev_model.json\" ...")
-
-            with open(("./output/models/step.%d.dtree.json" % prior_frame_max), "w") as mf:
-                mf.write(model_def)
-            with open("./output/models/latest_dtree.json", "w") as mf:
-                mf.write(model_def)
-
             if (ONCE_THEN_EXIT):
                 controller_elapsed = time.time() - controller_start
                 log(1, "Done.  Full cycle of controller took "

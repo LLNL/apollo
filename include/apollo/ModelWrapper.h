@@ -33,7 +33,7 @@ class Apollo::ModelWrapper {
         //
         std::string     id;
         int             num_policies;
-        // 
+        //
         std::shared_ptr<Apollo::ModelObject> model_sptr;
 
         // ----------
