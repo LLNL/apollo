@@ -14,11 +14,11 @@ mkdir -p ${SOS_WORK}/lib
 mkdir -p ${SOS_WORK}/bin
 mkdir -p ${SOS_WORK}/bin/apollo
 #
-cp ${HOME}/src/sos_flow/build/bin/sosd                            ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_stop                       ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_probe                      ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/sosd_manifest                   ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/build/bin/demo_app                        ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/sosd                          ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/sosd_stop                     ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/sosd_probe                    ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/sosd_manifest                 ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/demo_app                      ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/scripts/showdb                            ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
 #
@@ -32,8 +32,8 @@ cp ${HOME}/src/apollo/src/sql/CREATE.indexApollo                  ${SOS_WORK}/sq
 cp ${HOME}/src/apollo/src/sql/SELECT.sanityCheck                  ${SOS_WORK}/sql
 #
 cp ${HOME}/src/apollo/install/lib/libapollo.so                    ${SOS_WORK}/lib
-cp ${HOME}/src/sos_flow/build/lib/libsos.so                       ${SOS_WORK}/lib
-cp ${HOME}/src/sos_flow/build/lib/ssos_python.so                  ${SOS_WORK}/lib
+cp ${HOME}/src/sos_flow/install/lib/libsos.so                     ${SOS_WORK}/lib
+cp ${HOME}/src/sos_flow/install/lib/ssos_python.so                ${SOS_WORK}/lib
 cp ${HOME}/src/callpath/install/lib/libcallpath.so                ${SOS_WORK}/lib
 #
 #cp ${HOME}/src/caliper/install/lib64/libcaliper.so                ${SOS_WORK}/lib

@@ -2,6 +2,7 @@
 #
 export SOS_BATCH_ENVIRONMENT="TRUE"
 export SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
+export SOS_DISCOVERY_DIR=${SOS_WORK}/daemons
 #
 if [ "x${SOS_ENV_SET}" == "x" ] ; then
     echo "Please set up your SOS environment first."
