@@ -19,8 +19,8 @@ cp ${HOME}/src/sos_flow/install/bin/sosd_stop                     ${SOS_WORK}/bi
 cp ${HOME}/src/sos_flow/install/bin/sosd_probe                    ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/install/bin/sosd_manifest                 ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/install/bin/demo_app                      ${SOS_WORK}/bin
+cp ${HOME}/src/sos_flow/install/bin/ssos.py                       ${SOS_WORK}/bin
 cp ${HOME}/src/sos_flow/scripts/showdb                            ${SOS_WORK}/bin
-cp ${HOME}/src/sos_flow/src/python/ssos.py                        ${SOS_WORK}/bin
 #
 cp ${HOME}/src/apollo/src/python/controller.py                    ${SOS_WORK}/bin
 cp ${HOME}/src/apollo/src/python/apollo/*                         ${SOS_WORK}/bin/apollo
