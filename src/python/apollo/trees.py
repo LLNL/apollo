@@ -68,8 +68,18 @@ from apollo.utils import tablePrint
 
 def generateRegressionTree(log, data,
         assign_guid=0,
-        tree_max_depthj=2,
+        tree_max_depth=2,
         one_big_tree=False):
+
+    region_name_dict = {}
+    for row in data.itertuples():
+        key = (row.region_name)
+        if key not in region_name_dict:
+            region_name_dict[key] = str(row.region_name)
+    region_names = []
+    for entry in region_name_dict.items():
+        key, value = entry
+        region_names.append(value)
 
     log(3, "Creating categorical values for unique regions.")
     data["region_name"] = pd.Categorical(data["region_name"])
@@ -112,27 +122,28 @@ def generateRegressionTree(log, data,
             log(4, "Region " + str(region) + " had no data.")
             continue
 
-        feature_cols = [feature_names]
+        print("")
+        print("======================")
+        print("--debug: region_name   = %s" % str(region))
+        print("--debug: feature_names = %s" % str(feature_names))
+        print("--debug: rd[]          = %s" % str(rd))
+        print("----------------------")
 
         y = rd.time_avg
-        x = rd[feature_cols]
+        x = rd[feature_names]
 
-        reg = DecisionTreeRegressor(random_state=0)
+        reg = DecisionTreeRegressor(max_depth=tree_max_depth,random_state=0)
 
         reg.fit(x, y)
 
-        y_pred = reg.predict(x_test)
+        with open("./output/models/rtree_latest/%s.dot" % region, "w") as dotfile:
+            from sklearn import tree as _tree
+            _tree.export_graphviz(reg, out_file=dotfile, feature_names=feature_names)
 
-        all_skl_models[region] = trained_model
-
+        all_skl_models[region] = reg
         this_elapsed = time.time() - this_start
 
         log(3, "regression[\"" + str(region) + "\"].x_shape" + "%-12s" % str(x.shape))
-
-        #dotfile = open("model.dot", 'w')
-        #from sklearn import tree as _tree
-        #_tree.export_graphviz(trained_model, out_file=dotfile, feature_names=feature_names)
-        #dotfile.close()
 
         if one_big_tree:
             break

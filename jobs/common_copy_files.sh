@@ -6,6 +6,7 @@
 mkdir -p ${SOS_WORK}
 mkdir -p ${SOS_WORK}/output
 mkdir -p ${SOS_WORK}/output/models
+mkdir -p ${SOS_WORK}/output/models/rtree_latest
 mkdir -p ${SOS_WORK}/launch
 mkdir -p ${SOS_WORK}/daemons
 mkdir -p ${SOS_WORK}/sql

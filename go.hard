@@ -5,23 +5,12 @@ mkdir build
 mkdir install
 cd build
 #
-#  We don't want to use the installed RAJA, we want the same custom one that
-#  the proxy app is using so the compiler doesn't get confused.
-#
-#cmake -DCMAKE_INSTALL_PREFIX=../install \
-#        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-#        -DCMAKE_BUILD_TYPE=Debug \
-#        -DSOS_DIR=$HOME/src/sos_flow/build \
-#        -DRAJA_DIR=$(spack location -i raja) \
-#        -DCALIPER_DIR=$HOME/src/caliper/install \
-#        -Dcallpath_DIR=$HOME/src/callpath/install \
-#        ..
 cmake   \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX=../install \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DOPT_REPORT_FILE=$HOME/src/apollo/install/intel.opt.report.apollo.out \
-        -DSOS_DIR=$HOME/src/sos_flow/build \
+        -DSOS_DIR=$HOME/src/sos_flow/install \
         -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/RelWithDebInfo/install/RAJA/include \
         -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
         ..

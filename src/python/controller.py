@@ -84,14 +84,14 @@ def main():
 
         # Model: DecisionTree
         dtree_def, dtree_skl = trees.generateDecisionTree(log, data,
-                assign_guid=model_set_guid,
+                assign_guid=dataset_guid,
                 tree_max_depth=3,
                 one_big_tree=False)
         dtree_len = len(dtree_def)
 
         # Model: RegressionTree
         rtree_skl = trees.generateRegressionTree(log, data,
-                assign_guid=model_set_guid,
+                assign_guid=dataset_guid,
                 tree_max_depth=3,
                 one_big_tree=False)
 

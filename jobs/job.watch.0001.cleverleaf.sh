@@ -78,7 +78,8 @@ echo ""
 
 export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
 
-export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_20.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_20.in"
+export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
@@ -142,12 +143,12 @@ set +m
 
 #run_cleverleaf_with_model "model.previous"
 
-#echo ""
-#echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
-#echo ""
-#printf "== CONTROLLER: START\n" >> ./output/controller.out
-#srun ${SRUN_CONTROLLER_START} &
-#sleep 2
+echo ""
+echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
+echo ""
+printf "== CONTROLLER: START\n" >> ./output/controller.out
+srun ${SRUN_CONTROLLER_START} &
+sleep 2
 
 
 run_cleverleaf_with_model "model.roundrobin"
