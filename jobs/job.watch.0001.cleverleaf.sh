@@ -59,17 +59,17 @@ cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
 cd ${SOS_WORK}
 #
-echo ""
-echo ">>>> Starting SOS daemon statistics monitoring..."
-echo ""
-srun ${SOS_MONITOR_START} &
-#
-echo ""
-echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
-echo ""
-#
-SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
-#SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
+#echo ""
+#echo ">>>> Starting SOS daemon statistics monitoring..."
+#echo ""
+#srun ${SOS_MONITOR_START} &
+##
+#echo ""
+#echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
+#echo ""
+##
+#SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
+##SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
 #
 echo ""
 echo ">>>> Launching experiment codes..."
