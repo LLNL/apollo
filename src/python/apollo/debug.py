@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory

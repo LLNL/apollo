@@ -33,6 +33,6 @@
 
 VERBOSE        = 9
 DEBUG          = True
-FRAME_INTERVAL = 20
+FRAME_INTERVAL = 5
 ONCE_THEN_EXIT = True
 
