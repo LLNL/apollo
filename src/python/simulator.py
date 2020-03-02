@@ -10,7 +10,7 @@ from multiprocessing import Process
 import numpy as np
 import pandas as pd
 import pandasql as psql
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import apollo.trees as trees
 import apollo.utils as utils

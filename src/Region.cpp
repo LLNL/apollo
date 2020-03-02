@@ -50,11 +50,10 @@
 int
 Apollo::Region::getPolicyIndex(void)
 {
-    if ((not currently_inside_region)
-        and (is_timed)){
+    if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
                         " while NOT inside the region. Please call"
-                        " region->begin(step) first so the model has values to use"
+                        " region->begin() first so the model has values to use"
                         " when selecting a policy. (region->name == %s)\n", name);
         fflush(stderr);
     }
@@ -82,20 +81,16 @@ Apollo::Region::getPolicyIndex(void)
 
 
 Apollo::Region::Region(
-        Apollo      *apollo_ptr,
         const char  *regionName,
         int          numAvailablePolicies)
 {
-    apollo = apollo_ptr;
+    apollo = Apollo::instance();
     name   = strdup(regionName);
 
     current_policy            = 0;
     currently_inside_region   = false;
 
-    is_timed = true;
-    minimum_elements_to_evaluate_model = -1;
-
-    model_wrapper = new Apollo::ModelWrapper(apollo_ptr, this, numAvailablePolicies);
+    model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
     model_wrapper->configure("");
 
     apollo->regions.insert({name, this});
@@ -118,20 +113,9 @@ Apollo::Region::~Region()
 }
 
 
-// NOTE: the parameter to begin() should be the time step
-//       of the broader experimental context that this
-//       region is being invoked to service. It may get
-//       invoked several times for that time step, that is fine,
-//       all invocations are automatically tracked internally.
-//       If you do not know or have access to that time step,
-//       passing in (and incrementing) a static int from the
-//       calling context is typical.
 void
-Apollo::Region::begin(void) {
-    if (is_timed == false) {
-        return;
-    }
-
+Apollo::Region::begin()
+{
     if (currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->begin() called"
                         " while already inside the region. Please call"
@@ -141,8 +125,6 @@ Apollo::Region::begin(void) {
         fflush(stderr);
     }
     currently_inside_region = true;
-
-    SOS_TIME(current_exec_time_begin);
 
     // NOTE: Features are tracked globally within the process.
     //       Apollo semantics require that region.begin/end calls happen
@@ -156,15 +138,14 @@ Apollo::Region::begin(void) {
     //
     apollo->setFeature("policy_index", (double) current_policy);
 
-
+    SOS_TIME(current_exec_time_begin);
     return;
 }
 
 void
-Apollo::Region::end(void) {
-    if (is_timed == false) {
-        return;
-    }
+Apollo::Region::end()
+{
+    SOS_TIME(current_exec_time_end);
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
                         " while NOT inside the region. Please call"
@@ -172,15 +153,12 @@ Apollo::Region::end(void) {
                         " consequences. (region->name == %s)\n", name);
         fflush(stderr);
     }
-
     currently_inside_region = false;
-
-    SOS_TIME(current_exec_time_end);
-    Apollo::Region::Measure *time = nullptr;
 
     // In case this was changed by the DecisionTree after the begin() call...
     apollo->setFeature("policy_index", (double) current_policy);
 
+    Apollo::Region::Measure *time = nullptr;
     auto iter = measures.find(apollo->features);
     if (iter == measures.end()) {
         time = new Apollo::Region::Measure;

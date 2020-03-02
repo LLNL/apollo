@@ -11,7 +11,6 @@
 class Apollo::ModelWrapper {
     public:
         ModelWrapper(
-                Apollo         *apollo_ptr,
                 Apollo::Region *region_ptr,
                 int          numPolicies);
         ~ModelWrapper();

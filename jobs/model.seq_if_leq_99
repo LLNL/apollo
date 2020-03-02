@@ -12,7 +12,7 @@
         "rules": {
             "__ANY_REGION__": {
                 "gini": 0.4491083814301835,
-                "rule": "num_elements <= 95.5000",
+                "rule": "num_elements <= 99.5000",
                 "right": {
                     "impurity": 0.36710240302939445,
                     "value": [

@@ -186,7 +186,7 @@ def generateRegressionTree(log, data,
     ##    from sklearn import tree as _tree
     ##    _tree.export_graphviz(predictedTime, out_file=dotfile, feature_names=feature_names)
 
-    ##reg_tree = json.dumps(serializeRegressor(predictedTime))
+    ##reg_tree = json.dumps(serializeRegressor(predictedTime), default=Obj2NativeTypes)
     ##with open("regress.json", 'w') as regfile:
     ##    regfile.write(reg_tree)
 
@@ -338,7 +338,7 @@ def generateDecisionTree(log, data,
         #dotfile.close()
 
         #print("")
-        #print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True))
+        #print(json.dumps(tree_to_simple_str(trained_model, feature_names, name_swap, y), sort_keys=False, indent=4, ensure_ascii=True, default=Obj2NativeTypes))
         #print("")
 
         if one_big_tree:
@@ -396,7 +396,7 @@ def generateDecisionTree(log, data,
         model_def["driver"]["least"]["__ANY_REGION__"] = -1
         model_def["driver"]["timed"]["__ANY_REGION__"] = True
 
-    model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True) + "\n"
+    model_as_json = json.dumps(model_def, sort_keys=False, indent=4, ensure_ascii=True, default=Obj2NativeTypes) + "\n"
     json_elapsed = time.time() - json_start
     log(3, "Serializing models into JSON took " + str(json_elapsed) + " seconds.")
 
@@ -531,7 +531,15 @@ def tree_to_simple_str(decision_tree, feature_names=None, name_swap=None, y=None
 ##########################
 
 
-
+def Obj2NativeTypes(obj):
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, datetime.datetime):
+        return obj.__str__()
 
 
 # def serializeRegressor(tree):

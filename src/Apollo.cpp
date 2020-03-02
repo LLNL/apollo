@@ -168,7 +168,6 @@ Apollo::Apollo()
 
     SOS_init(&sos, SOS_ROLE_CLIENT,
             SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
-
     if (sos == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to communicate"
                 " with the SOS daemon.\n");
@@ -229,7 +228,7 @@ Apollo::Apollo()
     }
 
     log("Reading OMP env...");
-    ompDefaultSchedule   = omp_sched_dynamic;      //<-- libgomp.so default
+    ompDefaultSchedule   = omp_sched_static;       //<-- libgomp.so default
     ompDefaultNumThreads = numThreadsPerProcCap;   //<-- from SLURM calc above
     ompDefaultChunkSize  = -1;                     //<-- let OMP decide
     // Override the OMP defaults if there are environment variables set:
@@ -258,8 +257,9 @@ Apollo::Apollo()
 
     // Explicitly set the current OMP defaults, so LLVM's OMP library doesn't
     // run really slow for no reason:
-    omp_set_num_threads(ompDefaultNumThreads);
-    omp_set_schedule(ompDefaultSchedule, -1);
+    //NOTE(chad): Deprecated.
+    //omp_set_num_threads(ompDefaultNumThreads);
+    //omp_set_schedule(ompDefaultSchedule, -1);
 
 
 
@@ -375,24 +375,40 @@ Apollo::uniqueRankIDText(void)
 int
 Apollo::sosPackRelatedInt(uint64_t relation_id, const char *name, int val)
 {
-    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_INT, &val);
+    if (isOnline()) {
+        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_INT, &val);
+    } else {
+        return -1;
+    }
 }
 
 int
 Apollo::sosPackRelatedDouble(uint64_t relation_id, const char *name, double val)
 {
-    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_DOUBLE, &val);
+    if (isOnline()) {
+        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_DOUBLE, &val);
+    } else {
+        return -1;
+    }
 }
 
 int
 Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, const char *val)
 {
-    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val);
+    if (isOnline()) {
+        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val);
+    } else {
+        return -1;
+    }
 }
 int
 Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, std::string val)
 {
-    return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val.c_str());
+    if (isOnline()) {
+        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val.c_str());
+    } else {
+        return -1;
+    }
 }
 
 void Apollo::sosPublish()

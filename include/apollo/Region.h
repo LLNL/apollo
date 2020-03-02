@@ -11,7 +11,7 @@
 
 class Apollo::Region {
     public:
-        Region( Apollo       *apollo,
+        Region(
                 const char   *regionName,
                 int           numAvailablePolicies);
         ~Region();
@@ -31,11 +31,9 @@ class Apollo::Region {
 
 
         char    *name;
-        void     begin(void);
-        void     end(void);
 
-        bool     is_timed;
-        int      minimum_elements_to_evaluate_model; //deprecated
+        void     begin();
+        void     end();
 
         Apollo::ModelWrapper *getModelWrapper(void);
         int                   getPolicyIndex(void);

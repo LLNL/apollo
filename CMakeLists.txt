@@ -47,7 +47,6 @@ set(CMAKE_CXX_STANDARD 14)
 #
 
 set(APOLLO_ENABLE_TESTS    ON  CACHE STRING "")
-set(APOLLO_ENABLE_EXAMPLES OFF CACHE STRING "")
 set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
 set(APOLLO_REQUIRES_PYTHON OFF CACHE STRING "")
 #
@@ -120,9 +119,9 @@ set(APOLLO_HOST_DETAILED "\"${APOLLO_HOST_DETAILED_O} ${APOLLO_HOST_DETAILED_R} 
 message(STATUS "Building on: ${CMAKE_SYSTEM_NAME}")
 
 #string(TOUPPER ${APOLLO_BUILD_TYPE} CMAKE_BUILD_TYPE)
-set(APOLLO_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
-set(APOLLO_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${APOLLO_BUILD_TYPE}}")
-set(APOLLO_LINK_FLAGS   "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINK_FLAGS_${CMAKE_BUILD_TYPE}}")
+set(APOLLO_CXX_COMPILER "${CMAKE_CXX_COMPILER} ")
+set(APOLLO_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${APOLLO_BUILD_TYPE}} ")
+set(APOLLO_LINK_FLAGS   "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINK_FLAGS_${CMAKE_BUILD_TYPE}} ")
 
 
 # Create a config header file
@@ -133,8 +132,8 @@ configure_file(
 # Create pkg-confic .pc file
 set(PKG_CONFIG_INCLUDEDIR "\${prefix}/include")
 set(PKG_CONFIG_LIBDIR "\${prefix}/lib")
-set(PKG_CONFIG_LIBS "-L\${libdir} -lapollo")
-set(PKG_CONFIG_CFLAGS "-I\${includedir}")
+set(PKG_CONFIG_LIBS "-L\${libdir} -lapollo ")
+set(PKG_CONFIG_CFLAGS "-I\${includedir} ")
 
 configure_file(
   ${PROJECT_SOURCE_DIR}/apollo.pc.in
@@ -162,6 +161,17 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
 #
 # External libraries
 #
+
+#
+# NOTE: MPI is no longer required, it was only needed by certain examples.
+#
+#find_package(MPI REQUIRED)
+#if (MPI_FOUND)
+#    message(STATUS "---- MPI:  Found!")
+#else()
+#    message(STATUS "---- MPI:  ** ERROR ** Could not locate MPI installation.")
+#endif()
+
 find_package(SOS REQUIRED)
 if(SOS_FOUND)
     message(STATUS "---- SOS:  Found!")
@@ -223,19 +233,9 @@ message(STATUS "---- JSON:  Found!")
 #
 
 include_directories(./src ./include ${PROJECT_BINARY_DIR}/include)
-include_directories("${RAJA_DIR}/include")
+include_directories("${RAJA_DIR}/include ")
 
 add_subdirectory(src)
-
-if(APOLLO_ENABLE_EXAMPLES)
-    find_package(MPI REQUIRED)
-    if (MPI_FOUND)
-        message(STATUS "---- MPI:  Found!")
-    else()
-        message(STATUS "---- MPI:  ** ERROR ** Could not locate MPI installation.")
-    endif()
-    add_subdirectory(examples)
-endif(APOLLO_ENABLE_EXAMPLES)
 
 if(APOLLO_ENABLE_TESTS)
     add_subdirectory(test)

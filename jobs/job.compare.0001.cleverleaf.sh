@@ -59,30 +59,30 @@ cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
 cd ${SOS_WORK}
 #
-echo ""
-echo ">>>> Starting SOS daemon statistics monitoring..."
-echo ""
-srun ${SOS_MONITOR_START} &
+#echo ""
+#echo ">>>> Starting SOS daemon statistics monitoring..."
+#echo ""
+#srun ${SOS_MONITOR_START} &
 #
-echo ""
-echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
-echo ""
+#echo ""
+#echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
+#echo ""
 #
-SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
+#SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
 #SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
 #
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-relwithdebinfo "
-export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo "
+export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
+export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
 
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_12.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
-#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
-export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
+export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "
@@ -127,37 +127,37 @@ export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
 
 set +m
 
-# The static model doesn't adjust anything, and doesn't receive feedback from the controller,
-# there is no need to start it until now. SOS is still running and receiving data.
 #srun ${SRUN_CONTROLLER_START} &
 #sleep 4
 
-
+#
 run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.........default"
+
 run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.static.0.default"
-run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.twopolicy"
+run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.seq_if_leq_01"
+run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.seq_if_leq_10"
+run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.seq_if_leq_99"
+#
 
-#run_cleverleaf_with_model ${CLEVERLEAF_APOLLO_BINARY} ${CLEVERLEAF_INPUT} "model.twopolicy"
-
-#export OMP_NUM_THREADS=32
-#export OMP_SCHEDULE="auto"
-#run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+export OMP_NUM_THREADS=32
+export OMP_SCHEDULE="static"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 #
-#export OMP_NUM_THREADS=16
-#export OMP_SCHEDULE="static"
-#run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+export OMP_NUM_THREADS=16
+export OMP_SCHEDULE="static"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 #
-#export OMP_NUM_THREADS=8
-#export OMP_SCHEDULE="static"
-#run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+export OMP_NUM_THREADS=8
+export OMP_SCHEDULE="static"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 #
-#export OMP_NUM_THREADS=4
-#export OMP_SCHEDULE="auto"
-#run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+export OMP_NUM_THREADS=4
+export OMP_SCHEDULE="static"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 #
-#export OMP_NUM_THREADS=2
-#export OMP_SCHEDULE="auto"
-#run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
+export OMP_NUM_THREADS=2
+export OMP_SCHEDULE="static"
+run_cleverleaf_with_model ${CLEVERLEAF_NORMAL_BINARY} ${CLEVERLEAF_INPUT} "normal.${OMP_NUM_THREADS}.${OMP_SCHEDULE}"
 
 cd ${SOS_WORK}
 

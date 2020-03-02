@@ -293,9 +293,6 @@ Apollo::ModelWrapper::configure(
         }
     }
 
-    region->is_timed = m_timed;
-    region->minimum_elements_to_evaluate_model = m_least_count;
-
     if (model_errors > 0) {
         fprintf(stderr, "== APOLLO: [ERROR] There were %d errors parsing"
                 " the supplied model definition.\n", model_errors);
@@ -380,11 +377,10 @@ Apollo::ModelWrapper::configure(
 
 
 Apollo::ModelWrapper::ModelWrapper(
-        Apollo           *apollo_ptr,
         Apollo::Region   *region_ptr,
         int               numPolicies)
 {
-    apollo = apollo_ptr;
+    apollo = Apollo::instance();
     region = region_ptr;
     num_policies = numPolicies;
 
