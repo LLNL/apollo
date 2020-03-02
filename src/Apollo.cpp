@@ -59,6 +59,33 @@ using json = nlohmann::json;
 #include "sos.h"
 #include "sos_types.h"
 
+inline void replace_all(std::string& input, const std::string& from, const std::string& to) {
+	size_t pos = 0;
+	while ((pos = input.find(from, pos)) != std::string::npos) {
+		input.replace(pos, from.size(), to);
+		pos += to.size();
+	}
+}
+
+
+std::string
+Apollo::getCallpathOffset(int walk_distance)
+{
+    //Note: walk_distance is optional param, defaults to 1
+    CallpathRuntime *cp = (CallpathRuntime *) callpath_ptr;
+    // Set up this Apollo::Region for the first time:       (Runs only once)
+    std::stringstream ss_location;
+    ss_location << cp->doStackwalk().get(walk_distance);
+    // Extract out the pointer to our module+offset string and clean it up:
+    std::string offsetstr = ss_location.str();
+    offsetstr = offsetstr.substr((offsetstr.rfind("/") + 1), (offsetstr.length() - 1));
+    replace_all(offsetstr, "(", "_");
+    replace_all(offsetstr, ")", "_");
+
+    return offsetstr;
+}
+
+
 void
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
@@ -177,6 +204,8 @@ Apollo::Apollo()
     SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
     SOS_reference_set(sos, "APOLLO_PUB", (void *) pub);
 
+    callpath_ptr = new CallpathRuntime;
+
     if (pub == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
                 " publication handle.\n");
@@ -288,6 +317,7 @@ Apollo::~Apollo()
         // this destructor is only called when the process is terminating.
         pub_handle = NULL;
     }
+    delete callpath_ptr;
 }
 
 void

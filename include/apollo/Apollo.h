@@ -16,7 +16,6 @@
 
 #include "apollo/Logging.h"
 
-#include "CallpathRuntime.h"
 
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
 
@@ -101,7 +100,8 @@ class Apollo
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
-        CallpathRuntime callpath;
+        void *callpath_ptr;
+        std::string getCallpathOffset(int walk_distance=1);
 
         Apollo::Region *region(const char *regionName);
         //

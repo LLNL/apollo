@@ -11,7 +11,6 @@ cmake   \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DOPT_REPORT_FILE=$HOME/src/apollo/install/intel.opt.report.apollo.out \
         -DSOS_DIR=$HOME/src/sos_flow/install \
-        -DRAJA_DIR=$HOME/src/cleverleaf/package-apollo/RelWithDebInfo/install/RAJA/include \
         -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
         ..
 make -j 8 && make install && cd .. && tree install
