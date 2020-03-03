@@ -100,14 +100,19 @@ class Apollo
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
+        // NOTE(chad): We default to walk_distance of 2 so we can
+        //             step out of this method, then step out of
+        //             our RAJA policy template, and get to the
+        //             module name and offset where that template
+        //             has been instantiated in the application code.
+        std::string getCallpathOffset(int walk_distance=2);
         void *callpath_ptr;
-        std::string getCallpathOffset(int walk_distance=1);
 
         Apollo::Region *region(const char *regionName);
         //
         void attachModel(const char *modelEncoding);
         //
-        bool        isOnline();
+        bool isOnline();
         std::string uniqueRankIDText(void);
         //
         void flushAllRegionMeasurements(int assign_to_step);

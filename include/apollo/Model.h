@@ -38,7 +38,7 @@ class Apollo::Model {
                        "            \"__ANY_REGION__\": \"0\"\n"           \
                        "        },\n"                                      \
                        "        \"least\": {\n"                            \
-                       "            \"__ANY_REGION__\": \"-1\"\n"          \
+                       "            \"__ANY_REGION__\": -1\n"              \
                        "        },\n"                                      \
                        "        \"timed\": {\n"                            \
                        "            \"__ANY_REGION__\": true\n"            \

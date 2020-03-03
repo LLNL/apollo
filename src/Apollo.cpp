@@ -67,11 +67,15 @@ inline void replace_all(std::string& input, const std::string& from, const std::
 	}
 }
 
-
 std::string
 Apollo::getCallpathOffset(int walk_distance)
 {
-    //Note: walk_distance is optional param, defaults to 1
+    //NOTE(chad): Param 'walk_distance' is optional, defaults to 2
+    //            so we walk out of this method, and then walk out
+    //            of the wrapper code (i.e. a RAJA policy, or something
+    //            performance tool instrumentation), and get the module
+    //            and offset of the application's instantiation of
+    //            a loop or steerable region.
     CallpathRuntime *cp = (CallpathRuntime *) callpath_ptr;
     // Set up this Apollo::Region for the first time:       (Runs only once)
     std::stringstream ss_location;
