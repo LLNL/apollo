@@ -120,6 +120,7 @@ class Apollo
         void *sos_handle;  // #include "sos_types.h":  SOS_runtime *sos = sos_handle;
         void *pub_handle;  // #include "sos_types.h":  SOS_pub     *pub = pub_handle;
         //
+        // Utility functions for SOS/environment interactions:
         int  sosPackInt(const char *name, int val);
         int  sosPackDouble(const char *name, double val);
         int  sosPackRelatedInt(uint64_t relation_id, const char *name, int val);
@@ -129,7 +130,7 @@ class Apollo
         void sosPublish();
         //
         void disconnect();
-
+        //
     private:
         Apollo();
         Apollo::Region *baseRegion;
@@ -145,6 +146,23 @@ class Apollo
 extern int
 getApolloPolicyChoice(Apollo::Region *reg);
 
+inline const char*
+safe_getenv(
+        const char *var_name,
+        const char *use_this_if_not_found,
+        bool        silent=false)
+{
+    char *c = getenv(var_name);
+    if (c == NULL) {
+        if (not silent) {
+            log("Looked for ", var_name, " with getenv(), found nothing, using '", \
+                use_this_if_not_found, "' (default) instead.");
+        }
+        return use_this_if_not_found;
+    } else {
+        return c;
+    }
+}
 
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)

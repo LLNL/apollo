@@ -67,6 +67,8 @@ inline void replace_all(std::string& input, const std::string& from, const std::
 	}
 }
 
+
+
 std::string
 Apollo::getCallpathOffset(int walk_distance)
 {
@@ -227,49 +229,39 @@ Apollo::Apollo()
     pub_handle = pub;
 
     log("Reading SLURM env...");
-    try {
-        numNodes = std::stoi(getenv("SLURM_NNODES"));
-        log("    numNodes ................: ", numNodes);
-
-        numProcs = std::stoi(getenv("SLURM_NPROCS"));
-        log("    numProcs ................: ", numProcs);
-
-        numCPUsOnNode = std::stoi(getenv("SLURM_CPUS_ON_NODE"));
-        log("    numCPUsOnNode ...........: ", numCPUsOnNode);
-
-        std::string envProcPerNode = getenv("SLURM_TASKS_PER_NODE");
-        // Sometimes SLURM sets this to something like "4(x2)" and
-        // all we care about here is the "4":
-        auto pos = envProcPerNode.find('(');
-        if (pos != envProcPerNode.npos) {
-            numProcsPerNode = std::stoi(envProcPerNode.substr(0, pos));
-        } else {
-            numProcsPerNode = std::stoi(envProcPerNode);
-        }
-        log("    numProcsPerNode .........: ", numProcsPerNode);
-
-        numThreadsPerProcCap = std::max(1, (int)(numCPUsOnNode / numProcsPerNode));
-        log("    numThreadsPerProcCap ....: ", numThreadsPerProcCap);
-
-    } catch (...) {
-        fprintf(stderr, "== APOLLO: [ERROR] Unable to read values from SLURM"
-                " environment variables.\n");
-        if (sos != NULL) {
-            SOS_finalize(sos);
-        }
-        exit(EXIT_FAILURE);
+    numNodes         = std::stoi(safe_getenv("SLURM_NNODES", "1"));
+    log("    numNodes ................: ", numNodes);
+    numProcs         = std::stoi(safe_getenv("SLURM_NPROCS", "1"));
+    log("    numProcs ................: ", numProcs);
+    numCPUsOnNode    = std::stoi(safe_getenv("SLURM_CPUS_ON_NODE", "36"));
+    log("    numCPUsOnNode ...........: ", numCPUsOnNode);
+    std::string envProcPerNode = safe_getenv("SLURM_TASKS_PER_NODE", "1");
+    // Sometimes SLURM sets this to something like "4(x2)" and
+    // all we care about here is the "4":
+    auto pos = envProcPerNode.find('(');
+    if (pos != envProcPerNode.npos) {
+        numProcsPerNode = std::stoi(envProcPerNode.substr(0, pos));
+    } else {
+        numProcsPerNode = std::stoi(envProcPerNode);
     }
+    log("    numProcsPerNode .........: ", numProcsPerNode);
+
+    numThreadsPerProcCap = std::max(1, (int)(numCPUsOnNode / numProcsPerNode));
+    log("    numThreadsPerProcCap ....: ", numThreadsPerProcCap);
 
     log("Reading OMP env...");
     ompDefaultSchedule   = omp_sched_static;       //<-- libgomp.so default
     ompDefaultNumThreads = numThreadsPerProcCap;   //<-- from SLURM calc above
     ompDefaultChunkSize  = -1;                     //<-- let OMP decide
+
     // Override the OMP defaults if there are environment variables set:
     char *val = NULL;
     val = getenv("OMP_NUM_THREADS");
     if (val != NULL) {
         ompDefaultNumThreads = std::stoi(val);
     }
+
+    val = NULL;
     // We assume nonmonotinicity and chunk size of -1 for now.
     val = getenv("OMP_SCHEDULE");
     if (val != NULL) {
@@ -287,7 +279,6 @@ Apollo::Apollo()
     }
 
     numThreads = ompDefaultNumThreads;
-
     // Explicitly set the current OMP defaults, so LLVM's OMP library doesn't
     // run really slow for no reason:
     //NOTE(chad): Deprecated.
