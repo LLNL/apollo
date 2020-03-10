@@ -60,5 +60,10 @@ cp ${HOME}/src/cleverleaf/package-normal/Release/install/cleverleaf/bin/cleverle
     ${SOS_WORK}/bin/cleverleaf-normal-release
 cp ${HOME}/src/cleverleaf/package-normal/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
     ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo
+cp ${HOME}/src/cleverleaf/package-traced/Release/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-traced-release
+cp ${HOME}/src/cleverleaf/package-traced/RelWithDebInfo/install/cleverleaf/bin/cleverleaf \
+    ${SOS_WORK}/bin/cleverleaf-traced-relwithdebinfo
+
 
 

@@ -8,12 +8,11 @@
 #
 #  The following items will need updating at different scales:
 #
-#SBATCH --job-name="APOLLO:WATCH.1.cleverleaf"
+#SBATCH --job-name="TRACED:EXHAUSTIVE.1.cleverleaf.test"
 #SBATCH -N 2
-#SBATCH -n 8
-#SBATCH -t 120
+#SBATCH -t 80
 #
-export EXPERIMENT_JOB_TITLE="WATCH.0001.cleverleaf"  # <-- creates output path!
+export EXPERIMENT_JOB_TITLE="EXHAUSTIVE.0001.traced"  # <-- creates output path!
 #
 export APPLICATION_RANKS="1"         # ^__ make sure to change SBATCH node counts!
 export SOS_AGGREGATOR_COUNT="1"      # <-- actual aggregator count
@@ -44,12 +43,13 @@ source ${RETURN_PATH}/common_unsetenv.sh
 #source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 source ${RETURN_PATH}/common_copy_files.sh
-source ${RETURN_PATH}/common_launch_sos.sh
+#source ${RETURN_PATH}/common_launch_sos.sh
 source ${RETURN_PATH}/common_srun_cmds.sh
 #
 #
 ####
-#
+
+##
 #  Bring over the input deck[s]:
 cp ${HOME}/src/apollo/jobs/cleaf*.in   ${SOS_WORK}
 #
@@ -67,43 +67,42 @@ cd ${SOS_WORK}
 #echo ""
 #echo ">>>> Creating Apollo VIEW and INDEX in the SOS databases..."
 #echo ""
-##
+#
 #SOS_SQL=${SQL_APOLLO_VIEW} srun ${SRUN_SQL_EXEC}
-##SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
+#SOS_SQL=${SQL_APOLLO_INDEX} srun ${SRUN_SQL_EXEC}
 #
 echo ""
 echo ">>>> Launching experiment codes..."
 echo ""
 #
-
-export CLEVERLEAF_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo "
+export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
+export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
+export CLEVERLEAF_TRACED_BINARY=" ${SOS_WORK}/bin/cleverleaf-traced-release "
 
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_20.in"
 export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
+#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_100.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_500.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
-#export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_states_5.in"
 
-
-export SRUN_CLEVERLEAF=" "
 export SRUN_CLEVERLEAF+=" --cpu-bind=none "
 export SRUN_CLEVERLEAF+=" -c 36 "
 export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
 export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
 export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
-export SRUN_CLEVERLEAF+=" -r 1 "
-export SRUN_CLEVERLEAF+=" ${CLEVERLEAF_BINARY} "
+#export SRUN_CLEVERLEAF+=" -r 1 "
 
-echo ">>>> Launch command for cleverleaf:"
-echo "    srun ${SRUN_CLEVERLEAF} ${CLEVERLEAF_INPUT}"
-echo ""
+
+echo ">>>> Comparing cleverleaf-normal and cleverleaf-apollo..."
 
 echo ""
 echo "========== EXPERIMENTS STARTING =========="
 echo ""
 
 function wipe_all_sos_data_from_database() {
+    echo "========== BEGIN $(basename -- ${APOLLO_INIT_MODEL}) ==========" \
+        >> ./output/sqlexec.out
     SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
     SOS_SQL=${SQL_DELETE_DATA} srun ${SRUN_SQL_EXEC}
     SOS_SQL=${SQL_DELETE_PUBS} srun ${SRUN_SQL_EXEC}
@@ -111,16 +110,16 @@ function wipe_all_sos_data_from_database() {
 }
 
 function run_cleverleaf_with_model() {
-    export APOLLO_INIT_MODEL="${SOS_WORK}/$1"
+    #export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
     #wipe_all_sos_data_from_database
     cd output
-    printf "\t%4s, %-20s, %-20s, " \
-        ${APPLICATION_RANKS} \
-        $(basename -- ${CLEVERLEAF_INPUT}) \
-        $(basename -- ${APOLLO_INIT_MODEL})
-    /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} ${CLEVERLEAF_INPUT}
+
+    printf "\t%4s, %4s, %-20s, %-30s, " $4 ${APPLICATION_RANKS} \
+        $(basename -- ${$1}) "$3"
+    /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
     cd ${SOS_WORK}
 }
+
 
 ##### --- OpenMP Settings ---
 # General:
@@ -133,30 +132,53 @@ printf "\nKMP_AFFINITY=${KMP_AFFINITY}\n"
 ##### --- OpenMP Settings ---
 
 
-ulimit -c unlimited
+
+function run_exhaustive_policy() {
+    export OPENMP_TRACE_AS_POLICY=$1
+    export OMP_NUM_THREADS=$2
+    export OMP_SCHEDULE=$3
+    export CURRENT_BINARY=$4
+    export OPENMP_TRACE_OUTPUT_FILE="${SOS_WORK}/output/cleverleaf.policy-${OPENMP_TRACE_AS_POLICY}.csv"
+    run_cleverleaf_with_model ${CURRENT_BINARY} ${CLEVERLEAF_INPUT} ${OMP_SCHEDULE} ${OMP_NUM_THREADS}
+}
+
+function run_sweep_for_binary() {
+    #                      APOLLO  thread    OpenMP
+    #                       policy  count   schedule
+
+    run_exhaustive_policy     2       2     "static"     ${1}
+    run_exhaustive_policy     3       4     "static"     ${1}
+    run_exhaustive_policy     4       8     "static"     ${1}
+    run_exhaustive_policy     5       16    "static"     ${1}
+    run_exhaustive_policy     6       32    "static"     ${1}
+    run_exhaustive_policy     7       36    "static"     ${1}
+
+    run_exhaustive_policy     8       2     "dynamic"    ${1}
+    run_exhaustive_policy     9       4     "dynamic"    ${1}
+    run_exhaustive_policy     10      8     "dynamic"    ${1}
+    run_exhaustive_policy     11      16    "dynamic"    ${1}
+    run_exhaustive_policy     12      32    "dynamic"    ${1}
+    run_exhaustive_policy     13      36    "dynamic"    ${1}
+
+    run_exhaustive_policy     14      2     "guided"     ${1}
+    run_exhaustive_policy     15      4     "guided"     ${1}
+    run_exhaustive_policy     16      8     "guided"     ${1}
+    run_exhaustive_policy     17      16    "guided"     ${1}
+    run_exhaustive_policy     18      32    "guided"     ${1}
+    run_exhaustive_policy     19      36    "guided"     ${1}
+}
+
+
 set +m
 
-#run_cleverleaf_with_model "model.static.1.sequential"
-#run_cleverleaf_with_model "model.static.2.simd"
-#run_cleverleaf_with_model "model.static.3.loopexec"
-#run_cleverleaf_with_model "model.static.4.openmp"
-
-#run_cleverleaf_with_model "model.previous"
-
 echo ""
-echo ">>>> Launching controller and waiting 2 seconds for it to come online..."
+echo "Traced:"
+run_sweep_for_binary ${CLEVERLEAF_TRACED_BINARY}
 echo ""
-printf "== CONTROLLER: START\n" >> ./output/controller.out
-srun ${SRUN_CONTROLLER_START} &
-sleep 2
+echo "Normal:"
+run_sweep_for_binary ${CLEVERLEAF_NORMAL_BINARY}
+echo ""
 
-
-export OMP_NUM_THREADS=36
-export OPENMP_TRACE_AS_POLICY=0
-export OPENMP_TRACE_OUTPUT_FILE="${SOS_WORK}/normal.${OPENMP_TRACE_AS_POLICY}.csv"
-run_cleverleaf_with_model "normal ...... default"
-
-#run_cleverleaf_with_model "model.roundrobin"
 
 cd ${SOS_WORK}
 
@@ -172,24 +194,26 @@ echo ""
 #echo ""
 #sleep 5
 
+set -m
 #####
 #
 source ${RETURN_PATH}/common_parting.sh
 #
-set -m
-echo ""
-echo " >>>>"
-echo " >>>>"
-echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
-echo " >>>>"
-read -t 120 -p " >>>> "
-echo ""
-echo " *OK* Shutting down interactive experiment environment..."
-echo ""
-${SOS_WORK}/sosd_stop.sh
-echo ""
-echo ""
-sleep 60
+#echo ""
+#echo ""
+#echo " >>>>"
+#echo " >>>>"
+#echo " >>>> Press ENTER or wait 120 seconds to shut down SOS.   (C-c to stay interactive)"
+#echo " >>>>"
+#read -t 120 -p " >>>> "
+#echo ""
+#echo " *OK* Shutting down interactive experiment environment..."
+#echo ""
+#${SOS_WORK}/sosd_stop.sh
+#echo ""
+#echo ""
+#sleep 60
 echo "--- Done! End of job script. ---"
+echo ""
 #
 # EOF

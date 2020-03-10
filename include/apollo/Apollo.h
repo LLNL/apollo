@@ -101,15 +101,20 @@ class Apollo
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
-        CallpathRuntime *callpath_ptr;
-        std::string getCallpathOffset(int walk_distance=1);
+        // NOTE(chad): We default to walk_distance of 2 so we can
+        //             step out of this method, then step out of
+        //             our RAJA policy template, and get to the
+        //             module name and offset where that template
+        //             has been instantiated in the application code.
+        std::string getCallpathOffset(int walk_distance=2);
+        void *callpath_ptr;
 
         Apollo::Region *region(const char *regionName);
         //
         std::string model_def = ""; //ggout
         void attachModel(const char *modelEncoding);
         //
-        bool        isOnline();
+        bool isOnline();
         std::string uniqueRankIDText(void);
         //
         void flushAllRegionMeasurements(int assign_to_step);
@@ -117,6 +122,7 @@ class Apollo
         void *sos_handle;  // #include "sos_types.h":  SOS_runtime *sos = sos_handle;
         void *pub_handle;  // #include "sos_types.h":  SOS_pub     *pub = pub_handle;
         //
+        // Utility functions for SOS/environment interactions:
         int  sosPackInt(const char *name, int val);
         int  sosPackDouble(const char *name, double val);
         int  sosPackRelatedInt(uint64_t relation_id, const char *name, int val);
@@ -126,7 +132,7 @@ class Apollo
         void sosPublish();
         //
         void disconnect();
-
+        //
     private:
         Apollo();
         Apollo::Region *baseRegion;
@@ -143,6 +149,23 @@ class Apollo
 extern int
 getApolloPolicyChoice(Apollo::Region *reg);
 
+inline const char*
+safe_getenv(
+        const char *var_name,
+        const char *use_this_if_not_found,
+        bool        silent=false)
+{
+    char *c = getenv(var_name);
+    if (c == NULL) {
+        if (not silent) {
+            log("Looked for ", var_name, " with getenv(), found nothing, using '", \
+                use_this_if_not_found, "' (default) instead.");
+        }
+        return use_this_if_not_found;
+    } else {
+        return c;
+    }
+}
 
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)

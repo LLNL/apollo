@@ -10,7 +10,7 @@
 #include "apollo/Apollo.h"
 
 #ifndef APOLLO_VERBOSE
-#define APOLLO_VERBOSE 0
+#define APOLLO_VERBOSE 1
 #endif
 
 #ifndef APOLLO_LOG_FIRST_RANK_ONLY
