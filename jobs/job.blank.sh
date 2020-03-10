@@ -14,7 +14,7 @@ export EXPERIMENT_NODE_COUNT="2"     # <-- is SBATCH -N count, incl/extra agg. n
 #
 export  EXPERIMENT_BASE="/p/lustre2/${USER}/experiments/apollo"
 #
-export  SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}.${SLURM_JOB_ID}
+export  SOS_WORK=${EXPERIMENT_BASE}/${EXPERIMENT_JOB_TITLE}
 export  SOS_EVPATH_MEETUP=${SOS_WORK}/daemons
 #
 echo ""

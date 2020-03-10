@@ -52,6 +52,23 @@ from apollo.config import ONCE_THEN_EXIT
 
 ##########
 
+# the trees have the same params
+def equals_trees(tree1, tree2):
+    if hash(tree1.__dict__.values())==hash(tree2.__dict__.values()):
+        # the trees have both been trained
+        if tree1.tree_ != None and tree2.tree_ != None: 
+            try: # the tree values are matching arrays
+                return (tree1.tree_.value==tree2.tree_.value).all()
+            except: # they do not match
+                return False
+        elif tree1.tree_ != None or tree2.tree_ != None: 
+            # XOR of the trees is not trained
+            return False
+        else: # Neither has been trained
+            return True
+    else: # the params are different
+        return False
+
 def main():
     controller_start = time.time()
     SOS = SSOS()
@@ -64,11 +81,15 @@ def main():
     prior_frame_max = 0
 
     log(1, "Online.")
+    print("CREATE VIEW", flush=True) # ggout
     query.createApolloView(SOS, sos_host, sos_port)
 
     #log(1, "Wiping all prior data in the SOS database...")
-    #query.wipeAllExistingData(SOS, sos_host, sos_port)
+    print("WIPE DATA", flush=True) # ggout
+    query.wipeAllExistingData(SOS, sos_host, sos_port)
+    prev_dtree_def = None
 
+    triggers = 0
     while (os.environ.get("SOS_SHUTDOWN") != "TRUE"):
         # Clearing prior training data
         # query.wipeTrainingData(SOS, sos_host, sos_port, prior_frame_max)
@@ -76,9 +97,11 @@ def main():
                                 SOS, sos_host, sos_port,
                                 prior_frame_max)
         data, region_names = query.getTrainingData(SOS, sos_host, sos_port, row_limit=0);
-        data.to_pickle("./output/models/step.%d.trainingdata.pickle" % prior_frame_max)
-        with open(("./output/models/step.%d.region_names.pickle" % prior_frame_max), "wb") as f:
-            pickle.dump(region_names, f)
+        #print('data', data)
+        #print('region_names', region_names)
+        #data.to_pickle("./output/models/step.%d.trainingdata.pickle" % prior_frame_max)
+        #with open(("./output/models/step.%d.region_names.pickle" % prior_frame_max), "wb") as f:
+        #    pickle.dump(region_names, f)
 
         dataset_guid = SOS.get_guid()
 
@@ -89,11 +112,17 @@ def main():
                 one_big_tree=False)
         dtree_len = len(dtree_def)
 
+        if True:#prev_dtree_def == None or prev_dtree_def != dtree_def:
+            prev_dtree_def = dtree_def
+            SOS.trigger("APOLLO_MODELS", dtree_len, dtree_def)
+            triggers += 1
+            print("===> Trigger ", triggers, " because models differ", flush=True) # ggout
+
         # Model: RegressionTree
-        rtree_skl = trees.generateRegressionTree(log, data,
-                assign_guid=dataset_guid,
-                tree_max_depth=3,
-                one_big_tree=False)
+        #rtree_skl = trees.generateRegressionTree(log, data,
+        #        assign_guid=dataset_guid,
+        #        tree_max_depth=3,
+        #        one_big_tree=False)
 
         # TODO(chad): Add NN models / streaming models here
 

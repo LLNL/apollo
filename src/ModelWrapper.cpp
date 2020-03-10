@@ -103,6 +103,9 @@ Apollo::ModelWrapper::configure(
 
     std::stringstream model_buffer; // Used only if reading model from file.
 
+    //std::cout << "MODELWRAPPER CONFIGURE " << model_def_cstr << std::endl; //ggout
+    //std::cout.flush(); // ggout
+
     if (model_def_cstr == nullptr) {
         model_type = MT.Default;
     } else if (strlen(model_def_cstr) < 1) {
@@ -133,6 +136,7 @@ Apollo::ModelWrapper::configure(
         }
     } else {
         log("Using a learned model supplied to the .configure() method.");
+        //std::cout << "Using a learned model supplied to the .configure() method." << std::endl; //ggout
         model_def = model_def_cstr;
     }
 
@@ -298,6 +302,9 @@ Apollo::ModelWrapper::configure(
                 " the supplied model definition.\n", model_errors);
         exit(1);
     }
+
+    //std::cout << "m_type_name " << m_type_name << std::endl;
+    //std::cout.flush(); //ggout
 
     if      (m_type_name == "Random")       { model_type = MT.Random; }
     else if (m_type_name == "Sequential")   { model_type = MT.Sequential; }

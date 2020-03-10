@@ -420,7 +420,7 @@ def tree_to_data(decision_tree, feature_names=None, name_swap=None, y=None):
                 "impurity": tree.impurity[node_id],
                 "samples": tree.n_node_samples[node_id],
                 "value": list(value),
-                "class": decision_tree.classes_[np.argmax(value)]
+                "class": int(decision_tree.classes_[np.argmax(value)])
             }
         else:
             if feature_names is not None:

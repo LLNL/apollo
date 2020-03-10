@@ -6,6 +6,8 @@ mkdir install
 cd build
 #
 cmake   \
+        -DCMAKE_C_COMPILER=mpicc \
+        -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX=../install \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \

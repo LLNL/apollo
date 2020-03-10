@@ -39,6 +39,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <sys/time.h> //ggout
+
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
 
@@ -52,6 +54,13 @@ using json = nlohmann::json;
 using namespace std;
 
 
+double get_time()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (tv.tv_sec + tv.tv_usec / 1e6);
+}
+
 int
 Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     // Compare the node->value to the defined comparison values
@@ -63,10 +72,20 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     //IF this a LEAF node, return the int.
     //OTHERWISE...
     //
+    //double t1 = get_time(); //ggout
+
+    return 0; //ggout
+    // Leaf model, just return recommendation
+    if(node->parent_node == nullptr)
+        return node->recommendation;
+
     double feat_val = apollo->features[node->feature_index].value;
 
     if (feat_val <= node->value_LEQ) {
         if (node->left_child == nullptr) {
+            //std::cout << "feat_val " << feat_val << "-> recommendation " << node->recommendation << std::endl;
+            //std::cout.flush(); //ggout
+            //std::cout << "Treewalk " << (get_time() - t1) << " seconds" << std::endl; //ggout
             return node->recommendation;
         } else {
             return recursiveTreeWalk(node->left_child);
@@ -74,11 +93,15 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     }
     if (feat_val > node->value_LEQ) {
         if (node->right_child == nullptr) {
+            //std::cout << "feat_val " << feat_val << "-> recommendation " << node->recommendation << std::endl;
+            //std::cout.flush(); //ggout
+            //std::cout << "Treewalk " << (get_time() - t1) << " seconds" << std::endl; //ggout
             return node->recommendation;
         } else {
             return recursiveTreeWalk(node->right_child);
         }
     }
+
     return node->recommendation;
 } //end: recursiveTreeWalk(...)   [function]
 
@@ -137,7 +160,9 @@ Apollo::Model::DecisionTree::configure(
     model_def = model_definition;
 
     // Recursive function that constructs tree from nested JSON:
+    //double t1 = get_time();
     tree_head = nodeFromJson(model_def, nullptr, 1);
+    //std::cout << "Configure model " << (get_time() - t1 ) << " seconds" << std::endl; //ggout
 
     configured = true;
     return;
@@ -204,7 +229,9 @@ Apollo::Model::DecisionTree::nodeFromJson(
     } else {
         // [ ] We are a leaf, extract the values from the tree
         node->is_leaf = true;
-        node->feature_index = node->parent_node->feature_index;
+        
+        if( node->parent_node) //ggout
+            node->feature_index = node->parent_node->feature_index;
         node->recommendation_vector = j["value"].get<vector<float>>();
         // [ ] Look at the vector and find the index with the most clients
         //     in it, that's where the best performing kernels were clustered

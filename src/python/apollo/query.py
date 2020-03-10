@@ -181,9 +181,11 @@ def checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
 def waitForMoreRowsUsingSQL(SOS, sos_host, sos_port, prior_frame_max):
     max_frame = checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max)
     log(2, "Waiting for %d frames of new data..." % FRAME_INTERVAL)
+    print("waiting for data...", flush=True); # ggout
     while(max_frame < (prior_frame_max + FRAME_INTERVAL)):
-        time.sleep(1)
+        time.sleep(1) # ggout ggin
         max_frame = checkLatestFrameUsingSQL(SOS, sos_host, sos_port, prior_frame_max)
+        #print("Max frame: ", max_frame, flush=True) # ggout
     log(2, "Enough frames have arrived at SOS.  max_frame == %d" % max_frame)
     return max_frame
 

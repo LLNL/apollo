@@ -69,8 +69,13 @@ Apollo::Region::getPolicyIndex(void)
     int choice = mw->requestPolicyIndex();
     if (choice != current_policy) {
         apollo->setFeature("policy_index", (double) choice);
+        //std::cout << "Change policy " << current_policy << " -> " << choice << " region " << name << std::endl; //ggout
+        //std::cout.flush(); //ggout
+    } else {
+        //std::cout << "No policy change for region " << name << ", policy " << current_policy << std::endl; //gout
     }
     current_policy = choice;
+    //std::cout << "Region " << name << " policy " << current_policy << std::endl;
 
     //SOS_TIME(evaluation_time_stop);
     //evaluation_time_total = evaluation_time_stop - evaluation_time_start;
@@ -91,9 +96,23 @@ Apollo::Region::Region(
     currently_inside_region   = false;
 
     model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
-    model_wrapper->configure("");
+    //model_wrapper->configure("");
+    if(apollo->model_def != "") {
+        std::cout << "Using existing model" << std::endl; //ggout
+        std::cout.flush();
+    }
+    else {
+        std::cout << "Using empty model" << std::endl; //ggout
+        std::cout.flush();
+    }
 
+    apollo->regions_lock.lock(); //ggout
+    model_wrapper->configure(apollo->model_def.c_str()); //ggout
+
+    //std::cout << "Insert region " << name << " ptr " << this << std::endl;
+    //std::cout.flush(); //ggout
     apollo->regions.insert({name, this});
+    apollo->regions_lock.unlock();
 
     return;
 }

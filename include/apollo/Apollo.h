@@ -16,6 +16,7 @@
 
 #include "apollo/Logging.h"
 
+#include "CallpathRuntime.h" //ggout
 
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
 
@@ -100,11 +101,12 @@ class Apollo
         void    setFeature(std::string ft_name, double ft_val);
         double  getFeature(std::string ft_name);
 
-        void *callpath_ptr;
+        CallpathRuntime *callpath_ptr;
         std::string getCallpathOffset(int walk_distance=1);
 
         Apollo::Region *region(const char *regionName);
         //
+        std::string model_def = ""; //ggout
         void attachModel(const char *modelEncoding);
         //
         bool        isOnline();
@@ -128,6 +130,7 @@ class Apollo
     private:
         Apollo();
         Apollo::Region *baseRegion;
+        std::mutex regions_lock;
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
 
