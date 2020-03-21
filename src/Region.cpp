@@ -39,17 +39,29 @@
 
 #include "assert.h"
 
+#if ENABLE_SOS
 #include "sos.h"
 #include "sos_types.h"
+#endif
 
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
-#include "apollo/ModelWrapper.h"
 #include "apollo/Region.h"
+
+#include <mpi.h>
+#include <sys/time.h>
+
+#define GET_TIME(__now)                                     \
+{                                                           \
+    struct timeval t;                                       \
+    gettimeofday(&t, NULL);                                 \
+    __now = (double)(t.tv_sec + (t.tv_usec/1e6));           \
+}
 
 int
 Apollo::Region::getPolicyIndex(void)
 {
+#if 1 //ggout ggadd
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
                         " while NOT inside the region. Please call"
@@ -57,16 +69,15 @@ Apollo::Region::getPolicyIndex(void)
                         " when selecting a policy. (region->name == %s)\n", name);
         fflush(stderr);
     }
+#endif
 
     //double evaluation_time_start;
     //double evaluation_time_stop;
     //double evaluation_time_total;
     //SOS_TIME(evaluation_time_start);
 
-    Apollo::ModelWrapper *mw = getModelWrapper();
-    assert (mw != NULL);
-
-    int choice = mw->requestPolicyIndex();
+    //int choice = mw->requestPolicyIndex();
+    int choice = 0 ; //TODO ggout
     if (choice != current_policy) {
         apollo->setFeature("policy_index", (double) choice);
         //std::cout << "Change policy " << current_policy << " -> " << choice << " region " << name << std::endl; //ggout
@@ -74,8 +85,26 @@ Apollo::Region::getPolicyIndex(void)
     } else {
         //std::cout << "No policy change for region " << name << ", policy " << current_policy << std::endl; //gout
     }
+#if 0
+    if(choice >=2 && choice <=7) {
+        //std::cout << "Region " << name <<" DYNAMIC " << choice << std::endl; //ggout
+        choice = 7; //ggout
+    }
+    else if(choice >=8 && choice <=13) {
+        //std::cout << "Region " << name <<" GUIDED " << choice << std::endl; //ggout
+        choice = 13;
+    }
+    else if(choice >=14 && choice <=19) {
+        choice = 19;
+    }
+#endif
     current_policy = choice;
-    //std::cout << "Region " << name << " policy " << current_policy << std::endl;
+    /*if(choice < 0 || choice > 20) {
+        std::cout << "Region " << name <<" invalid choice " << choice << std::endl; //ggout
+        abort();
+    }*/
+    //if(choice !=0 ) //ggout
+    //    std::cout << "v4 Region " << name << " policy " << current_policy << std::endl;
 
     //SOS_TIME(evaluation_time_stop);
     //evaluation_time_total = evaluation_time_stop - evaluation_time_start;
@@ -90,29 +119,34 @@ Apollo::Region::Region(
         int          numAvailablePolicies)
 {
     apollo = Apollo::instance();
-    name   = strdup(regionName);
+    strncpy(name, regionName, sizeof(name)-1 );
+    name[ sizeof(name)-1 ] = '\0';
 
     current_policy            = 0;
     currently_inside_region   = false;
 
-    model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
-    //model_wrapper->configure("");
-    if(apollo->model_def != "") {
-        std::cout << "Using existing model" << std::endl; //ggout
-        std::cout.flush();
-    }
-    else {
-        std::cout << "Using empty model" << std::endl; //ggout
-        std::cout.flush();
-    }
+    //model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
 
+    //model_wrapper->configure("");
+#if 0 //ggout ggadd
     apollo->regions_lock.lock(); //ggout
-    model_wrapper->configure(apollo->model_def.c_str()); //ggout
+    if(apollo->model_def.empty()) {
+        std::cout << "Using empty model" << std::endl; //ggout
+        model_wrapper->configure(""); //ggout
+        std::cout.flush();
+    }
+    else { //ggout
+        std::cout << "Using existing model" << std::endl; //ggout
+        model_wrapper->configure(apollo->model_def.c_str()); //ggout
+        std::cout.flush();
+    }
+#endif
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     //std::cout.flush(); //ggout
+    //apollo->regions_lock.lock(); //ggout ggadd
     apollo->regions.insert({name, this});
-    apollo->regions_lock.unlock();
+    //apollo->regions_lock.unlock(); //ggout ggadd
 
     return;
 }
@@ -123,10 +157,10 @@ Apollo::Region::~Region()
         this->end();
     }
 
-    if (name != NULL) {
+    /*if (name != NULL) {
         free(name);
         name = NULL;
-    }
+    }*/
 
     return;
 }
@@ -135,6 +169,7 @@ Apollo::Region::~Region()
 void
 Apollo::Region::begin()
 {
+#if 1 //ggtest ggadd
     if (currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->begin() called"
                         " while already inside the region. Please call"
@@ -157,14 +192,25 @@ Apollo::Region::begin()
     //
     apollo->setFeature("policy_index", (double) current_policy);
 
+#if ENABLE_SOS
     SOS_TIME(current_exec_time_begin);
+#else
+    GET_TIME(current_exec_time_begin);
+#endif
+#endif
     return;
 }
 
 void
 Apollo::Region::end()
 {
+#if 1 //ggout gggadd
+#if ENABLE_SOS
     SOS_TIME(current_exec_time_end);
+#else
+    GET_TIME(current_exec_time_end);
+#endif
+
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
                         " while NOT inside the region. Please call"
@@ -177,6 +223,7 @@ Apollo::Region::end()
     // In case this was changed by the DecisionTree after the begin() call...
     apollo->setFeature("policy_index", (double) current_policy);
 
+#if 1 //ggout ggadd
     Apollo::Region::Measure *time = nullptr;
     auto iter = measures.find(apollo->features);
     if (iter == measures.end()) {
@@ -194,7 +241,10 @@ Apollo::Region::end()
         std::vector<Apollo::Feature> feat_copy = apollo->features;
         measures.insert({std::move(feat_copy), time});
     }
+#endif
+#endif
 
+#if ENABLE_SOS //ggtest
     if (false) {
         SOS_runtime *sos = (SOS_runtime *) apollo->sos_handle;
         int num_threads    = -1;
@@ -219,6 +269,7 @@ Apollo::Region::end()
             << std::fixed << (current_exec_time_end - current_exec_time_begin) \
             << std::endl;
     }
+#endif
 
     return;
 }
@@ -226,6 +277,7 @@ Apollo::Region::end()
 
 void
 Apollo::Region::flushMeasurements(int assign_to_step) {
+#if ENABLE_SOS //ggtest
     SOS_runtime *sos = (SOS_runtime *) apollo->sos_handle;
     SOS_guid relation_id = 0;
 
@@ -293,17 +345,54 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
         //measures.erase(iter_measure);
         //iter_measure = measures.begin();
     }
+#endif
 
 
     return;
 }
 
+void
+Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
+    int pos = 0;
 
+    for (auto iter_measure = measures.begin();
+             iter_measure != measures.end();   iter_measure++) {
 
-Apollo::ModelWrapper *
-Apollo::Region::getModelWrapper(void) {
-    return model_wrapper;
+        const std::vector<Apollo::Feature>& these_features = iter_measure->first;
+        Apollo::Region::Measure                  *time_set = iter_measure->second;
+
+        int rank;
+        MPI_Comm_rank( comm, &rank );
+        MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
+        std::cout << "------------------" << std::endl;
+        std::cout << "rank,"<< rank << " pos: " << pos << std::endl;
+        for (Apollo::Feature ft : these_features) {
+            MPI_Pack( &ft.value, 1, MPI_DOUBLE, buf, size, &pos, comm );
+            std::cout << ft.name <<","<< ft.value << " pos: " << pos << std::endl;
+            //apollo->sosPackRelatedDouble(relation_id, ft.name.c_str(), ft.value);
+        }
+        assert( these_features.size() == 3 );
+
+        //apollo->sosPackRelatedString(relation_id, "region_name", name);
+        // XXX: use 64 bytes fixed for region_name
+        MPI_Pack( name, 64, MPI_CHAR, buf, size, &pos, comm );
+        std::cout << "region_name," << name << " pos: " << pos << std::endl;
+        //apollo->sosPackRelatedInt(relation_id, "step", assign_to_step);
+        //apollo->sosPackRelatedInt(relation_id, "exec_count", time_set->exec_count);
+        MPI_Pack( &time_set->exec_count, 1, MPI_INT, buf, size, &pos, comm );
+        std::cout << "exec_count," << time_set->exec_count << " pos: " << pos << std::endl;
+        assert( exec_count > 0 );
+        //apollo->sosPackRelatedDouble(relation_id, "time_avg",
+        //        (time_set->time_total / time_set->exec_count));
+        double avg_time = (time_set->time_total / time_set->exec_count);
+        assert( avg_time > 0 );
+        MPI_Pack( &avg_time, 1, MPI_DOUBLE, buf, size, &pos, comm );
+
+        std::cout << "time_avg," << avg_time << " pos: " << pos << std::endl;
+
+        std::cout << "~~~~~~~~~~~~~~~~~" << std::endl;
+    }
+
+    return;
 }
-
-
 

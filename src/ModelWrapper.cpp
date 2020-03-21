@@ -44,8 +44,10 @@
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
 
+#if ENABLE_SOS
 #include "sos.h"
 #include "sos_types.h"
+#endif
 
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"

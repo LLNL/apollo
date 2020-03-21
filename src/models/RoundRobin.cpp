@@ -42,7 +42,9 @@ using json = nlohmann::json;
 #include "apollo/Apollo.h"
 #include "apollo/models/RoundRobin.h"
 
+#if ENABLE_SOS
 #include "sos.h"
+#endif
 
 #define modelName "roundrobin"
 #define modelFile __FILE__

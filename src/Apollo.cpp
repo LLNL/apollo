@@ -56,8 +56,16 @@ using json = nlohmann::json;
 //
 #include "util/Debug.h"
 //
+#if ENABLE_SOS
 #include "sos.h"
 #include "sos_types.h"
+#endif
+
+//ggout
+//#include <opencv2/ml.hpp>
+//using namespace cv;
+//using namespace cv::ml;
+
 
 inline void replace_all(std::string& input, const std::string& from, const std::string& to) {
 	size_t pos = 0;
@@ -78,6 +86,7 @@ Apollo::getCallpathOffset(int walk_distance)
     //            performance tool instrumentation), and get the module
     //            and offset of the application's instantiation of
     //            a loop or steerable region.
+    walk_distance = 2; //ggout
     CallpathRuntime *cp = (CallpathRuntime *) callpath_ptr;
     // Set up this Apollo::Region for the first time:       (Runs only once)
     std::stringstream ss_location;
@@ -92,6 +101,7 @@ Apollo::getCallpathOffset(int walk_distance)
 }
 
 
+#if ENABLE_SOS
 void
 handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
 {
@@ -170,6 +180,7 @@ Apollo::attachModel(const char *def)
     // that region's modelwrapper.  (The def* points to the whole package
     // of models, the configure() method will extract the specific model
     // that applies to it)
+    apollo->regions_lock.lock(); //ggout //ggadd
     for (auto it : regions) {
         Apollo::Region *region = it.second;
         if (def_has_wildcard_model) {
@@ -186,14 +197,17 @@ Apollo::attachModel(const char *def)
             }
         }
     };
+    apollo->regions_lock.unlock(); //ggout //ggadd
 
     return;
 }
+#endif
 
 
 
 Apollo::Apollo()
 {
+#if ENABLE_SOS
     ynConnectedToSOS = false;
 
     SOS_runtime *sos = NULL;
@@ -210,8 +224,6 @@ Apollo::Apollo()
     SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
     SOS_reference_set(sos, "APOLLO_PUB", (void *) pub);
 
-    callpath_ptr = new CallpathRuntime;
-
     if (pub == NULL) {
         fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
                 " publication handle.\n");
@@ -221,12 +233,17 @@ Apollo::Apollo()
         sos = NULL;
         return;
     }
+#endif
+
+    callpath_ptr = new CallpathRuntime;
 
     // For other components of Apollo to access the SOS API w/out the include
     // file spreading SOS as a project build dependency, store these as void *
     // references in the class:
+#if ENABLE_SOS //ggtest
     sos_handle = sos;
     pub_handle = pub;
+#endif
 
     log("Reading SLURM env...");
     numNodes         = std::stoi(safe_getenv("SLURM_NNODES", "1"));
@@ -291,10 +308,12 @@ Apollo::Apollo()
     // At this point we have a valid SOS runtime and pub handle.
     // NOTE: The assumption here is that there is 1:1 ratio of Apollo
     //       instances per process.
+#if ENABLE_SOS //ggtest
     SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this);
     SOS_sense_register(sos, "APOLLO_MODELS");
 
     ynConnectedToSOS = true;
+#endif
 
     log("Initialized.");
 
@@ -303,6 +322,7 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
+#if ENABLE_SOS //ggtest
     SOS_runtime *sos = (SOS_runtime *) sos_handle;
     if (sos != NULL) {
         SOS_finalize(sos);
@@ -312,12 +332,14 @@ Apollo::~Apollo()
         // this destructor is only called when the process is terminating.
         pub_handle = NULL;
     }
+#endif
     delete callpath_ptr;
 }
 
 void
 Apollo::flushAllRegionMeasurements(int assign_to_step)
 {
+#if ENABLE_SOS //ggtest
     SOS_pub *pub = (SOS_pub *) pub_handle;
 
     auto it = regions.begin();
@@ -327,6 +349,130 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
         ++it;
     }
     SOS_publish(pub);
+
+#else
+
+    MPI_Comm comm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+    int num_measures = 0;
+    for(auto it = regions.begin(); it != regions.end(); ++it) {
+        Apollo::Region *reg = it->second;
+        num_measures += reg->measures.size();
+    }
+
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    std::ofstream ofile("rank-" + std::to_string(rank) + "-measures-" + std::to_string(assign_to_step) + std::string(".txt") );
+    // 3 fixed features: region_name, exec_count, time_avg
+    int size = 0, measure_size = 0;
+    MPI_Pack_size( 1, MPI_INT, comm, &size);
+    measure_size += size;
+    MPI_Pack_size( features.size(), MPI_DOUBLE, comm, &size);
+    assert( features.size() == 3 );
+    measure_size += size;
+    MPI_Pack_size( 64, MPI_CHAR, comm, &size);
+    measure_size += size;
+    MPI_Pack_size( 1, MPI_INT, comm, &size);
+    measure_size += size;
+    MPI_Pack_size( 1, MPI_DOUBLE, comm, &size);
+    measure_size += size;
+
+    char *sendbuf = (char *)malloc( num_measures  * measure_size );
+    ofile << "measure_size: " << measure_size << ", total: " << measure_size * num_measures << std::endl;
+    int offset = 0;
+    for(auto it = regions.begin(); it != regions.end(); ++it) {
+        Apollo::Region *reg = it->second;
+        reg->packMeasurements(sendbuf + offset, reg->measures.size() * measure_size, comm);
+        offset += reg->measures.size() * measure_size;
+    }
+
+    int num_ranks;
+    MPI_Comm_size(comm, &num_ranks);
+    ofile << "num_ranks: " << num_ranks << std::endl;
+
+    int num_measures_per_rank[ num_ranks ];
+
+    MPI_Allgather( &num_measures, 1, MPI_INT, &num_measures_per_rank, 1, MPI_INT, comm);
+
+    ofile << "MEASURES:" ;
+    for(int i = 0; i < num_ranks; i++) {
+        ofile << i << ":" << num_measures_per_rank[i] << ", ";
+    }
+    ofile << std::endl;
+
+    int total_measures = 0;
+    for(int i = 0; i < num_ranks; i++) {
+        total_measures += num_measures_per_rank[i];
+    }
+
+    char *recvbuf = (char *) malloc( total_measures * measure_size );
+    int recv_size_per_rank[ num_ranks ];
+
+    for(int i = 0; i < num_ranks; i++)
+        recv_size_per_rank[i] = num_measures_per_rank[i] * measure_size;
+
+    int disp[ num_ranks ];
+    disp[0] = 0;
+    for(int i = 1; i < num_ranks; i++) {
+        disp[i] = disp[i-1] + recv_size_per_rank[i-1];
+    }
+    ofile <<"DISP:";
+    for(int i = 0; i < num_ranks; i++) {
+        ofile << i << ":" << disp[i] << ", ";
+    }
+    ofile << std::endl;
+
+    MPI_Allgatherv( sendbuf, num_measures * measure_size, MPI_PACKED, \
+            recvbuf, recv_size_per_rank, disp, MPI_PACKED, comm );
+
+    ofile << "Rank " << rank << " FLUSH ALL MEASUREMENTS " << std::endl; //ggout
+
+    ofile << "Rank " << rank << " TOTAL_MEASURES: " << total_measures << std::endl;
+    ofile << "rank, ";
+    for (Apollo::Feature &ft : features)
+        ofile << ft.name << ", ";
+    ofile<<"region_name, exec_count, time_avg" << std::endl;
+
+    //std::map<double, std::pair< int, double > > samples; //ggout
+
+    for(int i = 0; i < total_measures; i++) {
+        int pos = 0;
+        int rank;
+        double policy_index, num_elements, num_threads;
+        char region_name[64];
+        int exec_count;
+        double time_avg;
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &rank, 1, MPI_INT, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &policy_index, 1, MPI_DOUBLE, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &num_elements, 1, MPI_DOUBLE, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &num_threads, 1, MPI_DOUBLE, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, region_name, 64, MPI_CHAR, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &exec_count, 1, MPI_INT, comm);
+        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
+
+        /*if( samples.insert( std::pair( num_elements, std::pair( policy_index, time_avg ) ) ).second == false ) {
+            samples[ num_elements ] = ( 
+        }*/ //ggout
+
+        ofile << rank << ", " << policy_index << ", " << num_elements << ", " << num_threads << ", " << region_name
+            << ", " << exec_count << ", " << time_avg << std::endl;
+    }
+
+    ofile << "================== END ==================" << std::endl;
+    ofile.close();
+
+    free( sendbuf );
+    free( recvbuf );
+
+    for(auto it = regions.begin(); it != regions.end(); ++it) {
+        Apollo::Region *reg = it->second;
+        reg->measures.clear();
+    }
+
+    // One model for all regions
+
+#endif
+
     return;
 }
 
@@ -383,6 +529,7 @@ Apollo::region(const char *regionName)
 
 }
 
+#if ENABLE_SOS //ggtest
 std::string
 Apollo::uniqueRankIDText(void)
 {
@@ -395,8 +542,6 @@ Apollo::uniqueRankIDText(void)
     ss_text << "}";
     return ss_text.str();
 }
-
-
 int
 Apollo::sosPackRelatedInt(uint64_t relation_id, const char *name, int val)
 {
@@ -448,7 +593,8 @@ void Apollo::sosPublish()
 bool Apollo::isOnline()
 {
     return ynConnectedToSOS;
-}
+
+#endif
 
 
 

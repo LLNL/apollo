@@ -1,4 +1,5 @@
 #!/bin/bash
+
 rm -rf ./build
 rm -rf ./install
 mkdir build
@@ -6,13 +7,12 @@ mkdir install
 cd build
 #
 cmake   \
-        -DCMAKE_C_COMPILER=mpicc \
-        -DCMAKE_CXX_COMPILER=mpicxx \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_INSTALL_PREFIX=../install \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DOPT_REPORT_FILE=$HOME/src/apollo/install/intel.opt.report.apollo.out \
-        -DSOS_DIR=$HOME/src/sos_flow/install \
-        -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
-        ..
+    -DCMAKE_C_COMPILER=mpicc \
+    -DCMAKE_CXX_COMPILER=mpicxx \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_INSTALL_PREFIX=../install \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DSOS_DIR=$HOME/src/sos_flow/install \
+    -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
+    ..
 make -j 8 && make install && cd .. && tree install

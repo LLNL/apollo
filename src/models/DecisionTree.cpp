@@ -73,36 +73,18 @@ Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
     //OTHERWISE...
     //
     //double t1 = get_time(); //ggout
-
-    return 0; //ggout
-    // Leaf model, just return recommendation
-    if(node->parent_node == nullptr)
-        return node->recommendation;
-
-    double feat_val = apollo->features[node->feature_index].value;
-
-    if (feat_val <= node->value_LEQ) {
-        if (node->left_child == nullptr) {
-            //std::cout << "feat_val " << feat_val << "-> recommendation " << node->recommendation << std::endl;
-            //std::cout.flush(); //ggout
-            //std::cout << "Treewalk " << (get_time() - t1) << " seconds" << std::endl; //ggout
-            return node->recommendation;
-        } else {
-            return recursiveTreeWalk(node->left_child);
-        }
-    }
-    if (feat_val > node->value_LEQ) {
-        if (node->right_child == nullptr) {
-            //std::cout << "feat_val " << feat_val << "-> recommendation " << node->recommendation << std::endl;
-            //std::cout.flush(); //ggout
-            //std::cout << "Treewalk " << (get_time() - t1) << " seconds" << std::endl; //ggout
-            return node->recommendation;
-        } else {
-            return recursiveTreeWalk(node->right_child);
-        }
+    //
+    
+    Node *iter;
+    for(iter=node; !iter->is_leaf; ) {
+        double feat_val = apollo->features[iter->feature_index].value;
+        if (feat_val <= iter->value_LEQ)
+            iter = iter->left_child;
+        else
+            iter = iter->right_child;
     }
 
-    return node->recommendation;
+    return iter->recommendation;
 } //end: recursiveTreeWalk(...)   [function]
 
 
@@ -230,14 +212,21 @@ Apollo::Model::DecisionTree::nodeFromJson(
         // [ ] We are a leaf, extract the values from the tree
         node->is_leaf = true;
         
-        if( node->parent_node) //ggout
+        if(node->parent_node) {//ggout
             node->feature_index = node->parent_node->feature_index;
+        }
         node->recommendation_vector = j["value"].get<vector<float>>();
         // [ ] Look at the vector and find the index with the most clients
         //     in it, that's where the best performing kernels were clustered
         //     at this point in the decision tree:
         //
         node->recommendation = j["class"].get<int>();
+
+        /*if(node->recommendation < 0 || node->recommendation > 20) { //ggout
+            std::cout << "Invalid recommendation " << node->recommendation << std::endl;
+            abort();
+        }*/
+
         log(indent, "use kernel_variant ", node->recommendation);
     }
 

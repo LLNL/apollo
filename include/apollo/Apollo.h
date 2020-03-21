@@ -16,9 +16,8 @@
 
 #include "apollo/Logging.h"
 
-#include "CallpathRuntime.h" //ggout
-
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
+#define ENABLE_SOS 0
 
 extern "C" {
     // SOS will deliver triggers and query results here:
@@ -111,13 +110,14 @@ class Apollo
 
         Apollo::Region *region(const char *regionName);
         //
-        std::string model_def = ""; //ggout
+        std::mutex regions_lock; //ggout ggadd
         void attachModel(const char *modelEncoding);
         //
         bool isOnline();
         std::string uniqueRankIDText(void);
         //
         void flushAllRegionMeasurements(int assign_to_step);
+#if ENABLE_SOS//ggtest
         //
         void *sos_handle;  // #include "sos_types.h":  SOS_runtime *sos = sos_handle;
         void *pub_handle;  // #include "sos_types.h":  SOS_pub     *pub = pub_handle;
@@ -133,14 +133,13 @@ class Apollo
         //
         void disconnect();
         //
+#endif
     private:
         Apollo();
         Apollo::Region *baseRegion;
-        std::mutex regions_lock;
         std::map<const char *, Apollo::Region *> regions;
         std::list<Apollo::ModelWrapper *> models;
 
-        void *getContextHandle();
         bool  ynConnectedToSOS;
 
 }; //end: Apollo

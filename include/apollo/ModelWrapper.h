@@ -35,14 +35,6 @@ class Apollo::ModelWrapper {
         //
         std::shared_ptr<Apollo::ModelObject> model_sptr;
 
-        // ----------
-        // NOTE: Deprecated because we're not dlopen'ing models
-        //       as external shared objects.
-        //       Keeping this as function signature reference.
-        //Apollo::ModelObject* (*create)();
-        // NOTE: Destruction is handled by std::shared_ptr now.
-        //void (*destroy)(Apollo::ModelObject*);
-
 }; //end: Apollo::Model
 
 
