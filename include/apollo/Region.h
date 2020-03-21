@@ -29,6 +29,7 @@ class Apollo::Region {
         void     begin();
         void     end();
 
+        Apollo::ModelWrapper *getModelWrapper(void);
         int                   getPolicyIndex(void);
 
         std::unordered_map<std::vector<Apollo::Feature>, Apollo::Region::Measure *>

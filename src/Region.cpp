@@ -125,22 +125,8 @@ Apollo::Region::Region(
     current_policy            = 0;
     currently_inside_region   = false;
 
-    //model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
-
-    //model_wrapper->configure("");
-#if 0 //ggout ggadd
-    apollo->regions_lock.lock(); //ggout
-    if(apollo->model_def.empty()) {
-        std::cout << "Using empty model" << std::endl; //ggout
-        model_wrapper->configure(""); //ggout
-        std::cout.flush();
-    }
-    else { //ggout
-        std::cout << "Using existing model" << std::endl; //ggout
-        model_wrapper->configure(apollo->model_def.c_str()); //ggout
-        std::cout.flush();
-    }
-#endif
+    model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
+    model_wrapper->configure("");
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     //std::cout.flush(); //ggout
@@ -349,6 +335,11 @@ Apollo::Region::flushMeasurements(int assign_to_step) {
 
 
     return;
+}
+
+Apollo::ModelWrapper *
+Apollo::Region::getModelWrapper(void) {
+    return model_wrapper;
 }
 
 void
