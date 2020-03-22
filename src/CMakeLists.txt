@@ -46,16 +46,13 @@ endif()
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${CALIPER_INCLUDE_DIR})
 include_directories(
-    ../include/external/nlohmann/
     ../include/external/cxxopts/
     )
 
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
     ../include/apollo/Logging.h
-    ../include/apollo/ModelWrapper.h
     ../include/apollo/Region.h
-    ../include/apollo/Explorable.h
     ../include/apollo/Model.h
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
@@ -67,8 +64,6 @@ set(APOLLO_HEADERS
 set(APOLLO_SOURCES
     Apollo.cpp
     Region.cpp
-    Explorable.cpp
-    ModelWrapper.cpp
     models/Random.cpp
     models/Sequential.cpp
     models/Static.cpp
@@ -85,12 +80,8 @@ foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
 endforeach()
 
 install(FILES ${APOLLO_HEADERS} DESTINATION include/apollo)
-install(FILES ../include/external/nlohmann/json.hpp DESTINATION include/external/nlohmann)
 
 install(TARGETS apollo
     EXPORT apollo
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib)
-
-add_subdirectory(tools)
-

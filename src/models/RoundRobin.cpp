@@ -36,15 +36,8 @@
 #include <string>
 #include <cstring>
 
-#include "external/nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include "apollo/Apollo.h"
 #include "apollo/models/RoundRobin.h"
-
-#if ENABLE_SOS
-#include "sos.h"
-#endif
 
 #define modelName "roundrobin"
 #define modelFile __FILE__
@@ -64,12 +57,10 @@ Apollo::Model::RoundRobin::getIndex(void)
 
 void
 Apollo::Model::RoundRobin::configure(
-        int   num_policies,
-        json  new_model_rule)
+        int   num_policies)
 {
     apollo        = Apollo::instance();
     policy_count  = num_policies;
-    model_def     = new_model_rule;
 
     int rank = 1;
     char *slurm_procid = getenv("SLURM_PROCID");
@@ -97,7 +88,6 @@ Apollo::Model::RoundRobin::RoundRobin()
 {
     name = "RoundRobin";
     training = true;
-    iter_count = 0;
 }
 
 Apollo::Model::RoundRobin::~RoundRobin()

@@ -7,19 +7,16 @@
 #include <tuple>
 #include <algorithm>
 
-#include "external/nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::DecisionTree : public Apollo::ModelObject {
+class Apollo::Model::DecisionTree : public Apollo::Model {
 
     public:
         DecisionTree();
         ~DecisionTree();
 
-        void configure(int num_policies, json model_definition);
+        void configure(int num_policies);
 
         int  getIndex(void);
 
@@ -43,10 +40,8 @@ class Apollo::Model::DecisionTree : public Apollo::ModelObject {
                 Node             *parent_node;
 
                 int         indent;
-                int         json_id;
         }; // end: Node (class)
 
-        Node* nodeFromJson(nlohmann::json parsed_json, Node *parent, int indent);
         int  recursiveTreeWalk(Node *node);
 
         Node                   *tree_head;

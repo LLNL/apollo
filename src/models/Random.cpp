@@ -35,9 +35,6 @@
 #include <random>
 #include <mutex>
 
-#include "external/nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include "apollo/Apollo.h"
 #include "apollo/models/Random.h"
 
@@ -48,8 +45,6 @@ using json = nlohmann::json;
 int
 Apollo::Model::Random::getIndex(void)
 {
-    iter_count++;
-
     int choice = 0;
 
     if (policy_count > 1) {
@@ -67,15 +62,13 @@ Apollo::Model::Random::getIndex(void)
 
 void
 Apollo::Model::Random::configure(
-        int num_policies,
-        json new_model_def)
+        int num_policies)
 {
     apollo = Apollo::instance();
     policy_count = num_policies;
-    model_def = new_model_def;
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, (policy_count - 1));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, (policy_count - 1));
     configured = true;
     return;
 }
@@ -90,7 +83,6 @@ Apollo::Model::Random::configure(
 Apollo::Model::Random::Random()
 {
     name = "Random";
-    iter_count = 0;
 }
 
 Apollo::Model::Random::~Random()

@@ -223,10 +223,6 @@ if(APOLLO_REQUIRES_PYTHON)
 
 endif(APOLLO_REQUIRES_PYTHON)
 
-# JSON parser (nlohmann-json)
-include_directories(./include/nlohmann)
-message(STATUS "---- JSON:  Found!")
-
 #####
 #
 # Define build targets for Apollo

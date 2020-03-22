@@ -46,21 +46,12 @@
 
 #include "CallpathRuntime.h"
 
-#include "external/nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
 #include "apollo/Region.h"
-#include "apollo/ModelWrapper.h"
 //
 #include "util/Debug.h"
 //
-#if ENABLE_SOS
-#include "sos.h"
-#include "sos_types.h"
-#endif
-
 //ggout
 //#include <opencv2/ml.hpp>
 //using namespace cv;
@@ -100,151 +91,13 @@ Apollo::getCallpathOffset(int walk_distance)
     return offsetstr;
 }
 
-
-#if ENABLE_SOS
-void
-handleFeedback(void *sos_context, int msg_type, int msg_size, void *data)
-{
-    Apollo *apollo = Apollo::instance();
-
-    SOS_msg_header header;
-    int   offset = 0;
-    char *tree;
-    struct ApolloDec;
-
-
-    switch (msg_type) {
-        //
-        case SOS_FEEDBACK_TYPE_QUERY:
-            log("Query results received. (msg_size == ", msg_size, ")");
-            break;
-        case SOS_FEEDBACK_TYPE_CACHE:
-            log("Cache results received. (msg_size == ", msg_size, ")");
-            break;
-        //
-        case SOS_FEEDBACK_TYPE_PAYLOAD:
-            //NOTE: data may not be a null-terminated string, so we put it into one.
-            char *cleanstr = (char *) calloc(msg_size + 1, sizeof(char));
-            strncpy(cleanstr, (const char *)data, msg_size);
-            call_Apollo_attachModel(apollo, (char *) cleanstr);
-            free(cleanstr);
-            break;
-    }
-
-
-    return;
-}
-
-extern "C" void
-call_Apollo_attachModel(void *apollo_ref, const char *def)
-{
-    Apollo *apollo = (Apollo *) apollo_ref;
-    apollo->attachModel(def);
-    return;
-}
-
-void
-Apollo::attachModel(const char *def)
-{
-    Apollo *apollo = Apollo::instance();
-
-    int  i;
-    bool def_has_wildcard_model = false;
-
-    if (def == NULL) {
-        log("[ERROR] apollo->attachModel() called with a"
-                    " NULL model definition. Doing nothing.");
-        return;
-    }
-
-    if (strlen(def) < 1) {
-        log("[ERROR] apollo->attachModel() called with an"
-                    " empty model definition. Doing nothing.");
-        return;
-    }
-
-    // Extract the list of region names for this "package of models"
-    std::vector<std::string> region_names;
-    json j = json::parse(std::string(def));
-    if (j.find("region_names") != j.end()) {
-        region_names = j["region_names"].get<std::vector<std::string>>();
-    }
-
-    if (std::find(std::begin(region_names), std::end(region_names),
-                "__ANY_REGION__") != std::end(region_names)) {
-        def_has_wildcard_model = true;
-    }
-
-    // Roll through the regions in this process, and if it this region is
-    // in the list of regions with a new model in the package, configure
-    // that region's modelwrapper.  (The def* points to the whole package
-    // of models, the configure() method will extract the specific model
-    // that applies to it)
-    apollo->regions_lock.lock(); //ggout //ggadd
-    for (auto it : regions) {
-        Apollo::Region *region = it.second;
-        if (def_has_wildcard_model) {
-            // Everyone will get either a specific model from the definintion, or
-            // the __ANY_REGION__ fallback.
-            region->getModelWrapper()->configure(def);
-            // TODO: We need a version that only attaches models to unassigned regions,
-            // that does not update ALL regions, for instances where we have some regions
-            // explicitly retraining and don't want to interrupt them
-        } else {
-            if (std::find(std::begin(region_names), std::end(region_names),
-                        region->name) != std::end(region_names)) {
-                region->getModelWrapper()->configure(def);
-            }
-        }
-    };
-    apollo->regions_lock.unlock(); //ggout //ggadd
-
-    return;
-}
-#endif
-
-
-
 Apollo::Apollo()
 {
-#if ENABLE_SOS
-    ynConnectedToSOS = false;
-
-    SOS_runtime *sos = NULL;
-    SOS_pub     *pub = NULL;
-
-    SOS_init(&sos, SOS_ROLE_CLIENT,
-            SOS_RECEIVES_DIRECT_MESSAGES, handleFeedback);
-    if (sos == NULL) {
-        fprintf(stderr, "== APOLLO: [WARNING] Unable to communicate"
-                " with the SOS daemon.\n");
-        return;
-    }
-
-    SOS_pub_init(sos, &pub, (char *)"APOLLO", SOS_NATURE_SUPPORT_EXEC);
-    SOS_reference_set(sos, "APOLLO_PUB", (void *) pub);
-
-    if (pub == NULL) {
-        fprintf(stderr, "== APOLLO: [WARNING] Unable to create"
-                " publication handle.\n");
-        if (sos != NULL) {
-            SOS_finalize(sos);
-        }
-        sos = NULL;
-        return;
-    }
-#endif
-
     callpath_ptr = new CallpathRuntime;
 
     // For other components of Apollo to access the SOS API w/out the include
     // file spreading SOS as a project build dependency, store these as void *
     // references in the class:
-#if ENABLE_SOS //ggtest
-    sos_handle = sos;
-    pub_handle = pub;
-#endif
-
     log("Reading SLURM env...");
     numNodes         = std::stoi(safe_getenv("SLURM_NNODES", "1"));
     log("    numNodes ................: ", numNodes);
@@ -302,18 +155,8 @@ Apollo::Apollo()
     //omp_set_num_threads(ompDefaultNumThreads);
     //omp_set_schedule(ompDefaultSchedule, -1);
 
-
-
-
-    // At this point we have a valid SOS runtime and pub handle.
-    // NOTE: The assumption here is that there is 1:1 ratio of Apollo
-    //       instances per process.
-#if ENABLE_SOS //ggtest
-    SOS_reference_set(sos, "APOLLO_CONTEXT", (void *) this);
-    SOS_sense_register(sos, "APOLLO_MODELS");
-
-    ynConnectedToSOS = true;
-#endif
+    // Duplicate world for Apollo library communication
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
     log("Initialized.");
 
@@ -322,38 +165,12 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
-#if ENABLE_SOS //ggtest
-    SOS_runtime *sos = (SOS_runtime *) sos_handle;
-    if (sos != NULL) {
-        SOS_finalize(sos);
-        sos = NULL;
-        sos_handle = NULL;
-        // Leaving the pub in place leaks a little bit of memory, but
-        // this destructor is only called when the process is terminating.
-        pub_handle = NULL;
-    }
-#endif
     delete callpath_ptr;
 }
 
 void
 Apollo::flushAllRegionMeasurements(int assign_to_step)
 {
-#if ENABLE_SOS //ggtest
-    SOS_pub *pub = (SOS_pub *) pub_handle;
-
-    auto it = regions.begin();
-    while (it != regions.end()) {
-        Apollo::Region *reg = it->second;
-        reg->flushMeasurements(assign_to_step);
-        ++it;
-    }
-    SOS_publish(pub);
-
-#else
-
-    MPI_Comm comm;
-    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     int num_measures = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Apollo::Region *reg = it->second;
@@ -471,8 +288,6 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
 
     // One model for all regions
 
-#endif
-
     return;
 }
 
@@ -528,73 +343,3 @@ Apollo::region(const char *regionName)
     }
 
 }
-
-#if ENABLE_SOS //ggtest
-std::string
-Apollo::uniqueRankIDText(void)
-{
-    SOS_pub *pub = (SOS_pub *) pub_handle;
-    std::stringstream ss_text;
-    ss_text << "{";
-    ss_text << "hostname: \"" << pub->node_id      << "\",";
-    ss_text << "pid: \""      << pub->process_id   << "\",";
-    ss_text << "mpi_rank: \"" << pub->comm_rank    << "\"";
-    ss_text << "}";
-    return ss_text.str();
-}
-int
-Apollo::sosPackRelatedInt(uint64_t relation_id, const char *name, int val)
-{
-    if (isOnline()) {
-        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_INT, &val);
-    } else {
-        return -1;
-    }
-}
-
-int
-Apollo::sosPackRelatedDouble(uint64_t relation_id, const char *name, double val)
-{
-    if (isOnline()) {
-        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_DOUBLE, &val);
-    } else {
-        return -1;
-    }
-}
-
-int
-Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, const char *val)
-{
-    if (isOnline()) {
-        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val);
-    } else {
-        return -1;
-    }
-}
-int
-Apollo::sosPackRelatedString(uint64_t relation_id, const char *name, std::string val)
-{
-    if (isOnline()) {
-        return SOS_pack_related((SOS_pub *)pub_handle, relation_id, name, SOS_VAL_TYPE_STRING, val.c_str());
-    } else {
-        return -1;
-    }
-}
-
-void Apollo::sosPublish()
-{
-    SOS_pub *pub = (SOS_pub *) pub_handle;
-    if (isOnline()) {
-        SOS_publish(pub);
-    }
-}
-
-
-bool Apollo::isOnline()
-{
-    return ynConnectedToSOS;
-
-#endif
-
-
-

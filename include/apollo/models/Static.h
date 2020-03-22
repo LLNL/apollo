@@ -3,18 +3,15 @@
 
 #include <string>
 
-#include "external/nlohmann/json.hpp"
-using json = nlohmann::json;
-
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::Static : public Apollo::ModelObject {
+class Apollo::Model::Static : public Apollo::Model {
     public:
         Static();
         ~Static();
 
-        void configure(int num_policies, json model_definition);
+        void configure(int num_policies);
         //
         int  getIndex(void);
 

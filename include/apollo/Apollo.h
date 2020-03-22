@@ -13,25 +13,12 @@
 #include <vector>
 
 #include <omp.h>
+#include <mpi.h>
 
 #include "apollo/Logging.h"
+#include "CallpathRuntime.h"
 
 #define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
-#define ENABLE_SOS 0
-
-extern "C" {
-    // SOS will deliver triggers and query results here:
-    void
-    handleFeedback(void *sos_context,
-                   int msg_type,
-                   int msg_size,
-                   void *data);
-
-    // Used to call Apollo functions from the above C code:
-    void call_Apollo_attachModel(void *apollo, const char *def);
-}
-
-
 
 class Apollo
 {
@@ -46,30 +33,9 @@ class Apollo
             return &the_instance;
         }
 
-        enum class Hint : int {
-            INDEPENDENT,
-            DEPENDENT
-        };
-
-        enum class Goal : int {
-            OBSERVE,
-            MINIMIZE,
-            MAXIMIZE
-        };
-
-        enum class Unit : int {
-            INTEGER,
-            DOUBLE,
-            CSTRING
-        };
-
-
         // Forward declarations:
         class Region;
         class Model;
-        class ModelObject;
-        class ModelWrapper;
-        class Explorable;
 
         class Feature
 		{
@@ -106,42 +72,17 @@ class Apollo
         //             module name and offset where that template
         //             has been instantiated in the application code.
         std::string getCallpathOffset(int walk_distance=2);
-        void *callpath_ptr;
+        CallpathRuntime *callpath_ptr;
 
         Apollo::Region *region(const char *regionName);
         //
-        std::mutex regions_lock; //ggout ggadd
-        void attachModel(const char *modelEncoding);
-        //
         bool isOnline();
-        std::string uniqueRankIDText(void);
         //
         void flushAllRegionMeasurements(int assign_to_step);
-#if ENABLE_SOS//ggtest
-        //
-        void *sos_handle;  // #include "sos_types.h":  SOS_runtime *sos = sos_handle;
-        void *pub_handle;  // #include "sos_types.h":  SOS_pub     *pub = pub_handle;
-        //
-        // Utility functions for SOS/environment interactions:
-        int  sosPackInt(const char *name, int val);
-        int  sosPackDouble(const char *name, double val);
-        int  sosPackRelatedInt(uint64_t relation_id, const char *name, int val);
-        int  sosPackRelatedDouble(uint64_t relation_id, const char *name, double val);
-        int  sosPackRelatedString(uint64_t relation_id, const char *name, const char *val);
-        int  sosPackRelatedString(uint64_t relation_id, const char *name, std::string val);
-        void sosPublish();
-        //
-        void disconnect();
-        //
-#endif
     private:
+        MPI_Comm comm;
         Apollo();
-        Apollo::Region *baseRegion;
         std::map<const char *, Apollo::Region *> regions;
-        std::list<Apollo::ModelWrapper *> models;
-
-        bool  ynConnectedToSOS;
-
 }; //end: Apollo
 
 // Implemented in src/Region.cpp:
@@ -187,7 +128,7 @@ namespace std
                 //Combine hash of current vector with hashes of previous ones
                 hash_combine(seed, in[i].name);
                 hash_combine(seed, in[i].value);
-			}
+                       }
             return seed;
         }
     };
@@ -200,7 +141,4 @@ constexpr typename std::underlying_type<E>::type to_underlying(E e) {
 }
 
 
-
 #endif
-
-
