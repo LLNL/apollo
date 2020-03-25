@@ -215,8 +215,9 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        reg->packMeasurements(sendbuf + offset, reg->measures.size() * measure_size, comm);
-        offset += reg->measures.size() * measure_size;
+        int reg_num_measures = reg->best_policies.size();
+        reg->packMeasurements(sendbuf + offset, reg_num_measures * measure_size, comm);
+        offset += reg_num_measures * measure_size;
     }
 
     int num_ranks;
@@ -318,9 +319,9 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
             }
         } 
 
-        std::cout << "rank, region_name, num_elements, policy_index, time_avg" << std::endl;
-        std::cout << rank << ", " << region_name << ", " << (int)feature_vector[0] << ", " \
-          << policy_index << ", " << time_avg << std::endl;
+        //std::cout << "rank, region_name, num_elements, policy_index, time_avg" << std::endl;
+        //std::cout << rank << ", " << region_name << ", " << (int)feature_vector[0] << ", " \
+        //  << policy_index << ", " << time_avg << std::endl;
 
         //std::cout << "=== BEST POLICIES " << region_name << " ===" << std::endl;
         //for( auto &b : best_policies_ref ) {
@@ -425,6 +426,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
 
     //std::cout << "~~~~~~~~~~~~~" << std::endl;
 
+    //std::cout << "ONE GLOBAL TREE" << std::endl; //ggout
     std::shared_ptr<DecisionTree> gTree  = std::make_shared<DecisionTree>(
             num_policies, train_features, train_responses );
 
@@ -458,6 +460,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                 train_responses.push_back( it2.second.first );
             }
 
+            //std::cout << "TRAIN TREE region " << reg->name << std::endl; //ggout
             reg->model = std::make_unique<DecisionTree>( 
                     num_policies, 
                     train_features, 
