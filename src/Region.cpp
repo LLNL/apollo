@@ -174,14 +174,14 @@ Apollo::Region::end()
 
     // TODO: reduce overhead, move time calculation to reduceBestPolieces?
     // TODO: buckets of features?
-    const int bucket = 50;
-    for(auto &it : apollo->features) {
-        //std::cout << "feature: " << it;
-        int idiv = int(it) / bucket;
-        it = ( idiv + 1 )* bucket; 
-        //std::cout << " -> " << it;
-        //std::cout << std::endl;
-    }
+    //const int bucket = 50;
+    //for(auto &it : apollo->features) {
+    //    //std::cout << "feature: " << it;
+    //    int idiv = int(it) / bucket;
+    //    it = ( idiv + 1 )* bucket;
+    //    //std::cout << " -> " << it;
+    //    //std::cout << std::endl;
+    //}
 
     auto iter = measures.find( { apollo->features, current_policy } );
     if (iter == measures.end()) {

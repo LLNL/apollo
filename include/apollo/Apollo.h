@@ -77,16 +77,11 @@ class Apollo
         void flushAllRegionMeasurements(int assign_to_step);
     private:
         MPI_Comm comm;
-        std::map<const char *, Region *> regions;
+        std::map<std::string, Region *> regions;
         Apollo();
+        void gatherReduceCollectiveTrainingData();
         // Key: region name, value: map key: num_elements, value: policy_index, time_avg
-#if APOLLO_GLOBAL_MODEL
-        std::map< std::vector< float >, std::pair< int, double > > best_policies;
-#else // APOLLO_REGION_MODEL
-        std::map< std::string,
-            std::map< std::vector< float >, std::pair< int, double > > > best_policies;
-#endif
-
+        std::map< std::vector< float >, std::pair< int, double > > best_policies_global;
 }; //end: Apollo
 
 inline const char*
