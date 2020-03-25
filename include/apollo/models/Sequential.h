@@ -6,7 +6,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::Sequential : public Apollo::Model {
+class Sequential : public Model {
     public:
         Sequential();
         ~Sequential();
@@ -14,11 +14,11 @@ class Apollo::Model::Sequential : public Apollo::Model {
         void configure(int num_policies);
         //
         bool learning = true;
-        int  getIndex(void);
+        int  getIndex(std::vector<float> &features);
 
     private:
 
-}; //end: Apollo::Model::Sequential (class)
+}; //end: Sequential (class)
 
 
 #endif

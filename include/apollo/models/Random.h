@@ -7,14 +7,13 @@
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::Random : public Apollo::Model {
+class Random : public Model {
     public:
-        Random();
+        Random(int num_policies);
         ~Random();
 
-        void configure(int num_policies);
         //
-        int  getIndex(void);
+        int  getIndex(std::vector<float> &features);
 
     private:
 }; //end: Apollo::Model::Random (class)

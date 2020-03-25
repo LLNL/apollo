@@ -6,19 +6,19 @@
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::Static : public Apollo::Model {
+class Static : public Model {
     public:
-        Static();
-        ~Static();
+        Static(int num_policies, int policy_choice) : 
+           Model(num_policies, "Static", false), policy_choice(policy_choice) {};
+        ~Static() {};
 
-        void configure(int num_policies);
         //
-        int  getIndex(void);
+        int  getIndex(std::vector<float> &features);
 
     private:
         int policy_choice;
 
-}; //end: Apollo::Model::Static (class)
+}; //end: Static (class)
 
 
 #endif

@@ -39,9 +39,6 @@
 #include <vector>
 #include <algorithm>
 
-#include <sys/time.h> //ggout
-
-#include "apollo/Apollo.h"
 #include "apollo/models/DecisionTree.h"
 
 #define modelName "decisiontree"
@@ -50,113 +47,83 @@
 
 using namespace std;
 
+#include <opencv2/ml.hpp>
+using namespace cv;
+using namespace cv::ml;
 
-double get_time()
+static Ptr<DTrees> dtree;
+
+DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses)
+    : Model(num_policies, "DecisionTree", false)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec + tv.tv_usec / 1e6);
+
+    //std::chrono::steady_clock::time_point t1, t2;
+    //t1 = std::chrono::steady_clock::now();
+
+    dtree = DTrees::create();
+    dtree->setMaxDepth(2);
+    dtree->setMinSampleCount(2);
+    dtree->setRegressionAccuracy(0);
+    dtree->setUseSurrogates(false);
+    dtree->setMaxCategories(policy_count);
+    dtree->setCVFolds(0);
+    dtree->setUse1SERule(false);
+    dtree->setTruncatePrunedTree(false);
+    //dtree->setPriors(Mat());
+
+    Mat fmat;
+    for(auto &i : features) {
+        Mat tmp(1, i.size(), CV_32F, &i[0]);
+        fmat.push_back(tmp);
+    }
+
+    Mat rmat;
+    Mat(fmat.rows, 1, CV_32S, &responses[0]).copyTo(rmat);
+
+    //std::cout << "fmat: " << fmat << std::endl;
+    //std::cout << "features.size: " << features.size() << std::endl;
+    //std::cout << "rmat: " << rmat << std::endl;
+
+    dtree->train(fmat, ROW_SAMPLE, rmat);
+
+    //t2 = std::chrono::steady_clock::now();
+    //double duration = std::chrono::duration<double>(t2 - t1).count();
+    //std::cout << "Train " << name<< " : " << duration << " seconds" << std::endl;
+
+    return;
+}
+
+DecisionTree::~DecisionTree()
+{
+    return;
 }
 
 int
-Apollo::Model::DecisionTree::recursiveTreeWalk(Node *node) {
-    // Compare the node->value to the defined comparison values
-    // and either dive down a branch or return the choice up.
-    //
-    // Every node needs to have an initialized FEATURE
-    //
-    //
-    //IF this a LEAF node, return the int.
-    //OTHERWISE...
-    //
-    //double t1 = get_time(); //ggout
-    //
-    
-    Node *iter;
-    for(iter=node; !iter->is_leaf; ) {
-        double feat_val = apollo->features[iter->feature_index].value;
-        if (feat_val <= iter->value_LEQ)
-            iter = iter->left_child;
-        else
-            iter = iter->right_child;
-    }
-
-    return iter->recommendation;
-} //end: recursiveTreeWalk(...)   [function]
-
-
-int
-Apollo::Model::DecisionTree::getIndex(void)
+DecisionTree::getIndex(std::vector<float> &features)
 {
+
+    //std::chrono::steady_clock::time_point t1, t2;
+    //t1 = std::chrono::steady_clock::now();
     // Keep choice around for easier debugging, if needed:
     static int choice = -1;
 
+
+    choice = dtree->predict( features );
+
+    //t2 = std::chrono::steady_clock::now();
+    //double duration = std::chrono::duration<double>(t2 - t1).count();
+    //std::cout << "predict duration: " <<  duration << " choice: " << choice << endl; //ggout
+    //std::cout << "Features: [ ";
+    //for(auto &i: features) 
+    //    std::cout << i;
+    //std::cout << " ] ->  " << choice << std::endl;
+
     // Find the recommendation of the decision tree:
-    choice = recursiveTreeWalk(tree_head);
 
     return choice;
 }
 
-
-void
-Apollo::Model::DecisionTree::configure(
-        int  numPolicies)
+void DecisionTree::store(const std::string &filename)
 {
-    // Construct a decisiontree for this model_definition.
-
-    apollo       = Apollo::instance();
-    policy_count = numPolicies;
-
-    // Recursive function that constructs tree from nested JSON:
-    //double t1 = get_time();
-    // TODO: fix the DTree
-    //tree_head = nodeFromJson(model_def, nullptr, 1);
-    //std::cout << "Configure model " << (get_time() - t1 ) << " seconds" << std::endl; //ggout
-
-    configured = true;
-    return;
+    dtree->save( filename );
 }
-
-//
-// ----------
-//
-// BELOW: Boilerplate code to manage instances of this model:
-//
-
-
-Apollo::Model::DecisionTree::DecisionTree()
-{
-    name = "DecisionTree";
-}
-
-Apollo::Model::DecisionTree::~DecisionTree()
-{
-    if (configured == true) {
-        configured = false;
-        tree_head = nullptr;
-        for (Node *node : tree_nodes) {
-            if (node != nullptr) { delete node; }
-        }
-        tree_nodes.clear();
-    }
-
-    return;
-}
-
-extern "C" Apollo::Model::DecisionTree*
-APOLLO_model_create_decisiontree(void)
-{
-    return new Apollo::Model::DecisionTree();
-}
-
-
-extern "C" void
-APOLLO_model_destroy_decisiontree(
-        Apollo::Model::DecisionTree *tree_ref)
-{
-    delete tree_ref;
-    return;
-}
-
-
-

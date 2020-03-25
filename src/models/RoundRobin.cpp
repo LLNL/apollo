@@ -32,48 +32,44 @@
 // DEALINGS IN THE SOFTWARE.
 
 
-#include <mutex>
 #include <string>
 #include <cstring>
 
-#include "apollo/Apollo.h"
 #include "apollo/models/RoundRobin.h"
 
 #define modelName "roundrobin"
 #define modelFile __FILE__
 
-int
-Apollo::Model::RoundRobin::getIndex(void)
-{
-    int choice = policy_choice;
+int RoundRobin::policy_choice = -1;
 
-    policy_choice++;
-    if (policy_choice >= policy_count) {
-        policy_choice = 0;
-    }
+int
+RoundRobin::getIndex(std::vector<float> &features)
+{
+    int choice = RoundRobin::policy_choice;
+
+    RoundRobin::policy_choice = ( RoundRobin::policy_choice + 1 ) % policy_count;
 
     return choice;
 }
 
-void
-Apollo::Model::RoundRobin::configure(
+RoundRobin::RoundRobin(
         int   num_policies)
+    : Model(num_policies, "RoundRobin", true)
 {
-    apollo        = Apollo::instance();
     policy_count  = num_policies;
 
-    int rank = 1;
+    int rank = 0;
     char *slurm_procid = getenv("SLURM_PROCID");
 
     if (slurm_procid != NULL) {
-       rank = 1 + atoi(slurm_procid);
+       rank = atoi(slurm_procid);
     } else {
-       rank = 1;
+       rank = 0;
     };
 
-    policy_choice = rank % policy_count;
+    if( RoundRobin::policy_choice < 0 )
+        RoundRobin::policy_choice = rank % policy_count;
 
-    configured = true;
     return;
 }
 
@@ -83,31 +79,7 @@ Apollo::Model::RoundRobin::configure(
 // BELOW: Boilerplate code to manage instances of this model:
 //
 
-
-Apollo::Model::RoundRobin::RoundRobin()
-{
-    name = "RoundRobin";
-    training = true;
-}
-
-Apollo::Model::RoundRobin::~RoundRobin()
+RoundRobin::~RoundRobin()
 {
     return;
 }
-
-extern "C" Apollo::Model::RoundRobin*
-APOLLO_model_create_roundrobin(void)
-{
-    return new Apollo::Model::RoundRobin;
-}
-
-
-extern "C" void
-APOLLO_model_destroy_roundrobin(
-        Apollo::Model::RoundRobin *model_ref)
-{
-    delete model_ref;
-    return;
-}
-
-

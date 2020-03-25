@@ -43,7 +43,7 @@
 #define modelFile __FILE__
 
 int
-Apollo::Model::Random::getIndex(void)
+Random::getIndex(std::vector<float> &features)
 {
     int choice = 0;
 
@@ -60,48 +60,12 @@ Apollo::Model::Random::getIndex(void)
     return choice;
 }
 
-void
-Apollo::Model::Random::configure(
-        int num_policies)
+Random::Random(int num_policies)
+    : Model(num_policies, "Random", true)
 {
-    apollo = Apollo::instance();
-    policy_count = num_policies;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, (policy_count - 1));
-    configured = true;
-    return;
 }
 
-//
-// ----------
-//
-// BELOW: Boilerplate code to manage instances of this model:
-//
-
-
-Apollo::Model::Random::Random()
-{
-    name = "Random";
-}
-
-Apollo::Model::Random::~Random()
+Random::~Random()
 {
     return;
 }
-
-extern "C" Apollo::Model::Random*
-APOLLO_model_create_random(void)
-{
-    return new Apollo::Model::Random;
-}
-
-
-extern "C" void
-APOLLO_model_destroy_random(Apollo::Model::Random *model_ref)
-{
-    delete model_ref;
-    return;
-}
-
-

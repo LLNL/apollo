@@ -5,37 +5,27 @@
 
 #include "apollo/Apollo.h"
 
-#define APOLLO_DEFAULT_MODEL_TYPE   Apollo::Model::Type::Random
-
 // Abstract
-class Apollo::Model {
+class Model {
     public:
-        // Forward declarations of model types:
-        class Random       ; // : public ModelObject;
-        class Sequential   ; // : public ModelObject;
-        class Static       ; // : public ModelObject;
-        class RoundRobin   ; // : public ModelObject;
-        class DecisionTree ; // : public ModelObject;
-
-        // pure virtual function (establishes this as abstract class)
-        virtual void configure(int num_policies) = 0;
+        Model() {};
+        Model(int num_policies, std::string name, bool training) : 
+            name(name),
+            training(training),
+            policy_count(num_policies)
+        {};
+        virtual ~Model() {};
         //
-        virtual int      getIndex(void) = 0;
+        virtual int      getIndex(std::vector<float> &features) = 0;
 
-        void     setGuid(uint64_t ng) { guid = ng; return;}
-        uint64_t getGuid(void)        { return guid; }
+        virtual void    store(const std::string &filename) {};
 
         std::string      name           = "";
         bool             training       = false;
-
     protected:
-        Apollo      *apollo;
         //
-        bool         configured = false;
-        //
-        uint64_t     guid;
         int          policy_count;
-}; //end: Apollo::ModelObject (abstract class)
+}; //end: Model (abstract class)
 
 
 #endif

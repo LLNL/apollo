@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <string>
-#include <mutex>
 #include <map>
 #include <unordered_map>
 #include <iostream>
@@ -16,9 +15,16 @@
 #include <mpi.h>
 
 #include "apollo/Logging.h"
-#include "CallpathRuntime.h"
 
-#define APOLLO_DEFAULT_MODEL_CLASS          Apollo::Model::Static
+// TODO: create a better configuration method
+#define APOLLO_COLLECTIVE_TRAINING 0
+
+#define APOLLO_GLOBAL_MODEL 1
+#if APOLLO_GLOBAL_MODEL
+#define APOLLO_REGION_MODEL 0
+#else
+#define APOLLO_REGION_MODEL 1
+#endif
 
 class Apollo
 {
@@ -33,22 +39,12 @@ class Apollo
             return &the_instance;
         }
 
-        // Forward declarations:
-        class Region;
-        class Model;
-
-        class Feature
-		{
-			public:
-	            std::string    name;
-    	        double         value;
-				//
-				bool operator == (const Feature &other) const {
-					if(name == other.name) { return true; } else { return false; }
-				}
-		};
         //
-        std::vector<Apollo::Feature>            features;
+        class Region;
+        // XXX: assumes features are the same globally for all regions
+        std::vector<float>            features;
+        int                       num_features;
+        int                       num_policies;
         //
         // Precalculated at Apollo::Init from evironment variable strings to
         // facilitate quick calculations during model evaluation later.
@@ -63,7 +59,7 @@ class Apollo
         //
         int numThreads;  // <-- how many to use / are in use
         //
-        void    setFeature(std::string ft_name, double ft_val);
+        void    setFeature(float value);
         double  getFeature(std::string ft_name);
 
         // NOTE(chad): We default to walk_distance of 2 so we can
@@ -72,22 +68,26 @@ class Apollo
         //             module name and offset where that template
         //             has been instantiated in the application code.
         std::string getCallpathOffset(int walk_distance=2);
-        CallpathRuntime *callpath_ptr;
+        void *callpath_ptr;
 
-        Apollo::Region *region(const char *regionName);
+        Region *region(const char *regionName);
         //
         bool isOnline();
         //
         void flushAllRegionMeasurements(int assign_to_step);
     private:
         MPI_Comm comm;
+        std::map<const char *, Region *> regions;
         Apollo();
-        std::map<const char *, Apollo::Region *> regions;
-}; //end: Apollo
+        // Key: region name, value: map key: num_elements, value: policy_index, time_avg
+#if APOLLO_GLOBAL_MODEL
+        std::map< std::vector< float >, std::pair< int, double > > best_policies;
+#else // APOLLO_REGION_MODEL
+        std::map< std::string,
+            std::map< std::vector< float >, std::pair< int, double > > > best_policies;
+#endif
 
-// Implemented in src/Region.cpp:
-extern int
-getApolloPolicyChoice(Apollo::Region *reg);
+}; //end: Apollo
 
 inline const char*
 safe_getenv(
@@ -106,39 +106,5 @@ safe_getenv(
         return c;
     }
 }
-
-template <class T>
-inline void hash_combine(std::size_t& seed, T const& v)
-{
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-namespace std
-{
-    template<>
-    struct hash<vector<Apollo::Feature> >
-    {
-        typedef vector<Apollo::Feature> argument_type;
-        typedef std::size_t result_type;
-        result_type operator()(argument_type const& in) const
-        {
-            size_t size = in.size();
-            size_t seed = 0;
-            for (size_t i = 0; i < size; i++) {
-                //Combine hash of current vector with hashes of previous ones
-                hash_combine(seed, in[i].name);
-                hash_combine(seed, in[i].value);
-                       }
-            return seed;
-        }
-    };
-}
-
-
-template <typename E>
-constexpr typename std::underlying_type<E>::type to_underlying(E e) {
-    return static_cast<typename std::underlying_type<E>::type>(e);
-}
-
 
 #endif

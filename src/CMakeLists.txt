@@ -73,10 +73,10 @@ set(APOLLO_SOURCES
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
 
-target_link_libraries(apollo dl)
+target_link_libraries(apollo PRIVATE dl ${OpenCV_LIBS})
 
 foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
-    target_link_libraries(apollo ${_extlib})
+    target_link_libraries(apollo PRIVATE ${_extlib})
 endforeach()
 
 install(FILES ${APOLLO_HEADERS} DESTINATION include/apollo)

@@ -3,22 +3,19 @@
 
 #include <string>
 
-#include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::RoundRobin : public Apollo::Model {
+class RoundRobin : public Model {
     public:
-        RoundRobin();
+        RoundRobin(int num_policies);
         ~RoundRobin();
 
-        void configure(int num_policies);
-        //
-        int  getIndex(void);
+        int  getIndex(std::vector<float> &features);
 
     private:
-        int policy_choice;
+        static int policy_choice;
 
-}; //end: Apollo::Model::RoundRobin (class)
+}; //end: RoundRobin (class)
 
 
 #endif

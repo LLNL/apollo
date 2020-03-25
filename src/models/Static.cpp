@@ -35,63 +35,13 @@
 #include <string>
 #include <cstring>
 
-#include "apollo/Apollo.h"
 #include "apollo/models/Static.h"
 
 #define modelName "static"
 #define modelFile __FILE__
 
 int
-Apollo::Model::Static::getIndex(void)
+Static::getIndex(std::vector<float> &features)
 {
     return policy_choice;
 }
-
-void
-Apollo::Model::Static::configure(
-        int  num_policies)
-{
-    apollo        = Apollo::instance();
-    policy_count  = num_policies;
-
-    // TODO: fix policy choice
-    policy_choice = 0;
-
-    configured = true;
-    return;
-}
-
-//
-// ----------
-//
-// BELOW: Boilerplate code to manage instances of this model:
-//
-
-
-Apollo::Model::Static::Static()
-{
-    name = "Static";
-    training = false;
-}
-
-Apollo::Model::Static::~Static()
-{
-    return;
-}
-
-extern "C" Apollo::Model::Static*
-APOLLO_model_create_static(void)
-{
-    return new Apollo::Model::Static;
-}
-
-
-extern "C" void
-APOLLO_model_destroy_static(
-        Apollo::Model::Static *model_ref)
-{
-    delete model_ref;
-    return;
-}
-
-

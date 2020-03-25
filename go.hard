@@ -12,7 +12,7 @@ cmake   \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_INSTALL_PREFIX=../install \
     -DCMAKE_BUILD_TYPE=Release \
-    -DSOS_DIR=$HOME/src/sos_flow/install \
+    -DOpenCV_DIR=$HOME/src/ml/opencv/install/lib64/cmake/opencv4 \
     -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
     ..
 make -j 8 && make install && cd .. && tree install

@@ -10,44 +10,19 @@
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
-class Apollo::Model::DecisionTree : public Apollo::Model {
+class DecisionTree : public Model {
 
     public:
-        DecisionTree();
+        DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses);
+
         ~DecisionTree();
 
-        void configure(int num_policies);
-
         int  getIndex(void);
+        int  getIndex(std::vector<float> &features);
+        void store(const std::string &filename);
 
     private:
-
-        class Node {
-            public:
-                Node() {};
-                ~Node() {};
-
-                bool        is_leaf;
-
-                int         recommendation;
-                std::vector<float>
-                            recommendation_vector;
-
-                double            value_LEQ;
-                int               feature_index;
-                Node             *left_child;
-                Node             *right_child;
-                Node             *parent_node;
-
-                int         indent;
-        }; // end: Node (class)
-
-        int  recursiveTreeWalk(Node *node);
-
-        Node                   *tree_head;
-        std::vector<Node *>     tree_nodes;
-
-}; //end: Apollo::Model::DecisionTree (class)
+}; //end: DecisionTree (class)
 
 
 #endif

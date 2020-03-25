@@ -32,30 +32,29 @@
 // DEALINGS IN THE SOFTWARE.
 
 #include <iostream>
+#include <iomanip>
 #include <mutex>
-#include <unordered_map>
 #include <algorithm>
 #include <limits>
+#include <chrono>
+#include <memory>
+#include <utility>
 
 #include "assert.h"
 
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
 #include "apollo/Region.h"
+#include "apollo/models/RoundRobin.h"
+#include "apollo/models/Static.h"
+#include "apollo/models/Random.h"
 
 #include <mpi.h>
-#include <sys/time.h>
-
-#define GET_TIME(__now)                                     \
-{                                                           \
-    struct timeval t;                                       \
-    gettimeofday(&t, NULL);                                 \
-    __now = (double)(t.tv_sec + (t.tv_usec/1e6));           \
-}
 
 int
 Apollo::Region::getPolicyIndex(void)
 {
+#if VERBOSE_DEBUG
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
                         " while NOT inside the region. Please call"
@@ -63,69 +62,48 @@ Apollo::Region::getPolicyIndex(void)
                         " when selecting a policy. (region->name == %s)\n", name);
         fflush(stderr);
     }
+#endif
+    assert( currently_inside_region );
 
-    //double evaluation_time_start;
-    //double evaluation_time_stop;
-    //double evaluation_time_total;
-    //SOS_TIME(evaluation_time_start);
-
-    //int choice = mw->requestPolicyIndex();
-    // TODO: fix getting policy from model
-    int choice = 0;
+    int choice = model->getIndex( apollo->features );
+#if 0
     if (choice != current_policy) {
-        apollo->setFeature("policy_index", (double) choice);
-        //std::cout << "Change policy " << current_policy << " -> " << choice << " region " << name << std::endl; //ggout
-        //std::cout.flush(); //ggout
+        std::cout << "Change policy " << current_policy << " -> " << choice << " region " 
+            << name << " elems: " << (int)apollo->features[0]<< std::endl; //ggout
     } else {
         //std::cout << "No policy change for region " << name << ", policy " << current_policy << std::endl; //gout
     }
-#if 0
-    if(choice >=2 && choice <=7) {
-        //std::cout << "Region " << name <<" DYNAMIC " << choice << std::endl; //ggout
-        choice = 7; //ggout
-    }
-    else if(choice >=8 && choice <=13) {
-        //std::cout << "Region " << name <<" GUIDED " << choice << std::endl; //ggout
-        choice = 13;
-    }
-    else if(choice >=14 && choice <=19) {
-        choice = 19;
-    }
 #endif
     current_policy = choice;
-    /*if(choice < 0 || choice > 20) {
-        std::cout << "Region " << name <<" invalid choice " << choice << std::endl; //ggout
-        abort();
-    }*/
-    //if(choice !=0 ) //ggout
-    //    std::cout << "v4 Region " << name << " policy " << current_policy << std::endl;
-
-    //SOS_TIME(evaluation_time_stop);
-    //evaluation_time_total = evaluation_time_stop - evaluation_time_start;
     //log("getPolicyIndex took ", evaluation_time_total, " seconds.\n");
-
     return choice;
 }
 
 
 Apollo::Region::Region(
+        const int num_features,
         const char  *regionName,
         int          numAvailablePolicies)
 {
     apollo = Apollo::instance();
+    apollo->num_features = num_features;
+    apollo->num_policies = numAvailablePolicies;
+
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
 
     current_policy            = 0;
     currently_inside_region   = false;
 
-    // TODO: bootstrap model
-    //model_wrapper = new Apollo::ModelWrapper(this, numAvailablePolicies);
-    //model_wrapper->configure("");
+    // TODO: bootstrap model using the APOLLO_INIT_MODEL env var
+    // TODO: make Model a factory for specific models
+    // TODO: use best_policies to train a model for new region for which there's training data
+    //model = std::make_unique<Random>( numAvailablePolicies );
+    model = std::make_unique<RoundRobin>( numAvailablePolicies );
+    //model = std::make_unique<Static>(numAvailablePolicies, 0);
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
-    //std::cout.flush(); //ggout
-    apollo->regions.insert({name, this});
+    apollo->regions.insert( { name, this } );
 
     return;
 }
@@ -136,11 +114,6 @@ Apollo::Region::~Region()
         this->end();
     }
 
-    /*if (name != NULL) {
-        free(name);
-        name = NULL;
-    }*/
-
     return;
 }
 
@@ -148,6 +121,7 @@ Apollo::Region::~Region()
 void
 Apollo::Region::begin()
 {
+#if VERBOSE_DEBUG
     if (currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->begin() called"
                         " while already inside the region. Please call"
@@ -156,6 +130,10 @@ Apollo::Region::begin()
                         name);
         fflush(stderr);
     }
+#endif
+
+    assert( !currently_inside_region );
+
     currently_inside_region = true;
 
     // NOTE: Features are tracked globally within the process.
@@ -168,17 +146,17 @@ Apollo::Region::begin()
     //       call to region.begin and our model being newly evaluated by
     //       region.getPolicyIndex ...
     //
-    apollo->setFeature("policy_index", (double) current_policy);
 
-    GET_TIME(current_exec_time_begin);
+    current_exec_time_begin = std::chrono::steady_clock::now();
     return;
 }
 
 void
 Apollo::Region::end()
 {
-    GET_TIME(current_exec_time_end);
+    current_exec_time_end = std::chrono::steady_clock::now();
 
+#if VERBOSE_DEBUG
     if (not currently_inside_region) {
         fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
                         " while NOT inside the region. Please call"
@@ -186,66 +164,107 @@ Apollo::Region::end()
                         " consequences. (region->name == %s)\n", name);
         fflush(stderr);
     }
+#endif
+
+    assert( currently_inside_region );
+
     currently_inside_region = false;
 
-    // In case this was changed by the DecisionTree after the begin() call...
-    apollo->setFeature("policy_index", (double) current_policy);
+    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
 
-    Apollo::Region::Measure *time = nullptr;
-    auto iter = measures.find(apollo->features);
+    // TODO: reduce overhead, move time calculation to reduceBestPolieces?
+    // TODO: buckets of features?
+    const int bucket = 50;
+    for(auto &it : apollo->features) {
+        //std::cout << "feature: " << it;
+        int idiv = int(it) / bucket;
+        it = ( idiv + 1 )* bucket; 
+        //std::cout << " -> " << it;
+        //std::cout << std::endl;
+    }
+
+    auto iter = measures.find( { apollo->features, current_policy } );
     if (iter == measures.end()) {
-        time = new Apollo::Region::Measure;
-        time->exec_count = 0;
-        time->time_total = 0.0;
+        iter = measures.insert(std::make_pair( std::make_pair( apollo->features, current_policy ),
+                std::move( std::make_unique<Apollo::Region::Measure>(1, duration) )
+                ) ).first;
     } else {
-        time = iter->second;
+        iter->second->exec_count++;
+        iter->second->time_total += duration;
     }
 
-    time->exec_count++;
-    time->time_total += (current_exec_time_end - current_exec_time_begin);
+    //std::cout << "=== INSERT MEASURE ===" << std::endl;
+    //std::cout << name << ": " << "[ " << apollo->features[0] << " ]: " \
+    //    << current_policy << " -> " << iter->second->exec_count \
+    //    << ", " << iter->second->time_total << std::endl;
+    //std::cout << "~~~~~~~~~~" << std::endl;
 
-    if (iter == measures.end()) {
-        std::vector<Apollo::Feature> feat_copy = apollo->features;
-        measures.insert({std::move(feat_copy), time});
-    }
+
+    apollo->features.clear();
 
     return;
+}
+
+int 
+Apollo::Region::reduceBestPolicies()
+{
+    for (auto iter_measure = measures.begin();
+            iter_measure != measures.end();   iter_measure++) {
+
+        const std::vector<float>& feature_vector = iter_measure->first.first;
+        const int policy_index                   = iter_measure->first.second;
+        auto                           &time_set = iter_measure->second;
+
+        assert( time_set->exec_count > 0 );
+        double time_avg = ( time_set->time_total / time_set->exec_count );
+
+        auto iter =  best_policies.find( feature_vector );
+        if( iter ==  best_policies.end() ) {
+            best_policies.insert( { feature_vector, { policy_index, time_avg } } );
+        }
+        else {
+            // Key exists
+            if(  best_policies[ feature_vector ].second > time_avg ) {
+                best_policies[ feature_vector ] = { policy_index, time_avg };
+            }
+        }
+    }
+
+    return best_policies.size();
 }
 
 void
 Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
     int pos = 0;
 
-    for (auto iter_measure = measures.begin();
-             iter_measure != measures.end();   iter_measure++) {
+    int rank;
+    MPI_Comm_rank( comm, &rank );
 
-        const std::vector<Apollo::Feature>& these_features = iter_measure->first;
-        Apollo::Region::Measure                  *time_set = iter_measure->second;
+    for( auto &it : best_policies ) {
+        auto &feature_vector = it.first;
+        int policy_index = it.second.first;
+        double time_avg = it.second.second;
 
-        int rank;
-        MPI_Comm_rank( comm, &rank );
+        // rank
         MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
-        std::cout << "------------------" << std::endl;
-        std::cout << "rank,"<< rank << " pos: " << pos << std::endl;
-        for (Apollo::Feature ft : these_features) {
-            MPI_Pack( &ft.value, 1, MPI_DOUBLE, buf, size, &pos, comm );
-            std::cout << ft.name <<","<< ft.value << " pos: " << pos << std::endl;
+        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
+
+        // features
+        for (float value : feature_vector ) {
+            MPI_Pack( &value, 1, MPI_FLOAT, buf, size, &pos, comm );
+            //std::cout << "feature," << value << " pos: " << pos << std::endl;
         }
-        assert( these_features.size() == 3 );
 
+        // policy index
+        MPI_Pack( &policy_index, 1, MPI_INT, buf, size, &pos, comm );
+        //std::cout << "policy_index," << policy_index << " pos: " << pos << std::endl;
         // XXX: use 64 bytes fixed for region_name
+        // region name
         MPI_Pack( name, 64, MPI_CHAR, buf, size, &pos, comm );
-        std::cout << "region_name," << name << " pos: " << pos << std::endl;
-        MPI_Pack( &time_set->exec_count, 1, MPI_INT, buf, size, &pos, comm );
-        std::cout << "exec_count," << time_set->exec_count << " pos: " << pos << std::endl;
-        assert( exec_count > 0 );
-        double avg_time = (time_set->time_total / time_set->exec_count);
-        assert( avg_time > 0 );
-        MPI_Pack( &avg_time, 1, MPI_DOUBLE, buf, size, &pos, comm );
-
-        std::cout << "time_avg," << avg_time << " pos: " << pos << std::endl;
-
-        std::cout << "~~~~~~~~~~~~~~~~~" << std::endl;
+        //std::cout << "region_name," << name << " pos: " << pos << std::endl;
+        // average time
+        MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
+        //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
     }
 
     return;
