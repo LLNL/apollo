@@ -1,10 +1,6 @@
 #ifndef APOLLO_MODELS_RANDOM_H
 #define APOLLO_MODELS_RANDOM_H
 
-#include <random>
-#include <string>
-
-#include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
 class Random : public Model {

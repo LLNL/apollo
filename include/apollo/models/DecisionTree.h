@@ -3,11 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
-#include <tuple>
-#include <algorithm>
 
-#include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
 class DecisionTree : public Model {

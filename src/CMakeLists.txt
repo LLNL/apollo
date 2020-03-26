@@ -54,6 +54,7 @@ set(APOLLO_HEADERS
     ../include/apollo/Logging.h
     ../include/apollo/Region.h
     ../include/apollo/Model.h
+    ../include/apollo/ModelFactory.h
     ../include/apollo/models/Random.h
     ../include/apollo/models/Sequential.h
     ../include/apollo/models/Static.h
@@ -64,6 +65,7 @@ set(APOLLO_HEADERS
 set(APOLLO_SOURCES
     Apollo.cpp
     Region.cpp
+    ModelFactory.cpp
     models/Random.cpp
     models/Sequential.cpp
     models/Static.cpp

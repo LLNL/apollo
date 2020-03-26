@@ -45,9 +45,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
 #include "apollo/Region.h"
-#include "apollo/models/RoundRobin.h"
-#include "apollo/models/Static.h"
-#include "apollo/models/Random.h"
+#include "apollo/ModelFactory.h"
 
 #include <mpi.h>
 
@@ -98,9 +96,9 @@ Apollo::Region::Region(
     // TODO: bootstrap model using the APOLLO_INIT_MODEL env var
     // TODO: make Model a factory for specific models
     // TODO: use best_policies to train a model for new region for which there's training data
-    //model = std::make_unique<Random>( numAvailablePolicies );
-    model = std::make_unique<RoundRobin>( numAvailablePolicies );
-    //model = std::make_unique<Static>(numAvailablePolicies, 0);
+    //model = ModelFactory::createRandom( numAvailablePolicies );
+    model = ModelFactory::createRoundRobin( numAvailablePolicies );
+    //model = ModelFactory::createStatic( numAvailablePolicies, 1 );
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     apollo->regions.insert( { name, this } );

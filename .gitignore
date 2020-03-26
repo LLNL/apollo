@@ -12,3 +12,7 @@ sosd.*.key
 examples/caliper-examples
 CMakeCache.txt
 CMakeFiles/
+GTAGS
+GPATH
+GRTAGS
+tags

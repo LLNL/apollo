@@ -50,9 +50,8 @@
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
 #include "apollo/Region.h"
+#include "apollo/ModelFactory.h"
 
-#include "apollo/models/RoundRobin.h"
-#include "apollo/models/DecisionTree.h"
 //
 #include "util/Debug.h"
 
@@ -387,7 +386,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     //std::cout << "~~~~~~~~~~~~~" << std::endl;
 
     //std::cout << "ONE GLOBAL TREE" << std::endl; //ggout
-    std::shared_ptr<DecisionTree> gTree  = std::make_shared<DecisionTree>(
+    std::shared_ptr<DecisionTree> gTree  = ModelFactory::createDecisionTree(
             num_policies, train_features, train_responses );
 
     //gTree->store( "dtree." + std::to_string( assign_to_step ) + ".yaml" );
@@ -417,7 +416,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
             }
 
             //std::cout << "TRAIN TREE region " << reg->name << std::endl; //ggout
-            reg->model = std::make_unique<DecisionTree>( 
+            reg->model = ModelFactory::createDecisionTree(
                     num_policies, 
                     train_features, 
                     train_responses );

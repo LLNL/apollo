@@ -2,8 +2,7 @@
 #define APOLLO_MODEL_H
 
 #include <string>
-
-#include "apollo/Apollo.h"
+#include <vector>
 
 // Abstract
 class Model {

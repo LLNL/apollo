@@ -31,16 +31,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#include <string>
-#include <random>
-#include <mutex>
-
-#include "apollo/Apollo.h"
 #include "apollo/models/Random.h"
 
-
-#define modelName "random"
-#define modelFile __FILE__
+#include <random>
 
 int
 Random::getIndex(std::vector<float> &features)
