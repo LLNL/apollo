@@ -386,7 +386,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     //std::cout << "~~~~~~~~~~~~~" << std::endl;
 
     //std::cout << "ONE GLOBAL TREE" << std::endl; //ggout
-    std::shared_ptr<DecisionTree> gTree  = ModelFactory::createDecisionTree(
+    std::shared_ptr<Model> gTree  = ModelFactory::createDecisionTree(
             num_policies, train_features, train_responses );
 
     //gTree->store( "dtree." + std::to_string( assign_to_step ) + ".yaml" );
