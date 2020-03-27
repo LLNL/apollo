@@ -51,7 +51,14 @@ using namespace std;
 using namespace cv;
 using namespace cv::ml;
 
-static Ptr<DTrees> dtree;
+//static Ptr<DTrees> dtree;
+static Ptr<RTrees> dtree;
+//static Ptr<SVM> dtree;
+//static Ptr<NormalBayesClassifier> dtree;
+//static Ptr<KNearest> dtree;
+//static Ptr<Boost> dtree;
+//static Ptr<ANN_MLP> dtree;
+//static Ptr<LogisticRegression> dtree;
 
 DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses)
     : Model(num_policies, "DecisionTree", false)
@@ -60,7 +67,24 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     //std::chrono::steady_clock::time_point t1, t2;
     //t1 = std::chrono::steady_clock::now();
 
-    dtree = DTrees::create();
+    //dtree = NormalBayesClassifier::create();
+    //
+    //dtree = KNearest::create();
+    //
+    //dtree = Boost::create();
+    //
+    //dtree = ANN_MLP::create();
+    //
+    //dtree = SVM::create();
+    //dtree = LogisticRegression::create();
+    //dtree->setLearningRate(0.001);
+    //dtree->setIterations(10);
+    //dtree->setRegularization(LogisticRegression::REG_L2);
+    //dtree->setTrainMethod(LogisticRegression::BATCH);
+    //dtree->setMiniBatchSize(1);
+
+    //dtree = DTrees::create();
+    dtree = RTrees::create();
     dtree->setMaxDepth(2);
     dtree->setMinSampleCount(2);
     dtree->setRegressionAccuracy(0);
@@ -69,7 +93,7 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     dtree->setCVFolds(0);
     dtree->setUse1SERule(false);
     dtree->setTruncatePrunedTree(false);
-    //dtree->setPriors(Mat());
+    dtree->setPriors(Mat());
 
     Mat fmat;
     for(auto &i : features) {
@@ -78,13 +102,38 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     }
 
     Mat rmat;
+    //rmat = Mat::zeros( fmat.rows, num_policies, CV_32F );
+    //for( int i = 0; i < responses.size(); i++ ) {
+    //    int j = responses[i];
+    //    rmat.at<float>(i, j) = 1.f;
+    //}
     Mat(fmat.rows, 1, CV_32S, &responses[0]).copyTo(rmat);
+    //Mat(fmat.rows, 1, CV_32F, &responses[0]).copyTo(rmat);
 
     //std::cout << "fmat: " << fmat << std::endl;
     //std::cout << "features.size: " << features.size() << std::endl;
     //std::cout << "rmat: " << rmat << std::endl;
 
+    // ANN_MLP
+    //dtree->setActivationFunction(ANN_MLP::ActivationFunctions::SIGMOID_SYM);
+    //Mat layers(3, 1, CV_16U);
+    //layers.row(0) = Scalar(fmat.cols);
+    //layers.row(1) = Scalar(4);
+    //layers.row(2) = Scalar(rmat.cols);
+    //dtree->setLayerSizes( layers );
+    //dtree->setTrainMethod(ANN_MLP::TrainingMethods::BACKPROP);
+
     dtree->train(fmat, ROW_SAMPLE, rmat);
+    //Ptr<TrainData> data = TrainData::create(fmat, ROW_SAMPLE, rmat);
+    //dtree->train(data);
+    //for(int i = 0; i<1000; i++)
+    //    dtree->train(data, ANN_MLP::TrainFlags::UPDATE_WEIGHTS);
+
+    //if(!dtree->isTrained()) {
+    //    std::cout << "MODEL IS NOT TRAINED!" << std::endl;
+    //    abort();
+    //}
+
 
     //t2 = std::chrono::steady_clock::now();
     //double duration = std::chrono::duration<double>(t2 - t1).count();
@@ -107,7 +156,12 @@ DecisionTree::getIndex(std::vector<float> &features)
     // Keep choice around for easier debugging, if needed:
     static int choice = -1;
 
-
+    //Mat fmat;
+    //fmat.push_back( Mat(1, features.size(), CV_32F, &features[0]) );
+    //Mat result;
+    //choice = dtree->predict( features, result );
+    //std::cout << "Results: " << result << std::endl;
+    //
     choice = dtree->predict( features );
 
     //t2 = std::chrono::steady_clock::now();

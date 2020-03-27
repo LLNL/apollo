@@ -87,15 +87,15 @@ Apollo::Region::Region(
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
 
-    current_policy            = 0;
+    current_policy            = -1;
     currently_inside_region   = false;
 
     // TODO: bootstrap model using the APOLLO_INIT_MODEL env var
     // TODO: make Model a factory for specific models
     // TODO: use best_policies to train a model for new region for which there's training data
     //model = ModelFactory::createRandom( numAvailablePolicies );
-    //model = ModelFactory::createRoundRobin( numAvailablePolicies );
-    model = ModelFactory::createStatic( numAvailablePolicies, 0 );
+    model = ModelFactory::createRoundRobin( numAvailablePolicies );
+    //model = ModelFactory::createStatic( numAvailablePolicies, 0 );
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     apollo->regions.insert( { name, this } );

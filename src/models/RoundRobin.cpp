@@ -33,21 +33,18 @@
 
 
 #include <string>
-#include <cstring>
+#include <iostream>
 
+#include "apollo/Config.h"
 #include "apollo/models/RoundRobin.h"
-
-#define modelName "roundrobin"
-#define modelFile __FILE__
-
-int RoundRobin::policy_choice = -1;
 
 int
 RoundRobin::getIndex(std::vector<float> &features)
 {
-    int choice = RoundRobin::policy_choice;
+    int choice = policy_choice;
 
-    RoundRobin::policy_choice = ( RoundRobin::policy_choice + 1 ) % policy_count;
+    policy_choice = ( policy_choice + 1 ) % policy_count;
+    policy_choice += offset;
 
     return choice;
 }
@@ -56,8 +53,6 @@ RoundRobin::RoundRobin(
         int   num_policies)
     : Model(num_policies, "RoundRobin", true)
 {
-    policy_count  = num_policies;
-
     int rank = 0;
     char *slurm_procid = getenv("SLURM_PROCID");
 
@@ -67,8 +62,29 @@ RoundRobin::RoundRobin(
        rank = 0;
     };
 
-    if( RoundRobin::policy_choice < 0 )
-        RoundRobin::policy_choice = rank % policy_count;
+#if APOLLO_COLLECTIVE_TRAINING
+    int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
+    policy_count = num_policies/numProcs;
+    int rem = num_policies%numProcs;
+    // Give rank 0 any remainder policies
+    if( rank == 0 ) {
+        policy_count += rem;
+        offset = 0; //rank * policy_count;
+    }
+    else {
+        offset = rank * policy_count + rem;
+    }
+
+    policy_choice = rank + offset;
+#elif APOLLO_LOCAL_TRAINING
+    policy_choice = 0;
+    offset = 0;
+#else
+#error "Missing training configuration"
+#endif
+
+    //std::cout << "rank " << rank << " policy_count " << policy_count \
+        << " offset " << offset << std::endl; //ggout
 
     return;
 }

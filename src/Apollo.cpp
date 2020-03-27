@@ -315,13 +315,16 @@ Apollo::gatherReduceCollectiveTrainingData()
             }
         }
 
-        //std::cout << "=== BEST POLICIES COLLECTIVE " << region_name << " ===" << std::endl;
-        //for( auto &b : best_policies_ref ) {
-        //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
-        //        << b.second.first << " T: " << b.second.second << " | ";
+        //if( reg_iter != regions.end() ) {
+        //    Region *reg = reg_iter->second;
+        //    std::cout << "=== BEST POLICIES COLLECTIVE " << region_name << " ===" << std::endl;
+        //    for( auto &b : reg->best_policies) {
+        //        std::cout << "[ " << (int)b.first[0] << " ]: P:" \
+        //            << b.second.first << " T: " << b.second.second << " | ";
+        //    }
+        //    std::cout << "._" << std::endl;
+        //    std::cout << "~~~~~~~~~" << std::endl;
         //}
-        //std::cout << "._" << std::endl;
-        //std::cout << "~~~~~~~~~" << std::endl;
 
     }
 
@@ -342,14 +345,29 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     //}
     // TODO: check best_policies for drift from actual execution?
 
+
+    // TODO: abort flush if no region is training
     // Reduce local region measurements to best policies
     for( auto &it: regions ) {
         Region *reg = it.second;
         reg->reduceBestPolicies();
         // TODO: forget about old measures or not?
         //reg->measures.clear();
-
     }
+    // TODO: Force re-train?
+    // XXX: Invoke re-train after reduce to ensure
+    // best_policies always have valid input to train
+    // otherwise DecisionTree fails
+    //if(assign_to_step % 10 == 0 ){
+    //    std::cout << "RE-TRAIN" << std::endl; //ggout
+    //    for( auto &it: regions ) {
+    //        Region *reg = it.second;
+    //        reg->measures.clear();
+    //        //reg->best_policies.clear();
+    //        reg->model = ModelFactory::createRoundRobin( num_policies );
+    //    }
+    //    return;
+    //}
 
 #if APOLLO_COLLECTIVE_TRAINING
     gatherReduceCollectiveTrainingData();
@@ -407,18 +425,23 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     std::shared_ptr<Model> gTree  = ModelFactory::createDecisionTree(
             num_policies, train_features, train_responses );
 
-    //gTree->store( "dtree." + std::to_string( assign_to_step ) + ".yaml" );
+    //gTree->store( "dtree-" + std::to_string( assign_to_step ) + ".yaml" );
     // TODO: forget or not training best_policies?
-    //best_policies.clear();
+    //best_policies_global.clear();
 
 
     // Update the model to all regions
     for(auto &it : regions) {
         Region *reg = it.second;
-        reg->model = gTree;
+        if( reg->model->training ) {
+            reg->model = gTree;
+            // TODO: forget about aleady best_policies?
+            //reg->best_policies.clear();
+        }
     }
 
 #else // APOLLO_REGION_MODEL
+    //std::cout << "TRAIN PER REGION MODEL" << std::endl;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
 
@@ -438,6 +461,9 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                     num_policies, 
                     train_features, 
                     train_responses );
+            //reg->model->store( "dtree-" + std::to_string( assign_to_step ) + "-" + reg->name + ".yaml" );
+            // TODO: forget about already best_policies?
+            //reg->best_policies.clear();
         }
     }
 #endif

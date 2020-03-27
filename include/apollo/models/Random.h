@@ -12,6 +12,7 @@ class Random : public Model {
         int  getIndex(std::vector<float> &features);
 
     private:
+        int offset;
 }; //end: Apollo::Model::Random (class)
 
 

@@ -38,7 +38,8 @@ class Apollo::Region {
         int reduceBestPolicies();
         void packMeasurements(char *buf, int size, MPI_Comm comm);
         std::map< std::vector< float >, std::pair< int, double > > best_policies;
-        //
+        // Key: < features, policy >, value: < time measurement >
+        std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
 #if APOLLO_GLOBAL_MODEL
         std::shared_ptr<Model> model;
 #elif APOLLO_REGION_MODEL
@@ -54,8 +55,6 @@ class Apollo::Region {
         //
         std::chrono::steady_clock::time_point current_exec_time_begin;
         std::chrono::steady_clock::time_point current_exec_time_end;
-        // Key: < features, policy >, value: < time measurement >
-        std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
         //
 }; //end: Apollo::Region
 

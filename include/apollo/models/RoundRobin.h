@@ -13,7 +13,8 @@ class RoundRobin : public Model {
         int  getIndex(std::vector<float> &features);
 
     private:
-        static int policy_choice;
+        int policy_choice;
+        int offset;
 
 }; //end: RoundRobin (class)
 

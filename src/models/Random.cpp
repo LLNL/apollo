@@ -31,10 +31,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#include "apollo/models/Random.h"
-
 #include <random>
 #include <iostream> //ggout
+
+#include "apollo/Config.h"
+#include "apollo/models/Random.h"
 
 int
 Random::getIndex(std::vector<float> &features)
@@ -44,9 +45,12 @@ Random::getIndex(std::vector<float> &features)
     if (policy_count > 1) {
         std::random_device              random_dev;
         std::mt19937                    random_gen(random_dev());
-        std::uniform_int_distribution<> random_dist(0, (policy_count - 1));
+        //std::uniform_int_distribution<> random_dist(0, (policy_count - 1));
+        std::uniform_int_distribution<> random_dist(offset, offset + (policy_count - 1));
         // Return a random index, 0..(policy_count - 1):
         choice = random_dist(random_gen);
+        //std::cout << "Choose [ " << offset << ", " << (offset + policy_count - 1) \
+            << " ]: " << choice << std::endl;
     } else {
         choice = 0;
     }
@@ -57,6 +61,35 @@ Random::getIndex(std::vector<float> &features)
 Random::Random(int num_policies)
     : Model(num_policies, "Random", true)
 {
+    int rank = 0;
+    char *slurm_procid = getenv("SLURM_PROCID");
+
+    if (slurm_procid != NULL) {
+        rank = atoi(slurm_procid);
+    } else {
+        rank = 0;
+    };
+
+#if APOLLO_COLLECTIVE_TRAINING
+    int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
+    policy_count = num_policies/numProcs;
+    int rem = num_policies%numProcs;
+    // Give rank 0 any remainder policies
+    if( rank == 0 ) {
+        policy_count += rem;
+        offset = 0; //rank * policy_count;
+    }
+    else {
+        offset = rank * policy_count + rem;
+    }
+#elif APOLLO_LOCAL_TRAINING
+    offset = 0;
+#else
+#error "Missing training configuration"
+#endif
+
+    //std::cout << "rank " << rank << " policy_count " << policy_count \
+        << " offset " << offset << std::endl; //ggout
 }
 
 Random::~Random()
