@@ -9,9 +9,9 @@ class Model {
     public:
         Model() {};
         Model(int num_policies, std::string name, bool training) : 
+            policy_count(num_policies),
             name(name),
-            training(training),
-            policy_count(num_policies)
+            training(training)
         {};
         virtual ~Model() {};
         //

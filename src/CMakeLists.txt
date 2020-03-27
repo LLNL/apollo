@@ -51,6 +51,7 @@ include_directories(
 
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
+    ../include/apollo/Config.h
     ../include/apollo/Logging.h
     ../include/apollo/Region.h
     ../include/apollo/Model.h

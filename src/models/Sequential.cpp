@@ -32,12 +32,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 #include <string>
-#include <mutex>
 
 #include "apollo/models/Sequential.h"
-
-#define modelName "sequential"
-#define modelFile __FILE__
 
 int
 Sequential::getIndex(std::vector<float> &features)
@@ -55,44 +51,12 @@ Sequential::getIndex(std::vector<float> &features)
     return choice;
 }
 
-void
-Sequential::configure(
-        int  num_policies)
+Sequential::Sequential(int num_policies)
+    : Model(num_policies, "Sequential", true)
 {
-    policy_count  = num_policies;
-    return;
-}
-
-//
-// ----------
-//
-// BELOW: Boilerplate code to manage instances of this model:
-//
-
-
-Sequential::Sequential()
-{
-    name = "Sequential";
 }
 
 Sequential::~Sequential()
 {
     return;
 }
-
-extern "C" Sequential*
-APOLLO_model_create_sequential(void)
-{
-    return new Sequential;
-}
-
-
-extern "C" void
-APOLLO_model_destroy_sequential(
-        Sequential *model_ref)
-{
-    delete model_ref;
-    return;
-}
-
-

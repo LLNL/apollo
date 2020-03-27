@@ -7,8 +7,6 @@
 #include <iostream>
 #include <type_traits>
 
-#include "apollo/Apollo.h"
-
 #ifndef APOLLO_VERBOSE
 #define APOLLO_VERBOSE 0
 #endif

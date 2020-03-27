@@ -34,6 +34,7 @@
 #include "apollo/models/Random.h"
 
 #include <random>
+#include <iostream> //ggout
 
 int
 Random::getIndex(std::vector<float> &features)

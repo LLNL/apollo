@@ -1,30 +1,15 @@
 #ifndef APOLLO_H
 #define APOLLO_H
 
-#include <cstdint>
 #include <string>
 #include <map>
-#include <unordered_map>
-#include <iostream>
-#include <fstream>
-#include <type_traits>
-#include <list>
 #include <vector>
 
 #include <omp.h>
 #include <mpi.h>
 
+#include "apollo/Config.h"
 #include "apollo/Logging.h"
-
-// TODO: create a better configuration method
-#define APOLLO_COLLECTIVE_TRAINING 0
-
-#define APOLLO_GLOBAL_MODEL 1
-#if APOLLO_GLOBAL_MODEL
-#define APOLLO_REGION_MODEL 0
-#else
-#define APOLLO_REGION_MODEL 1
-#endif
 
 class Apollo
 {
@@ -39,8 +24,8 @@ class Apollo
             return &the_instance;
         }
 
-        //
         class Region;
+        //
         // XXX: assumes features are the same globally for all regions
         std::vector<float>            features;
         int                       num_features;
@@ -60,7 +45,6 @@ class Apollo
         int numThreads;  // <-- how many to use / are in use
         //
         void    setFeature(float value);
-        double  getFeature(std::string ft_name);
 
         // NOTE(chad): We default to walk_distance of 2 so we can
         //             step out of this method, then step out of
@@ -70,36 +54,15 @@ class Apollo
         std::string getCallpathOffset(int walk_distance=2);
         void *callpath_ptr;
 
-        Region *region(const char *regionName);
-        //
-        bool isOnline();
-        //
         void flushAllRegionMeasurements(int assign_to_step);
     private:
         MPI_Comm comm;
-        std::map<std::string, Region *> regions;
         Apollo();
         void gatherReduceCollectiveTrainingData();
+        // Key: region name, value: region raw pointer
+        std::map<std::string, Apollo::Region *> regions;
         // Key: region name, value: map key: num_elements, value: policy_index, time_avg
         std::map< std::vector< float >, std::pair< int, double > > best_policies_global;
 }; //end: Apollo
-
-inline const char*
-safe_getenv(
-        const char *var_name,
-        const char *use_this_if_not_found,
-        bool        silent=false)
-{
-    char *c = getenv(var_name);
-    if (c == NULL) {
-        if (not silent) {
-            log("Looked for ", var_name, " with getenv(), found nothing, using '", \
-                use_this_if_not_found, "' (default) instead.");
-        }
-        return use_this_if_not_found;
-    } else {
-        return c;
-    }
-}
 
 #endif

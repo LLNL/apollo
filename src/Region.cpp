@@ -33,9 +33,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <mutex>
-#include <algorithm>
-#include <limits>
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -43,8 +40,8 @@
 #include "assert.h"
 
 #include "apollo/Apollo.h"
-#include "apollo/Logging.h"
 #include "apollo/Region.h"
+#include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 
 #include <mpi.h>
@@ -97,8 +94,8 @@ Apollo::Region::Region(
     // TODO: make Model a factory for specific models
     // TODO: use best_policies to train a model for new region for which there's training data
     //model = ModelFactory::createRandom( numAvailablePolicies );
-    model = ModelFactory::createRoundRobin( numAvailablePolicies );
-    //model = ModelFactory::createStatic( numAvailablePolicies, 1 );
+    //model = ModelFactory::createRoundRobin( numAvailablePolicies );
+    model = ModelFactory::createStatic( numAvailablePolicies, 0 );
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     apollo->regions.insert( { name, this } );
@@ -267,4 +264,5 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
 
     return;
 }
+
 

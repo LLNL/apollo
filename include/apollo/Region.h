@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <memory>
+#include <map>
 
 #include "apollo/Apollo.h"
 #include "apollo/Model.h"
@@ -23,7 +24,6 @@ class Apollo::Region {
             int       exec_count;
             double    time_total;
             Measure(int e, double t) : exec_count(e), time_total(t) {}
-            //~Measure() { std::cout << "Destruct measure" << std::endl; }
         } Measure;
 
         char    name[64];
@@ -33,9 +33,6 @@ class Apollo::Region {
 
         int                   getPolicyIndex(void);
 
-        // Key: < features, policy >, value: < time measurement >
-        std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
-
         int            current_policy;
 
         int reduceBestPolicies();
@@ -44,8 +41,10 @@ class Apollo::Region {
         //
 #if APOLLO_GLOBAL_MODEL
         std::shared_ptr<Model> model;
-#else
+#elif APOLLO_REGION_MODEL
         std::unique_ptr<Model> model;
+#else
+#error "Invalid model configuration"
 #endif
 
     private:
@@ -55,6 +54,8 @@ class Apollo::Region {
         //
         std::chrono::steady_clock::time_point current_exec_time_begin;
         std::chrono::steady_clock::time_point current_exec_time_end;
+        // Key: < features, policy >, value: < time measurement >
+        std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
         //
 }; //end: Apollo::Region
 

@@ -63,7 +63,23 @@ inline void replace_all(std::string& input, const std::string& from, const std::
 	}
 }
 
-
+inline const char*
+safe_getenv(
+        const char *var_name,
+        const char *use_this_if_not_found,
+        bool        silent=false)
+{
+    char *c = getenv(var_name);
+    if (c == NULL) {
+        if (not silent) {
+            log("Looked for ", var_name, " with getenv(), found nothing, using '", \
+                use_this_if_not_found, "' (default) instead.");
+        }
+        return use_this_if_not_found;
+    } else {
+        return c;
+    }
+}
 
 std::string
 Apollo::getCallpathOffset(int walk_distance)
@@ -320,8 +336,10 @@ void
 Apollo::flushAllRegionMeasurements(int assign_to_step)
 {
     // TODO: when to train?
-    // if( ( assign_to_step + 1 )  % 5 )
-    //  return;
+    //if( assign_to_step <= 1 ) {
+    //    std::cout << "Skip " << assign_to_step << std::endl;
+    //    return; 
+    //}
     // TODO: check best_policies for drift from actual execution?
 
     // Reduce local region measurements to best policies
@@ -439,4 +457,5 @@ Apollo::setFeature(float value)
     features.push_back( value );
     return;
 }
+
 

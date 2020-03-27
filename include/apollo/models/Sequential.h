@@ -3,17 +3,13 @@
 
 #include <string>
 
-#include "apollo/Apollo.h"
 #include "apollo/Model.h"
 
 class Sequential : public Model {
     public:
-        Sequential();
+        Sequential(int num_policies);
         ~Sequential();
 
-        void configure(int num_policies);
-        //
-        bool learning = true;
         int  getIndex(std::vector<float> &features);
 
     private:
