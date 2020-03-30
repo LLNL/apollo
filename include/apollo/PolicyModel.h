@@ -1,19 +1,18 @@
-#ifndef APOLLO_MODEL_H
-#define APOLLO_MODEL_H
+#ifndef APOLLO_POLICY_MODEL_H
+#define APOLLO_POLICY_MODEL_H
 
 #include <string>
 #include <vector>
 
 // Abstract
-class Model {
+class PolicyModel {
     public:
-        Model() {};
-        Model(int num_policies, std::string name, bool training) : 
+        PolicyModel(int num_policies, std::string name, bool training) : 
             policy_count(num_policies),
             name(name),
             training(training)
         {};
-        virtual ~Model() {};
+        virtual ~PolicyModel() {}
         //
         virtual int      getIndex(std::vector<float> &features) = 0;
 
@@ -24,7 +23,7 @@ class Model {
     protected:
         //
         int          policy_count;
-}; //end: Model (abstract class)
+}; //end: PolicyModel (abstract class)
 
 
 #endif

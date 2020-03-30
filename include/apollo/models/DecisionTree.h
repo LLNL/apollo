@@ -4,9 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "apollo/Model.h"
+#include "apollo/PolicyModel.h"
+#include <opencv2/ml.hpp>
 
-class DecisionTree : public Model {
+using namespace cv;
+using namespace cv::ml;
+
+class DecisionTree : public PolicyModel {
 
     public:
         DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses);
@@ -18,6 +22,14 @@ class DecisionTree : public Model {
         void store(const std::string &filename);
 
     private:
+        //Ptr<DTrees> dtree;
+        Ptr<RTrees> dtree;
+        //Ptr<SVM> dtree;
+        //Ptr<NormalBayesClassifier> dtree;
+        //Ptr<KNearest> dtree;
+        //Ptr<Boost> dtree;
+        //Ptr<ANN_MLP> dtree;
+        //Ptr<LogisticRegression> dtree;
 }; //end: DecisionTree (class)
 
 

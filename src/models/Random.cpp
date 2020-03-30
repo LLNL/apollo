@@ -31,7 +31,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#include <random>
 #include <iostream> //ggout
 
 #include "apollo/Config.h"
@@ -43,11 +42,6 @@ Random::getIndex(std::vector<float> &features)
     int choice = 0;
 
     if (policy_count > 1) {
-        std::random_device              random_dev;
-        std::mt19937                    random_gen(random_dev());
-        //std::uniform_int_distribution<> random_dist(0, (policy_count - 1));
-        std::uniform_int_distribution<> random_dist(offset, offset + (policy_count - 1));
-        // Return a random index, 0..(policy_count - 1):
         choice = random_dist(random_gen);
         //std::cout << "Choose [ " << offset << ", " << (offset + policy_count - 1) \
             << " ]: " << choice << std::endl;
@@ -59,7 +53,7 @@ Random::getIndex(std::vector<float> &features)
 }
 
 Random::Random(int num_policies)
-    : Model(num_policies, "Random", true)
+    : PolicyModel(num_policies, "Random", true)
 {
     int rank = 0;
     char *slurm_procid = getenv("SLURM_PROCID");
@@ -72,21 +66,30 @@ Random::Random(int num_policies)
 
 #if APOLLO_COLLECTIVE_TRAINING
     int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
-    policy_count = num_policies/numProcs;
-    int rem = num_policies%numProcs;
-    // Give rank 0 any remainder policies
-    if( rank == 0 ) {
-        policy_count += rem;
-        offset = 0; //rank * policy_count;
+    // Max 1 if numProcs > num_policies
+    policy_count = std::max(1, num_policies/numProcs);
+    // Offset to policies per rank
+    offset = ( rank * policy_count ) % num_policies;
+    // Distribute any remainder policies evenly
+    if( num_policies > numProcs ) {
+        int rem = num_policies%numProcs;
+        // Give rank 0 any remainder policies
+        if( rank == 0 ) {
+            policy_count += rem;
+        }
+        else {
+            offset += rem;
+        }
     }
-    else {
-        offset = rank * policy_count + rem;
-    }
+
 #elif APOLLO_LOCAL_TRAINING
     offset = 0;
 #else
 #error "Missing training configuration"
 #endif
+
+    random_gen = std::mt19937( random_dev() );
+    random_dist = std::uniform_int_distribution<>( offset, offset + policy_count - 1 );
 
     //std::cout << "rank " << rank << " policy_count " << policy_count \
         << " offset " << offset << std::endl; //ggout

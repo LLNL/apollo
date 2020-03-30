@@ -8,7 +8,8 @@
 #include <map>
 
 #include "apollo/Apollo.h"
-#include "apollo/Model.h"
+#include "apollo/PolicyModel.h"
+#include "apollo/TimingModel.h"
 
 #include <mpi.h>
 
@@ -40,13 +41,9 @@ class Apollo::Region {
         std::map< std::vector< float >, std::pair< int, double > > best_policies;
         // Key: < features, policy >, value: < time measurement >
         std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
-#if APOLLO_GLOBAL_MODEL
-        std::shared_ptr<Model> model;
-#elif APOLLO_REGION_MODEL
-        std::unique_ptr<Model> model;
-#else
-#error "Invalid model configuration"
-#endif
+        std::unique_ptr<TimingModel> time_model;
+        std::unique_ptr<PolicyModel> model;
+        //std::shared_ptr<PolicyModel> model;
 
     private:
         //

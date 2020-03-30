@@ -1,12 +1,12 @@
 #ifndef APOLLO_MODELS_STATIC_H
 #define APOLLO_MODELS_STATIC_H
 
-#include "apollo/Model.h"
+#include "apollo/PolicyModel.h"
 
-class Static : public Model {
+class Static : public PolicyModel {
     public:
         Static(int num_policies, int policy_choice) : 
-           Model(num_policies, "Static", false), policy_choice(policy_choice) {};
+           PolicyModel(num_policies, "Static", false), policy_choice(policy_choice) {};
         ~Static() {};
 
         //

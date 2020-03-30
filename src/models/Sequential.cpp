@@ -52,7 +52,7 @@ Sequential::getIndex(std::vector<float> &features)
 }
 
 Sequential::Sequential(int num_policies)
-    : Model(num_policies, "Sequential", true)
+    : PolicyModel(num_policies, "Sequential", true)
 {
 }
 

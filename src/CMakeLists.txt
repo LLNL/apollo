@@ -54,13 +54,9 @@ set(APOLLO_HEADERS
     ../include/apollo/Config.h
     ../include/apollo/Logging.h
     ../include/apollo/Region.h
-    ../include/apollo/Model.h
+    ../include/apollo/PolicyModel.h
+    ../include/apollo/TimingModel.h
     ../include/apollo/ModelFactory.h
-    ../include/apollo/models/Random.h
-    ../include/apollo/models/Sequential.h
-    ../include/apollo/models/Static.h
-    ../include/apollo/models/RoundRobin.h
-    ../include/apollo/models/DecisionTree.h
     )
 
 set(APOLLO_SOURCES
@@ -72,6 +68,7 @@ set(APOLLO_SOURCES
     models/Static.cpp
     models/RoundRobin.cpp
     models/DecisionTree.cpp
+    models/RegressionTree.cpp
     )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})

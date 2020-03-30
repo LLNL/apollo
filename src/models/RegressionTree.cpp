@@ -1,4 +1,3 @@
-
 // Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 //
@@ -39,49 +38,29 @@
 #include <vector>
 #include <algorithm>
 
-#include "apollo/models/DecisionTree.h"
-#include <opencv2/core/types.hpp>
-
-#define modelName "decisiontree"
-#define modelFile __FILE__
-
+#include "apollo/models/RegressionTree.h"
 
 using namespace std;
 
-DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses)
-    : PolicyModel(num_policies, "DecisionTree", false)
-{
 
+RegressionTree::RegressionTree(std::vector< std::vector<float> > &features, std::vector<float > &responses)
+    : TimingModel( "RegressionTree" )
+{
     //std::chrono::steady_clock::time_point t1, t2;
     //t1 = std::chrono::steady_clock::now();
 
-    //dtree = NormalBayesClassifier::create();
     //
     //dtree = KNearest::create();
     //
-    //dtree = Boost::create();
-    //
-    //dtree = ANN_MLP::create();
-    //
-    //dtree = SVM::create();
-    //dtree = LogisticRegression::create();
-    //dtree->setLearningRate(0.001);
-    //dtree->setIterations(10);
-    //dtree->setRegularization(LogisticRegression::REG_L2);
-    //dtree->setTrainMethod(LogisticRegression::BATCH);
-    //dtree->setMiniBatchSize(1);
 
-    //dtree = DTrees::create();
+    ////dtree = DTrees::create();
     dtree = RTrees::create();
-
-    dtree->setMaxDepth(2);
-    dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER + TermCriteria::EPS, 10, 0.01 ) );
-    //dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER, 10, 0 ) );
-
-    dtree->setMinSampleCount(2);
-    dtree->setRegressionAccuracy(0);
+    dtree->setMinSampleCount(1);
+    dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 0.001 ) );
+    //dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER, 50, 0.01 ) );
+    //dtree->setMaxDepth(8);
+    dtree->setRegressionAccuracy(1e-6);
     dtree->setUseSurrogates(false);
-    dtree->setMaxCategories(policy_count);
     dtree->setCVFolds(0);
     dtree->setUse1SERule(false);
     dtree->setTruncatePrunedTree(false);
@@ -89,7 +68,7 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
 
     Mat fmat;
     for(auto &i : features) {
-        Mat tmp(1, i.size(), CV_32F, &i[0]);
+        Mat tmp(1, i.size(), CV_32FC1, &i[0]);
         fmat.push_back(tmp);
     }
 
@@ -99,8 +78,7 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     //    int j = responses[i];
     //    rmat.at<float>(i, j) = 1.f;
     //}
-    Mat(fmat.rows, 1, CV_32S, &responses[0]).copyTo(rmat);
-    //Mat(fmat.rows, 1, CV_32F, &responses[0]).copyTo(rmat);
+    Mat(fmat.rows, 1, CV_32F, &responses[0]).copyTo(rmat);
 
     //std::cout << "fmat: " << fmat << std::endl;
     //std::cout << "features.size: " << features.size() << std::endl;
@@ -126,27 +104,26 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     //    abort();
     //}
 
-
     //t2 = std::chrono::steady_clock::now();
     //double duration = std::chrono::duration<double>(t2 - t1).count();
-    //std::cout << "Train " << name<< " : " << duration << " seconds" << std::endl;
+    //std::cout << "Train regression tree " << " : " << duration << " seconds" << std::endl;
 
     return;
 }
 
-DecisionTree::~DecisionTree()
+RegressionTree::~RegressionTree()
 {
     return;
 }
 
-int
-DecisionTree::getIndex(std::vector<float> &features)
+double
+RegressionTree::getTimePrediction(std::vector<float> &features)
 {
 
     //std::chrono::steady_clock::time_point t1, t2;
     //t1 = std::chrono::steady_clock::now();
     // Keep choice around for easier debugging, if needed:
-    static int choice = -1;
+    double choice = 0;
 
     //Mat fmat;
     //fmat.push_back( Mat(1, features.size(), CV_32F, &features[0]) );
@@ -169,7 +146,7 @@ DecisionTree::getIndex(std::vector<float> &features)
     return choice;
 }
 
-void DecisionTree::store(const std::string &filename)
+void RegressionTree::store(const std::string &filename)
 {
     dtree->save( filename );
 }

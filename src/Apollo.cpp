@@ -289,10 +289,6 @@ Apollo::gatherReduceCollectiveTrainingData()
         MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, region_name, 64, MPI_CHAR, comm);
         //MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &exec_count, 1, MPI_INT, comm);
         MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
-        // TODO: use Region::best_policies with per region model to avoid
-        // reference in apollo. Also, create new Regions if unseen locally
-        // and store best_policies found to train model if executed. Simplify
-        // Region constructor in RAJA to remove all arguments (unnecessary)
         
         //std::cout << "rank, region_name, num_elements, policy_index, time_avg" << std::endl;
         //std::cout << rank << ", " << region_name << ", " << (int)feature_vector[0] << ", " \
@@ -343,31 +339,14 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     //    std::cout << "Skip " << assign_to_step << std::endl;
     //    return; 
     //}
-    // TODO: check best_policies for drift from actual execution?
 
-
-    // TODO: abort flush if no region is training
     // Reduce local region measurements to best policies
     for( auto &it: regions ) {
         Region *reg = it.second;
         reg->reduceBestPolicies();
         // TODO: forget about old measures or not?
-        //reg->measures.clear();
+        reg->measures.clear();
     }
-    // TODO: Force re-train?
-    // XXX: Invoke re-train after reduce to ensure
-    // best_policies always have valid input to train
-    // otherwise DecisionTree fails
-    //if(assign_to_step % 10 == 0 ){
-    //    std::cout << "RE-TRAIN" << std::endl; //ggout
-    //    for( auto &it: regions ) {
-    //        Region *reg = it.second;
-    //        reg->measures.clear();
-    //        //reg->best_policies.clear();
-    //        reg->model = ModelFactory::createRoundRobin( num_policies );
-    //    }
-    //    return;
-    //}
 
 #if APOLLO_COLLECTIVE_TRAINING
     gatherReduceCollectiveTrainingData();
@@ -411,61 +390,186 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     std::vector< std::vector<float> > train_features;
     std::vector< int > train_responses;
 
+    std::vector< std::vector< float > > train_time_features;
+    std::vector< float > train_time_responses;
+
     //std::cout << "GLOBAL TRAINING " << std::endl;
     for(auto &it : best_policies_global) {
         train_features.push_back( it.first );
         train_responses.push_back( it.second.first );
+
+        std::vector< float > feature_vector = it.first;
+        feature_vector.push_back( it.second.first );
+        train_time_features.push_back( feature_vector );
+        train_time_responses.push_back( it.second.second );
+
         //std::cout << "best_policies_global[ " << (int)it.first[0] << " ]: "  \
         //    << "( " << it.second.first << ", " << it.second.second << " ) " << std::endl;
     }
-
     //std::cout << "~~~~~~~~~~~~~" << std::endl;
 
     //std::cout << "ONE GLOBAL TREE" << std::endl; //ggout
-    std::shared_ptr<Model> gTree  = ModelFactory::createDecisionTree(
-            num_policies, train_features, train_responses );
-
-    //gTree->store( "dtree-" + std::to_string( assign_to_step ) + ".yaml" );
-    // TODO: forget or not training best_policies?
-    //best_policies_global.clear();
-
-
+    // bool stored = false;
     // Update the model to all regions
     for(auto &it : regions) {
         Region *reg = it.second;
-        if( reg->model->training ) {
-            reg->model = gTree;
-            // TODO: forget about aleady best_policies?
-            //reg->best_policies.clear();
+        if( reg->model->training && reg->best_policies.size() > 0 ) {
+            // TODO: use a shared_ptr and create once?
+            reg->model = ModelFactory::createDecisionTree(
+                    num_policies,
+                    train_features,
+                    train_responses );
+
+            reg->time_model = ModelFactory::createRegressionTree(
+                    train_time_features,
+                    train_time_responses);
+
+            //if( !stored ) {
+                //reg->model->store( "dtree-" + std::to_string( assign_to_step ) + ".yaml" );
+                //reg->time_model->store("regtree-" + std::string(reg->name) + ".yaml");
+                // stored = true;
+                //
+            //}
+        }
+        else {
+            //TODO: re-train by regression?
+            if( reg->time_model ) {
+                // Check for re-training
+                int drifting = 0;
+                for(auto &it2 : reg->best_policies) {
+                    double time_avg = it2.second.second;
+
+                    std::vector< float > feature_vector = it2.first;
+                    feature_vector.push_back( it2.second.first );
+                    double time_pred = reg->time_model->getTimePrediction( feature_vector );
+                    // TODO: trigger re-train?
+                    if( time_avg > 1.5*time_pred ) {
+                        drifting++;
+                        // ggout
+                        //std::cout << "trigger retrain: " << reg->name \
+                            << "[ " << feature_vector[0] << ", " << feature_vector[1] << " ]: " \
+                            << " time_avg " << time_avg << " ~~ " \
+                            << " time_pred " << time_pred << std::endl;
+                    }
+                }
+
+                if( drifting > 0 &&
+                        drifting > ( reg->best_policies.size()/2 ) ) {
+                    //std::cout << "retrain " << reg->name << " : " \
+                        << drifting << " / " \
+                        << reg->best_policies.size() << " total" << std::endl; //ggout
+                    //reg->model = ModelFactory::createRandom( num_policies );
+                    reg->model = ModelFactory::createRoundRobin( num_policies );
+                }
+
+                reg->best_policies.clear();
+            }
         }
     }
 
+    // TODO: forget or not training best_policies?
+    best_policies_global.clear();
+
 #else // APOLLO_REGION_MODEL
     //std::cout << "TRAIN PER REGION MODEL" << std::endl;
-    for(auto it = regions.begin(); it != regions.end(); ++it) {
-        Region *reg = it->second;
 
-        // TODO: skip re-train if reg is not training?
-        if( reg->model->training ) {
+    for(auto &it : regions ) {
+        Region *reg = it.second;
+
+        // TODO: if the region is training and there are measurements
+        if( reg->model->training && reg->best_policies.size() > 0 ) {
             std::vector< std::vector<float> > train_features;
             std::vector< int > train_responses;
+
+            std::vector< std::vector< float > > train_time_features;
+            std::vector< float > train_time_responses;
 
             // Prepare training data
             for(auto &it2 : reg->best_policies) {
                 train_features.push_back( it2.first );
                 train_responses.push_back( it2.second.first );
+
+                std::vector< float > feature_vector = it2.first;
+                feature_vector.push_back( it2.second.first );
+                train_time_features.push_back( feature_vector );
+                train_time_responses.push_back( it2.second.second );
             }
+
+            //std::cout << "=== BEST POLICIES REGION " << reg->name << " ===" << std::endl;
+            //for( auto &b : reg->best_policies ) {
+            //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
+            //        << b.second.first << " T: " << b.second.second << std::endl;
+            //}
+            //std::cout << ".-" << std::endl;
 
             //std::cout << "TRAIN TREE region " << reg->name << std::endl; //ggout
             reg->model = ModelFactory::createDecisionTree(
                     num_policies, 
                     train_features, 
                     train_responses );
+
+            reg->time_model = ModelFactory::createRegressionTree(
+                    train_time_features,
+                    train_time_responses);
+            //reg->time_model->store("regtree-" + std::string(reg->name) + ".yaml"); //ggout
             //reg->model->store( "dtree-" + std::to_string( assign_to_step ) + "-" + reg->name + ".yaml" );
             // TODO: forget about already best_policies?
-            //reg->best_policies.clear();
+            reg->best_policies.clear();
+        }
+        else {
+            if( reg->time_model ) {
+                //std::cout << "=== BEST POLICIES TRAINED REGION " << reg->name << " ===" << std::endl;
+                //for( auto &b : reg->best_policies ) {
+                //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
+                //        << b.second.first << " T: " << b.second.second << std::endl;
+                //}
+                //std::cout << ".-" << std::endl;
+
+                // Check for re-training
+                int drifting = 0;
+                for(auto &it2 : reg->best_policies) {
+                    double time_avg = it2.second.second;
+
+                    std::vector< float > feature_vector = it2.first;
+                    feature_vector.push_back( it2.second.first );
+                    double time_pred = reg->time_model->getTimePrediction( feature_vector );
+
+                    //std::cout << "trigger retrain: " << reg->name \
+                    //    << "[ " << feature_vector[0] << ", " << feature_vector[1] << " ]: " \
+                    //    << " time_avg " << time_avg << " ~~ " \
+                    //    << " time_pred " << time_pred \
+                    //    << " rel_err " << ( time_avg - time_pred ) / time_pred << std::endl;
+
+                    // TODO: trigger re-train?
+                    if( time_avg > ( 1.5*time_pred ) ) {
+                        drifting++;
+                        // ggout
+                        //std::ios_base::fmtflags f( std::cout.flags() );
+                        //std::cout << std::setprecision(3) << std::scientific \
+                        //    << "trigger retrain: " << reg->name \
+                        //    << "[ " << (int)feature_vector[0] << ", " << (int)feature_vector[1] << " ]: " \
+                        //    << " time_avg " << time_avg << " ~~ " \
+                        //    << " time_pred " << time_pred \
+                        //    << " rel_err " << ( time_avg - time_pred ) / time_pred << std::endl;
+                        //std::cout.flags( f );
+                    }
+                }
+
+                if( drifting > 0
+                        && drifting > ( reg->best_policies.size()/2 ) ) {
+                    //std::cout << "retrain " << reg->name << " : " \
+                        << drifting << " / " \
+                        << reg->best_policies.size() << " total" << std::endl; //ggout
+                    //reg->model = ModelFactory::createRandom( num_policies );
+                    reg->model = ModelFactory::createRoundRobin( num_policies );
+                    break;
+                }
+
+                reg->best_policies.clear();
+            }
         }
     }
+
 #endif
 
     //int rank;

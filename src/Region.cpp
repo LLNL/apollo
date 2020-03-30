@@ -61,6 +61,12 @@ Apollo::Region::getPolicyIndex(void)
     assert( currently_inside_region );
 
     int choice = model->getIndex( apollo->features );
+    //ggout
+    //if( !model->training ) {
+    //    std::cout << "Region " << name << ", model " << model->name \
+    //        << " features " << (int)apollo->features[0] \
+    //        << " got -> " << choice << std::endl;
+    //}
 #if 0
     if (choice != current_policy) {
         std::cout << "Change policy " << current_policy << " -> " << choice << " region " 
@@ -83,6 +89,8 @@ Apollo::Region::Region(
     apollo = Apollo::instance();
     apollo->num_features = num_features;
     apollo->num_policies = numAvailablePolicies;
+    // TODO: uncomment above
+    //apollo->num_policies = 14;
 
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
@@ -93,12 +101,14 @@ Apollo::Region::Region(
     // TODO: bootstrap model using the APOLLO_INIT_MODEL env var
     // TODO: make Model a factory for specific models
     // TODO: use best_policies to train a model for new region for which there's training data
-    //model = ModelFactory::createRandom( numAvailablePolicies );
-    model = ModelFactory::createRoundRobin( numAvailablePolicies );
-    //model = ModelFactory::createStatic( numAvailablePolicies, 0 );
+    //model = ModelFactory::createRandom( apollo->num_policies );
+    model = ModelFactory::createRoundRobin( apollo->num_policies );
+    //model = ModelFactory::createStatic( apollo->num_policies, 0 );
 
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
-    apollo->regions.insert( { name, this } );
+    const auto ret = apollo->regions.insert( { name, this } );
+
+    assert( ret.second == true );
 
     return;
 }
@@ -167,9 +177,9 @@ Apollo::Region::end()
 
     double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
 
-    // TODO: reduce overhead, move time calculation to reduceBestPolieces?
+    // TODO: reduce overhead, move time calculation to reduceBestPolicies?
     // TODO: buckets of features?
-    //const int bucket = 50;
+    //const int bucket = 10;
     //for(auto &it : apollo->features) {
     //    //std::cout << "feature: " << it;
     //    int idiv = int(it) / bucket;
@@ -188,6 +198,8 @@ Apollo::Region::end()
         iter->second->time_total += duration;
     }
 
+    // TODO: re-train from regression model every region execution?
+    //
     //std::cout << "=== INSERT MEASURE ===" << std::endl;
     //std::cout << name << ": " << "[ " << apollo->features[0] << " ]: " \
     //    << current_policy << " -> " << iter->second->exec_count \
@@ -203,6 +215,8 @@ Apollo::Region::end()
 int 
 Apollo::Region::reduceBestPolicies()
 {
+    //std::cout << "=================================" << std::endl \
+        << "Region " << name << " MEASURES "  << std::endl;
     for (auto iter_measure = measures.begin();
             iter_measure != measures.end();   iter_measure++) {
 
@@ -210,6 +224,12 @@ Apollo::Region::reduceBestPolicies()
         const int policy_index                   = iter_measure->first.second;
         auto                           &time_set = iter_measure->second;
 
+        // ggout
+        //std::cout << "[ " << feature_vector[0] << " ]: " \
+            << "policy: " << policy_index \
+            << " , count: " << time_set->exec_count \
+            << " , total: " << time_set->time_total \
+            << " , time_avg: " <<  ( time_set->time_total / time_set->exec_count ) << std::endl;
         assert( time_set->exec_count > 0 );
         double time_avg = ( time_set->time_total / time_set->exec_count );
 
@@ -224,6 +244,7 @@ Apollo::Region::reduceBestPolicies()
             }
         }
     }
+    //std::cout << ".-" << std::endl;
 
     return best_policies.size();
 }

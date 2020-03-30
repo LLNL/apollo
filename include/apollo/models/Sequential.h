@@ -3,9 +3,9 @@
 
 #include <string>
 
-#include "apollo/Model.h"
+#include "apollo/PolicyModel.h"
 
-class Sequential : public Model {
+class Sequential : public PolicyModel {
     public:
         Sequential(int num_policies);
         ~Sequential();

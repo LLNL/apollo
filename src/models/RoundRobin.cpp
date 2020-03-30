@@ -51,7 +51,7 @@ RoundRobin::getIndex(std::vector<float> &features)
 
 RoundRobin::RoundRobin(
         int   num_policies)
-    : Model(num_policies, "RoundRobin", true)
+    : PolicyModel(num_policies, "RoundRobin", true)
 {
     int rank = 0;
     char *slurm_procid = getenv("SLURM_PROCID");
@@ -64,18 +64,24 @@ RoundRobin::RoundRobin(
 
 #if APOLLO_COLLECTIVE_TRAINING
     int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
-    policy_count = num_policies/numProcs;
-    int rem = num_policies%numProcs;
-    // Give rank 0 any remainder policies
-    if( rank == 0 ) {
-        policy_count += rem;
-        offset = 0; //rank * policy_count;
-    }
-    else {
-        offset = rank * policy_count + rem;
+    // Max 1 if numProcs > num_policies
+    policy_count = std::max(1, num_policies/numProcs);
+    // Offset to policies per rank
+    offset = ( rank * policy_count ) % num_policies;
+    // Distribute any remainder policies evenly
+    if( num_policies > numProcs ) {
+        int rem = num_policies%numProcs;
+        // Give rank 0 any remainder policies
+        if( rank == 0 ) {
+            policy_count += rem;
+        }
+        else {
+            offset += rem;
+        }
     }
 
     policy_choice = rank + offset;
+    //std::cout << "rank " << rank << " policy_choice " << policy_choice << std::endl;
 #elif APOLLO_LOCAL_TRAINING
     policy_choice = 0;
     offset = 0;

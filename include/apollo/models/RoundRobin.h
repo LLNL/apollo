@@ -3,9 +3,9 @@
 
 #include <string>
 
-#include "apollo/Model.h"
+#include "apollo/PolicyModel.h"
 
-class RoundRobin : public Model {
+class RoundRobin : public PolicyModel {
     public:
         RoundRobin(int num_policies);
         ~RoundRobin();
