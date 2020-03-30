@@ -63,6 +63,7 @@ set(APOLLO_SOURCES
     Apollo.cpp
     Region.cpp
     ModelFactory.cpp
+    Config.cpp
     models/Random.cpp
     models/Sequential.cpp
     models/Static.cpp

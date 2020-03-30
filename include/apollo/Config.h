@@ -1,19 +1,16 @@
 #ifndef APOLLO_CONFIG_H
 #define APOLLO_CONFIG_H
 
-// TODO: create a better configuration method
-#define APOLLO_COLLECTIVE_TRAINING 1
-#if APOLLO_COLLECTIVE_TRAINING
-#define APOLLO_LOCAL_TRAINING 0
-#else
-#define APOLLO_LOCAL_TRAINING 1
-#endif
+class Config {
+    public:
+        static int APOLLO_COLLECTIVE_TRAINING;
+        static int APOLLO_LOCAL_TRAINING;
+        static int APOLLO_GLOBAL_MODEL;
+        static int APOLLO_REGION_MODEL;
+        static std::string APOLLO_INIT_MODEL;
 
-#define APOLLO_GLOBAL_MODEL 0
-#if APOLLO_GLOBAL_MODEL
-#define APOLLO_REGION_MODEL 0
-#else
-#define APOLLO_REGION_MODEL 1
-#endif
+    private:
+        Config();
+};
 
 #endif

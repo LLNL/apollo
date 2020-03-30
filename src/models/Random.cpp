@@ -64,29 +64,27 @@ Random::Random(int num_policies)
         rank = 0;
     };
 
-#if APOLLO_COLLECTIVE_TRAINING
-    int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
-    // Max 1 if numProcs > num_policies
-    policy_count = std::max(1, num_policies/numProcs);
-    // Offset to policies per rank
-    offset = ( rank * policy_count ) % num_policies;
-    // Distribute any remainder policies evenly
-    if( num_policies > numProcs ) {
-        int rem = num_policies%numProcs;
-        // Give rank 0 any remainder policies
-        if( rank == 0 ) {
-            policy_count += rem;
-        }
-        else {
-            offset += rem;
+    if( Config::APOLLO_COLLECTIVE_TRAINING ) {
+        int numProcs         = std::stoi(getenv("SLURM_NPROCS"));
+        // Max 1 if numProcs > num_policies
+        policy_count = std::max(1, num_policies/numProcs);
+        // Offset to policies per rank
+        offset = ( rank * policy_count ) % num_policies;
+        // Distribute any remainder policies evenly
+        if( num_policies > numProcs ) {
+            int rem = num_policies%numProcs;
+            // Give rank 0 any remainder policies
+            if( rank == 0 ) {
+                policy_count += rem;
+            }
+            else {
+                offset += rem;
+            }
         }
     }
-
-#elif APOLLO_LOCAL_TRAINING
-    offset = 0;
-#else
-#error "Missing training configuration"
-#endif
+    else {
+        offset = 0;
+    }
 
     random_gen = std::mt19937( random_dev() );
     random_dist = std::uniform_int_distribution<>( offset, offset + policy_count - 1 );
