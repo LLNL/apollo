@@ -5,7 +5,7 @@ class Config {
     public:
         static int APOLLO_COLLECTIVE_TRAINING;
         static int APOLLO_LOCAL_TRAINING;
-        static int APOLLO_GLOBAL_MODEL;
+        static int APOLLO_SINGLE_MODEL;
         static int APOLLO_REGION_MODEL;
         static std::string APOLLO_INIT_MODEL;
 

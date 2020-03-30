@@ -174,8 +174,8 @@ Apollo::Apollo()
     //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
     Config::APOLLO_LOCAL_TRAINING = std::stoi( safe_getenv( "APOLLO_LOCAL_TRAINING", "0" ) );
     //std::cout << "local " << Config::APOLLO_LOCAL_TRAINING << std::endl;
-    Config::APOLLO_GLOBAL_MODEL = std::stoi( safe_getenv( "APOLLO_GLOBAL_MODEL", "0" ) );
-    //std::cout << "global " << Config::APOLLO_GLOBAL_MODEL << std::endl;
+    Config::APOLLO_SINGLE_MODEL = std::stoi( safe_getenv( "APOLLO_SINGLE_MODEL", "0" ) );
+    //std::cout << "global " << Config::APOLLO_SINGLE_MODEL << std::endl;
     Config::APOLLO_REGION_MODEL = std::stoi( safe_getenv( "APOLLO_REGION_MODEL", "1" ) );
     //std::cout << "region " << Config::APOLLO_REGION_MODEL << std::endl;
 
@@ -189,13 +189,13 @@ Apollo::Apollo()
         abort();
     }
 
-    if( Config::APOLLO_GLOBAL_MODEL && Config::APOLLO_REGION_MODEL ) {
+    if( Config::APOLLO_SINGLE_MODEL && Config::APOLLO_REGION_MODEL ) {
         std::cerr << "Both global and region modeling cannot be enabled" << std::endl;
         abort();
     }
 
 
-    if( ! ( Config::APOLLO_GLOBAL_MODEL || Config::APOLLO_REGION_MODEL ) ) {
+    if( ! ( Config::APOLLO_SINGLE_MODEL || Config::APOLLO_REGION_MODEL ) ) {
         std::cerr << "Either global or region modeling must be enabled" << std::endl;
         abort();
     }
@@ -391,8 +391,8 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     }
 //#endif
 
-//#if APOLLO_GLOBAL_MODEL
-    if( Config::APOLLO_GLOBAL_MODEL ) {
+//#if APOLLO_SINGLE_MODEL
+    if( Config::APOLLO_SINGLE_MODEL ) {
         // Reduce best polices per region to global
         for( auto &it: regions ) {
             Region *reg = it.second;
