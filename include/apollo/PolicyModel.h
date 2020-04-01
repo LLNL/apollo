@@ -18,11 +18,9 @@ class PolicyModel {
 
         virtual void    store(const std::string &filename) {};
 
+        int          policy_count;
         std::string      name           = "";
         bool             training       = false;
-    protected:
-        //
-        int          policy_count;
 }; //end: PolicyModel (abstract class)
 
 

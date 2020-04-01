@@ -243,7 +243,7 @@ Apollo::Region::reduceBestPolicies()
         auto                           &time_set = iter_measure->second;
 
         // ggout
-        //std::cout << "[ " << feature_vector[0] << " ]: " \
+        //std::cout << "[ " << (int)feature_vector[0] << " ]: " \
             << "policy: " << policy_index \
             << " , count: " << time_set->exec_count \
             << " , total: " << time_set->time_total \

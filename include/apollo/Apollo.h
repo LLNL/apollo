@@ -9,7 +9,6 @@
 #include <mpi.h>
 
 #include "apollo/Config.h"
-#include "apollo/Logging.h"
 
 class Apollo
 {

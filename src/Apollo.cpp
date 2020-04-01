@@ -63,7 +63,8 @@ inline void replace_all(std::string& input, const std::string& from, const std::
 	}
 }
 
-inline const char*
+//inline const char*
+static const char*
 safe_getenv(
         const char *var_name,
         const char *use_this_if_not_found,
@@ -210,7 +211,7 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
-    delete callpath_ptr;
+    delete (CallpathRuntime *)callpath_ptr;
 }
 
 int 
