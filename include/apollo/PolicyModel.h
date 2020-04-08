@@ -16,7 +16,7 @@ class PolicyModel {
         //
         virtual int      getIndex(std::vector<float> &features) = 0;
 
-        virtual void    store(const std::string &filename) {};
+        virtual void    store(const std::string &filename) = 0;
 
         int          policy_count;
         std::string      name           = "";

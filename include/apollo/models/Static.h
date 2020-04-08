@@ -11,6 +11,7 @@ class Static : public PolicyModel {
 
         //
         int  getIndex(std::vector<float> &features);
+        void store(const std::string &filename) {};
 
     private:
         int policy_choice;

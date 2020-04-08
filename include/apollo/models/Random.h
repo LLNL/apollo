@@ -13,10 +13,9 @@ class Random : public PolicyModel {
 
         //
         int  getIndex(std::vector<float> &features);
+        void store(const std::string &filename) {};
 
     private:
-        int offset;
-
         std::random_device random_dev;
         std::mt19937 random_gen;
         std::uniform_int_distribution<> random_dist;

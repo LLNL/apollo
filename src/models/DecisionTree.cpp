@@ -73,10 +73,10 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
 
     //dtree = DTrees::create();
     dtree = RTrees::create();
-
-    dtree->setMaxDepth(2);
     dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER + TermCriteria::EPS, 10, 0.01 ) );
     //dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER, 10, 0 ) );
+
+    dtree->setMaxDepth(2);
 
     dtree->setMinSampleCount(2);
     dtree->setRegressionAccuracy(0);
@@ -142,29 +142,14 @@ DecisionTree::~DecisionTree()
 int
 DecisionTree::getIndex(std::vector<float> &features)
 {
-
     //std::chrono::steady_clock::time_point t1, t2;
     //t1 = std::chrono::steady_clock::now();
-    // Keep choice around for easier debugging, if needed:
-    static int choice = -1;
 
-    //Mat fmat;
-    //fmat.push_back( Mat(1, features.size(), CV_32F, &features[0]) );
-    //Mat result;
-    //choice = dtree->predict( features, result );
-    //std::cout << "Results: " << result << std::endl;
-    //
-    choice = dtree->predict( features );
+    int choice = dtree->predict( features );
 
     //t2 = std::chrono::steady_clock::now();
     //double duration = std::chrono::duration<double>(t2 - t1).count();
-    //std::cout << "predict duration: " <<  duration << " choice: " << choice << endl; //ggout
-    //std::cout << "Features: [ ";
-    //for(auto &i: features) 
-    //    std::cout << i;
-    //std::cout << " ] ->  " << choice << std::endl;
-
-    // Find the recommendation of the decision tree:
+    //std::cout << "DTree predict: " <<  duration << " choice: " << choice << endl; //ggout
 
     return choice;
 }
