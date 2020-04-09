@@ -37,6 +37,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <cstdint>
 #include <cstring>
 #include <typeinfo>
@@ -51,6 +52,9 @@
 #include "apollo/Logging.h"
 #include "apollo/Region.h"
 #include "apollo/ModelFactory.h"
+
+#define REGRESSION_TIME_THRESHOLD 1.5
+#define RETRAIN_DRIFT_THRESHOLD 0.5
 
 //
 #include "util/Debug.h"
@@ -221,7 +225,10 @@ get_measure_size(int num_features, MPI_Comm comm)
     // rank
     MPI_Pack_size( 1, MPI_INT, comm, &size);
     measure_size += size;
-    // features
+    // num features
+    MPI_Pack_size( 1, MPI_INT, comm, &size);
+    measure_size += size;
+    // feature vector
     MPI_Pack_size( num_features, MPI_FLOAT, comm, &size);
     measure_size += size;
     // policy_index
@@ -230,9 +237,6 @@ get_measure_size(int num_features, MPI_Comm comm)
     // region name
     MPI_Pack_size( 64, MPI_CHAR, comm, &size);
     measure_size += size;
-    // execution count
-    //MPI_Pack_size( 1, MPI_INT, comm, &size);
-    //measure_size += size;
     // average time
     MPI_Pack_size( 1, MPI_DOUBLE, comm, &size);
     measure_size += size;
@@ -241,50 +245,42 @@ get_measure_size(int num_features, MPI_Comm comm)
 }
 
 void 
-Apollo::gatherReduceCollectiveTrainingData()
+Apollo::gatherReduceCollectiveTrainingData(int step)
 {
-    int num_measures = 0;
+    int send_size = 0;
     for( auto &it: regions ) {
         Region *reg = it.second;
-        // XXX: assumes reg->reduceBestPolicies() has run
-        num_measures += reg->best_policies.size();
+        // XXX assumes reg->reduceBestPolicies() has run
+        send_size += ( get_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
     }
-    int measure_size = get_measure_size(num_features, comm);
 
-    char *sendbuf = (char *)malloc( num_measures  * measure_size );
-    //std::cout << "measure_size: " << measure_size << ", total: " << measure_size * num_measures << std::endl;
+    char *sendbuf = (char *)malloc( send_size );
+    //std::cout << "send_size: " << send_size << std::endl;
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        int reg_num_measures = reg->best_policies.size();
-        reg->packMeasurements(sendbuf + offset, reg_num_measures * measure_size, comm);
-        offset += reg_num_measures * measure_size;
+        int reg_measures_size = ( reg->best_policies.size() * get_measure_size( reg->num_features, comm ) );
+        reg->packMeasurements( sendbuf + offset, reg_measures_size, comm );
+        offset += reg_measures_size;
     }
 
     int num_ranks;
-    MPI_Comm_size(comm, &num_ranks);
+    MPI_Comm_size( comm, &num_ranks );
     //std::cout << "num_ranks: " << num_ranks << std::endl;
 
-    int num_measures_per_rank[ num_ranks ];
-
-    MPI_Allgather( &num_measures, 1, MPI_INT, &num_measures_per_rank, 1, MPI_INT, comm);
-
-    //std::cout << "MEASURES:" ;
-    //for(int i = 0; i < num_ranks; i++) {
-    //  std::cout << i << ":" << num_measures_per_rank[i] << ", ";
-    //}
-    //std::cout << std::endl;
-
-    int total_measures = 0;
-    for(int i = 0; i < num_ranks; i++) {
-        total_measures += num_measures_per_rank[i];
-    }
-
-    char *recvbuf = (char *) malloc( total_measures * measure_size );
     int recv_size_per_rank[ num_ranks ];
 
-    for(int i = 0; i < num_ranks; i++)
-        recv_size_per_rank[i] = num_measures_per_rank[i] * measure_size;
+    MPI_Allgather( &send_size, 1, MPI_INT, &recv_size_per_rank, 1, MPI_INT, comm);
+
+    int recv_size = 0;
+    //std::cout << "RECV SIZES: " ;
+    for(int i = 0; i < num_ranks; i++) {
+      //std::cout << i << ":" << recv_size_per_rank[i] << ", ";
+      recv_size += recv_size_per_rank[i];
+    }
+    //std::cout << std::endl;
+
+    char *recvbuf = (char *) malloc( recv_size );
 
     int disp[ num_ranks ];
     disp[0] = 0;
@@ -292,41 +288,54 @@ Apollo::gatherReduceCollectiveTrainingData()
         disp[i] = disp[i-1] + recv_size_per_rank[i-1];
     }
 
-    //std::cout <<"DISP:";
-    //for(int i = 0; i < num_ranks; i++) {
-      //std::cout << i << ":" << disp[i] << ", ";
-    //}
-    //std::cout << std::endl;
+    //std::cout <<"DISP: "; \
+    for(int i = 0; i < num_ranks; i++) { \
+        std::cout << i << ":" << disp[i] << ", "; \
+    } \
+    std::cout << std::endl;
 
-    MPI_Allgatherv( sendbuf, num_measures * measure_size, MPI_PACKED, \
+    MPI_Allgatherv( sendbuf, send_size, MPI_PACKED, \
             recvbuf, recv_size_per_rank, disp, MPI_PACKED, comm );
 
     //std::cout << "BYTES TRANSFERRED: " << num_measures * measure_size << std::endl;
 
     //std::cout << "Rank " << rank << " TOTAL_MEASURES: " << total_measures << std::endl;
   
-    for(int i = 0; i < total_measures; i++) {
-        int pos = 0;
+    //int my_rank; \
+    MPI_Comm_rank( comm, &my_rank ); \
+    std::ofstream fout("step-" + std::to_string(step) + \
+                "-rank-" + std::to_string(my_rank) + "-gather.txt");
+    //std::stringstream dbgout; \
+    dbgout << "rank, region_name, features, policy_index, time_avg" << std::endl;
+
+    int pos = 0;
+    while( pos < recv_size ) {
         int rank;
+        int num_features;
         std::vector<float> feature_vector;
         int policy_index;
         char region_name[64];
         int exec_count;
         double time_avg;
-        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &rank, 1, MPI_INT, comm);
+
+        MPI_Unpack(recvbuf, recv_size, &pos, &rank, 1, MPI_INT, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &num_features, 1, MPI_INT, comm);
         for(int j = 0; j < num_features; j++)  {
             float value;
-            MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &value, 1, MPI_FLOAT, comm);
+            MPI_Unpack(recvbuf, recv_size, &pos, &value, 1, MPI_FLOAT, comm);
             feature_vector.push_back( value );
         }
-        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &policy_index, 1, MPI_INT, comm);
-        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, region_name, 64, MPI_CHAR, comm);
-        //MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &exec_count, 1, MPI_INT, comm);
-        MPI_Unpack(&recvbuf[ i * measure_size ], measure_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &policy_index, 1, MPI_INT, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, region_name, 64, MPI_CHAR, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
         
-        //std::cout << "rank, region_name, num_elements, policy_index, time_avg" << std::endl;
-        //std::cout << rank << ", " << region_name << ", " << (int)feature_vector[0] << ", " \
-        //  << policy_index << ", " << time_avg << std::endl;
+        //dbgout << rank << ", " << region_name << ", "; \
+            dbgout << "[ "; \
+            for(auto &f : feature_vector) { \
+                dbgout << (int)f << ", "; \
+            } \
+        dbgout << "], "; \
+        dbgout << policy_index << ", " << time_avg << std::endl;
 
         // Find local region to reduce collective training data
         // TODO: keep unseen regions to boostrap their models on execution?
@@ -355,49 +364,45 @@ Apollo::gatherReduceCollectiveTrainingData()
         //    std::cout << "._" << std::endl;
         //    std::cout << "~~~~~~~~~" << std::endl;
         //}
-
     }
 
-    //std::cout << "================== END ==================" << std::endl;
-    //std::cout.close();
+    //std::cout << dbgout.str() << std::endl;
+    //fout << dbgout.str();
+    //fout.close();
 
     free( sendbuf );
     free( recvbuf );
 }
 
 void
-Apollo::flushAllRegionMeasurements(int assign_to_step)
+Apollo::flushAllRegionMeasurements(int step)
 {
     // TODO: when to train?
-    //if( assign_to_step <= 1 ) {
-    //    std::cout << "Skip " << assign_to_step << std::endl;
+    //if( step <= 1 ) {
+    //    std::cout << "Skip " << step << std::endl;
     //    return; 
     //}
 
     // Reduce local region measurements to best policies
     for( auto &it: regions ) {
         Region *reg = it.second;
-        reg->reduceBestPolicies();
+        reg->reduceBestPolicies(step);
         // TODO: forget about old measures or not?
         reg->measures.clear();
     }
 
-//#if APOLLO_COLLECTIVE_TRAINING
     if( Config::APOLLO_COLLECTIVE_TRAINING ) {
         //std::cout << "DO COLLECTIVE TRAINING" << std::endl; //ggout
-        gatherReduceCollectiveTrainingData();
+        gatherReduceCollectiveTrainingData(step);
     }
     else {
         //std::cout << "DO LOCAL TRAINING" << std::endl; //ggout
     }
-//#endif
 
-//#if APOLLO_SINGLE_MODEL
     if( Config::APOLLO_SINGLE_MODEL ) {
         // Reduce best polices per region to global
         for( auto &it: regions ) {
             Region *reg = it.second;
-            //std::cout << "=== MEASURE " << reg->name << " ===" << std::endl;
             for( auto &b : reg->best_policies ) {
                 std::vector< float > feature_vector = b.first;
                 int policy_index = b.second.first;
@@ -413,19 +418,14 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                         best_policies_global[ feature_vector ] = { policy_index, time_avg };
                     }
                 }
-
-                //std::cout \
-                //    << "[ " << static_cast<int>(feature_vector[0]) << " ]: " << policy_index << " -> " \
-                //    << time_avg << ", ";
             }
-            //std::cout << ".-" << std::endl;
-            //std::cout << "=== BEST POLICIES GLOBAL " << reg->name << " ===" << std::endl;
+
+            //std::cout << "=== BEST POLICIES SINGLE " << reg->name << " ===" << std::endl;
             //for( auto &b : best_policies_global ) {
             //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
             //        << b.second.first << " T: " << b.second.second << " | ";
             //}
             //std::cout << "._" << std::endl;
-            //std::cout << "~~~~~~~~~" << std::endl;
         }
 
         std::vector< std::vector<float> > train_features;
@@ -443,11 +443,8 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
             feature_vector.push_back( it.second.first );
             train_time_features.push_back( feature_vector );
             train_time_responses.push_back( it.second.second );
-
-            //std::cout << "best_policies_global[ " << (int)it.first[0] << " ]: "  \
-            //    << "( " << it.second.first << ", " << it.second.second << " ) " << std::endl;
         }
-        //std::cout << "~~~~~~~~~~~~~" << std::endl;
+        //std::cout << ".-" << std::endl;
 
         //std::cout << "ONE GLOBAL TREE" << std::endl; //ggout
         // bool stored = false;
@@ -455,7 +452,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
         for(auto &it : regions) {
             Region *reg = it.second;
             if( reg->model->training && reg->best_policies.size() > 0 ) {
-                // TODO: use a shared_ptr and create once?
+                // TODO use a shared_ptr and create once?
                 reg->model = ModelFactory::createDecisionTree(
                         num_policies,
                         train_features,
@@ -466,7 +463,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                         train_time_responses);
 
                 //if( !stored ) {
-                //reg->model->store( "dtree-" + std::to_string( assign_to_step ) + ".yaml" );
+                //reg->model->store( "dtree-" + std::to_string( step ) + ".yaml" );
                 //reg->time_model->store("regtree-" + std::string(reg->name) + ".yaml");
                 // stored = true;
                 //
@@ -484,7 +481,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                         feature_vector.push_back( it2.second.first );
                         double time_pred = reg->time_model->getTimePrediction( feature_vector );
                         // TODO: trigger re-train?
-                        if( time_avg > 1.5*time_pred ) {
+                        if( time_avg > REGRESSION_TIME_THRESHOLD*time_pred ) {
                             drifting++;
                             // ggout
                             //std::cout << "trigger retrain: " << reg->name \
@@ -495,7 +492,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                     }
 
                     if( drifting > 0 &&
-                            drifting > ( reg->best_policies.size()/2 ) ) {
+                            ( static_cast<float>(drifting) / reg->best_policies.size() ) > RETRAIN_DRIFT_THRESHOLD ) {
                         //std::cout << "retrain " << reg->name << " : " \
                         << drifting << " / " \
                             << reg->best_policies.size() << " total" << std::endl; //ggout
@@ -535,12 +532,24 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                     train_time_responses.push_back( it2.second.second );
                 }
 
-                //std::cout << "=== BEST POLICIES REGION " << reg->name << " ===" << std::endl;
+                //std::stringstream dbgout;
+                //int rank;
+                //MPI_Comm_rank(comm, &rank);
+                //dbgout << "=== Rank " << rank \
+                //    << " BEST POLICIES Region " << reg->name << " ===" << std::endl;
                 //for( auto &b : reg->best_policies ) {
-                //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
+                //    dbgout << "[ ";
+                //    for(auto &f : b.first)
+                //        dbgout << (int)f << ", ";
+                //    dbgout << "]: P:" \
                 //        << b.second.first << " T: " << b.second.second << std::endl;
                 //}
-                //std::cout << ".-" << std::endl;
+                //dbgout << ".-" << std::endl;
+                ////std::cout << dbgout.str();
+                //std::ofstream fout("step-" + std::to_string(step) + \
+                //        "-rank-" + std::to_string(rank) + "-" + reg->name + "-best_policies.txt"); \
+                //fout << dbgout.str(); \
+                //fout.close();
 
                 //std::cout << "TRAIN TREE region " << reg->name << std::endl; //ggout
                 reg->model = ModelFactory::createDecisionTree(
@@ -552,7 +561,7 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                         train_time_features,
                         train_time_responses);
                 //reg->time_model->store("regtree-" + std::string(reg->name) + ".yaml"); //ggout
-                //reg->model->store( "dtree-" + std::to_string( assign_to_step ) + "-" + reg->name + ".yaml" );
+                //reg->model->store( "dtree-" + std::to_string( step ) + "-" + reg->name + ".yaml" );
                 // TODO: forget about already best_policies?
                 reg->best_policies.clear();
             }
@@ -581,22 +590,31 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
                         //    << " rel_err " << ( time_avg - time_pred ) / time_pred << std::endl;
 
                         // TODO: trigger re-train?
-                        if( time_avg > ( 1.5*time_pred ) ) {
+                        if( time_avg > ( REGRESSION_TIME_THRESHOLD*time_pred ) ) {
                             drifting++;
                             // ggout
                             //std::ios_base::fmtflags f( std::cout.flags() );
-                            //std::cout << std::setprecision(3) << std::scientific \
-                            //    << "trigger retrain: " << reg->name \
-                            //    << "[ " << (int)feature_vector[0] << ", " << (int)feature_vector[1] << " ]: " \
-                            //    << " time_avg " << time_avg << " ~~ " \
-                            //    << " time_pred " << time_pred \
-                            //    << " rel_err " << ( time_avg - time_pred ) / time_pred << std::endl;
+                            //int rank;
+                            //MPI_Comm_rank(comm, &rank);
+                            //if( rank == 0) {
+                            //    std::cout << std::setprecision(3) << std::scientific \
+                            //        << "step " << step \
+                            //        << " rank " << rank \
+                            //        << " drift: " << reg->name \
+                            //        << "[ "; \
+                            //        for(auto &f : it2.first ) \
+                            //            std::cout << (int)f << ", "; \
+                            //    std::cout << "] @ " << it2.second.first \
+                            //        << " time_avg " << time_avg << " ~~ " \
+                            //        << " time_pred " << time_pred \
+                            //        << " rel_err " << ( time_avg - time_pred ) / time_pred << std::endl;
+                            //}
                             //std::cout.flags( f );
                         }
                     }
 
                     if( drifting > 0
-                            && drifting > ( reg->best_policies.size()/2 ) ) {
+                            && ( static_cast<float>(drifting) / reg->best_policies.size() ) > RETRAIN_DRIFT_THRESHOLD ) {
                         //std::cout << "retrain " << reg->name << " : " \
                         << drifting << " / " \
                             << reg->best_policies.size() << " total" << std::endl; //ggout
@@ -615,17 +633,8 @@ Apollo::flushAllRegionMeasurements(int assign_to_step)
     //int rank;
     //MPI_Comm_rank(comm, &rank);
     //std::cout << "=== FLUSH rank: " << rank \
-    //    << " step: " << assign_to_step \
+    //    << " step: " << step \
     //    << " best_policies size: " << best_policies.size() << " ===" << std::endl; //ggout
 
     return;
 }
-
-void
-Apollo::setFeature(float value)
-{
-    features.push_back( value );
-    return;
-}
-
-

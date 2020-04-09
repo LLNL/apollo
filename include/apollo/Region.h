@@ -36,14 +36,15 @@ class Apollo::Region {
 
         int            current_policy;
 
-        int reduceBestPolicies();
+        int            num_features;
+        void    setFeature(float value);
+        int reduceBestPolicies(int step);
         void packMeasurements(char *buf, int size, MPI_Comm comm);
         std::map< std::vector< float >, std::pair< int, double > > best_policies;
         // Key: < features, policy >, value: < time measurement >
         std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;
-        //std::shared_ptr<PolicyModel> model;
 
     private:
         //
@@ -52,8 +53,8 @@ class Apollo::Region {
         //
         std::chrono::steady_clock::time_point current_exec_time_begin;
         std::chrono::steady_clock::time_point current_exec_time_end;
+        std::vector<float>            features;
         //
 }; //end: Apollo::Region
-
 
 #endif

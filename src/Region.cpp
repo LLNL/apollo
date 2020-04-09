@@ -32,6 +32,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <chrono>
 #include <memory>
@@ -60,17 +61,24 @@ Apollo::Region::getPolicyIndex(void)
 #endif
     assert( currently_inside_region );
 
-    int choice = model->getIndex( apollo->features );
+    int choice = model->getIndex( features );
     //ggout
     //if( !model->training ) {
-    //    std::cout << "Region " << name << ", model " << model->name \
-    //        << " features " << (int)apollo->features[0] \
-    //        << " got -> " << choice << std::endl;
+    //    std::cout << "Model " << model->name << " features: [ ";
+    //    for(auto &f: features)
+    //        std::cout << (int)f << ", ";
+    //    std::cout << "] ->  " << choice << std::endl;
     //}
+
 #if 0
     if (choice != current_policy) {
-        std::cout << "Change policy " << current_policy << " -> " << choice << " region " 
-            << name << " elems: " << (int)apollo->features[0]<< std::endl; //ggout
+        std::cout << "Change policy " << current_policy \
+            << " -> " << choice << " region " << name \
+            << " training " << model->training \
+            << " features: "; \
+            for(auto &f : apollo->features) \
+                std::cout << (int)f << ", "; \
+            std::cout << std::endl; //ggout
     } else {
         //std::cout << "No policy change for region " << name << ", policy " << current_policy << std::endl; //gout
     }
@@ -85,12 +93,13 @@ Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
         int          numAvailablePolicies)
+    :
+        num_features(num_features)
 {
     apollo = Apollo::instance();
-    apollo->num_features = num_features;
     apollo->num_policies = numAvailablePolicies;
-    // TODO: uncomment above
-    //apollo->num_policies = 14;
+    // TODO XXX uncomment above
+    //apollo->num_policies = 2;
 
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
@@ -177,6 +186,7 @@ Apollo::Region::begin()
 void
 Apollo::Region::end()
 {
+
     current_exec_time_end = std::chrono::steady_clock::now();
 
 #if VERBOSE_DEBUG
@@ -206,9 +216,9 @@ Apollo::Region::end()
     //    //std::cout << std::endl;
     //}
 
-    auto iter = measures.find( { apollo->features, current_policy } );
+    auto iter = measures.find( { features, current_policy } );
     if (iter == measures.end()) {
-        iter = measures.insert(std::make_pair( std::make_pair( apollo->features, current_policy ),
+        iter = measures.insert(std::make_pair( std::make_pair( features, current_policy ),
                 std::move( std::make_unique<Apollo::Region::Measure>(1, duration) )
                 ) ).first;
     } else {
@@ -218,23 +228,30 @@ Apollo::Region::end()
 
     // TODO: re-train from regression model every region execution?
     //
-    //std::cout << "=== INSERT MEASURE ===" << std::endl;
-    //std::cout << name << ": " << "[ " << apollo->features[0] << " ]: " \
-    //    << current_policy << " -> " << iter->second->exec_count \
-    //    << ", " << iter->second->time_total << std::endl;
-    //std::cout << "~~~~~~~~~~" << std::endl;
+    //std::cout << "=== INSERT MEASURE ===" << std::endl; \
+    std::cout << name << ": " << "[ "; \
+        for(auto &f : apollo->features) { \
+            std::cout << (int)f << ", "; \
+        } \
+    std::cout << " ]: " \
+        << current_policy << " = ( " << iter->second->exec_count \
+        << ", " << iter->second->time_total << " ) " << std::endl; \
+    std::cout << ".-" << std::endl;
 
 
-    apollo->features.clear();
+    features.clear();
 
     return;
 }
 
 int 
-Apollo::Region::reduceBestPolicies()
+Apollo::Region::reduceBestPolicies(int step)
 {
-    //std::cout << "=================================" << std::endl \
-        << "Region " << name << " MEASURES "  << std::endl;
+    //int rank; \
+    MPI_Comm_rank(apollo->comm, &rank); \
+    std::stringstream dbgout; \
+    dbgout << "=================================" << std::endl \
+        << "Rank " << rank << " Region " << name << " MEASURES "  << std::endl;
     for (auto iter_measure = measures.begin();
             iter_measure != measures.end();   iter_measure++) {
 
@@ -242,8 +259,13 @@ Apollo::Region::reduceBestPolicies()
         const int policy_index                   = iter_measure->first.second;
         auto                           &time_set = iter_measure->second;
 
-        // ggout
-        //std::cout << "[ " << (int)feature_vector[0] << " ]: " \
+        //dbgout << "features: [ "; \
+            int mul = 1; \
+        for(auto &f : feature_vector ) { \
+            dbgout << (int)f << ", "; \
+            mul *= f; \
+        } \
+        dbgout << " = " << mul << " ]: " \
             << "policy: " << policy_index \
             << " , count: " << time_set->exec_count \
             << " , total: " << time_set->time_total \
@@ -262,7 +284,22 @@ Apollo::Region::reduceBestPolicies()
             }
         }
     }
-    //std::cout << ".-" << std::endl;
+
+    //dbgout << ".-" << std::endl; \
+    dbgout << "Rank " << rank << " Region " << name << " Reduce " << std::endl; \
+    for( auto &b : best_policies ) { \
+        dbgout << "features: [ "; \
+        for(auto &f : b.first ) \
+            dbgout << (int)f << ", "; \
+        dbgout << "]: P:" \
+            << b.second.first << " T: " << b.second.second << std::endl; \
+    } \
+    dbgout << ".-" << std::endl; \
+    std::cout << dbgout.str(); //ggout
+    //std::ofstream fout("step-" + std::to_string(step) + \
+            "-rank-" + std::to_string(rank) + "-" + name + "-measures.txt"); \
+    fout << dbgout.str(); \
+    fout.close();
 
     return best_policies.size();
 }
@@ -283,7 +320,11 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
-        // features
+        // num features 
+        MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
+        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
+
+        // feature vector
         for (float value : feature_vector ) {
             MPI_Pack( &value, 1, MPI_FLOAT, buf, size, &pos, comm );
             //std::cout << "feature," << value << " pos: " << pos << std::endl;
@@ -304,4 +345,9 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
     return;
 }
 
-
+void
+Apollo::Region::setFeature(float value)
+{
+    features.push_back( value );
+    return;
+}
