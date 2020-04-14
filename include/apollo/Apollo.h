@@ -1,6 +1,7 @@
 #ifndef APOLLO_H
 #define APOLLO_H
 
+#include <fstream>
 #include <string>
 #include <map>
 #include <vector>
@@ -10,6 +11,8 @@
 
 #include "apollo/Config.h"
 
+//TODO(cdw): Convert 'Apollo' into a namespace and convert this into
+//           a 'Runtime' class.
 class Apollo
 {
     public:
@@ -24,10 +27,45 @@ class Apollo
         }
 
         class Region;
+
+        //////////
         //
-        // XXX: assumes features are the same globally for all regions
+        //  TODO(cdw): Move this into a dedicated 'Trace' class during code refactor.
+        bool          traceEnabled;
+        bool          traceEmitOnline;
+        bool          traceEmitAllFeatures;
+        bool          traceOutputIsActualFile;
+        std::string   traceOutputFileName;
+        std::ofstream traceOutputFileHandle;
+        //
+        typedef std::tuple<
+            double,
+            std::string,
+            int,
+            std::string,
+            int,
+            int,
+            int,
+            double,
+            std::string
+            > TraceLine_t;
+        typedef std::vector<TraceLine_t> TraceVector_t;
+        //
+        void storeTraceLine(TraceLine_t &t);
+        //
+        void writeTraceHeaderImpl(std::ostream &sink);
+        void writeTraceHeader(void);
+        void writeTraceLineImpl(TraceLine_t &t, std::ostream &sink);
+        void writeTraceLine(TraceLine_t &t);
+        void writeTraceVector(void);
+        //
+        //////////
+
+
+        //TODO(cdw): migrate to multi-feature class.
+        //XXX: assumes features are the same globally for all regions
         int                       num_policies;
-        //
+
         // Precalculated at Apollo::Init from evironment variable strings to
         // facilitate quick calculations during model evaluation later.
         int numNodes;
@@ -53,6 +91,9 @@ class Apollo
     private:
         MPI_Comm comm;
         Apollo();
+        //
+        TraceVector_t trace_data;
+        //
         void gatherReduceCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer
         std::map<std::string, Apollo::Region *> regions;

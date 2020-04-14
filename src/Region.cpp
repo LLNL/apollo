@@ -226,6 +226,66 @@ Apollo::Region::end()
         iter->second->time_total += duration;
     }
 
+    if (apollo->traceEnabled) {
+        // TODO(cdw): extract the correct values.
+        int num_threads      = -999;
+        int num_elements     = -888;
+        int policy_index     = -777;
+        std::string node_id  = "localhost";
+        int comm_rank        = 0;
+        //for (Apollo::Feature ft : apollo->features)
+        //{
+        //    if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
+        //    else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
+        //    else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
+        //}
+
+        // TODO(cdw): Construct a JSON of all features to emit as an extra column,
+        //            in the future when we have more features.
+        std::string optional_all_feature_column;
+        //if (apollo->traceEmitAllFeatures) {
+        //    if (apollo->features.size() > 0) {
+        //        std::stringstream ss;
+        //        ss.precision(17);
+        //        ss << ",\"{";
+        //        for (Apollo::Feature &ft : apollo->features) {
+        //            ss << "'" << ft.name << "':'" << std::fixed << ft.value << "',";
+        //        }
+        //        ss.seekp(-1, ss.cur);
+        //        ss << "}\"";
+        //        optional_all_feature_column = ss.str();
+        //    } else {
+                  optional_all_feature_column = ",\"{'none':'none'}\"";
+        //    }
+        //}
+
+        double wall_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    current_exec_time_end.time_since_epoch()).count();
+
+        double loop_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    current_exec_time_end - current_exec_time_begin).count();
+
+        Apollo::TraceLine_t \
+           t = std::make_tuple(
+                wall_time,
+                node_id,
+                comm_rank,
+                name,
+                policy_index,
+                num_threads,
+                num_elements,
+                loop_time,
+                optional_all_feature_column
+            );
+
+        if (apollo->traceEmitOnline) {
+            apollo->writeTraceLine(t);
+        } else {
+            apollo->storeTraceLine(t);
+        }
+    } // end: if (apollo->traceEnabled)
+
+
     // TODO: re-train from regression model every region execution?
     //
     //std::cout << "=== INSERT MEASURE ===" << std::endl; \
@@ -244,7 +304,7 @@ Apollo::Region::end()
     return;
 }
 
-int 
+int
 Apollo::Region::reduceBestPolicies(int step)
 {
     //int rank; \
@@ -320,7 +380,7 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
-        // num features 
+        // num features
         MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
