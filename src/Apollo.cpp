@@ -60,8 +60,20 @@
     MPI_Comm apollo_comm;
 #endif
 
+//TODO(cdw): Move this into a private 'Utils' class within Apollo namespace.
+namespace apolloUtils { //----------
 
-inline void replace_all(std::string& input, const std::string& from, const std::string& to) {
+inline std::string
+strToUpper(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c) {
+            return std::toupper(c);
+        });
+    return s;
+}
+
+inline void
+strReplaceAll(std::string& input, const std::string& from, const std::string& to) {
 	size_t pos = 0;
 	while ((pos = input.find(from, pos)) != std::string::npos) {
 		input.replace(pos, from.size(), to);
@@ -69,9 +81,23 @@ inline void replace_all(std::string& input, const std::string& from, const std::
 	}
 }
 
-//inline const char*
-static const char*
-safe_getenv(
+bool
+strOptionIsEnabled(std::string so) {
+    std::string sup = apolloUtils::strToUpper(so);
+    if ((sup.compare("1")           == 0) ||
+        (sup.compare("TRUE")        == 0) ||
+        (sup.compare("YES")         == 0) ||
+        (sup.compare("ENABLED")     == 0) ||
+        (sup.compare("VERBOSE")     == 0) ||
+        (sup.compare("ON")          == 0)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+inline const char*
+safeGetEnv(
         const char *var_name,
         const char *use_this_if_not_found,
         bool        silent=false)
@@ -79,24 +105,28 @@ safe_getenv(
     char *c = getenv(var_name);
     if (c == NULL) {
         if (not silent) {
-            log("Looked for ", var_name, " with getenv(), found nothing, using '", \
-                use_this_if_not_found, "' (default) instead.");
-        }
+            std::cout << "== APOLLO: Looked for " << var_name << " with getenv(), found nothing, using '" \
+                << use_this_if_not_found << "' (default) instead." << std::endl;
+    }
         return use_this_if_not_found;
     } else {
         return c;
     }
 }
 
+
+} //end: namespace apolloUtils ----------
+
+
 std::string
 Apollo::getCallpathOffset(int walk_distance)
 {
-    //NOTE(chad): Param 'walk_distance' is optional, defaults to 2
-    //            so we walk out of this method, and then walk out
-    //            of the wrapper code (i.e. a RAJA policy, or something
-    //            performance tool instrumentation), and get the module
-    //            and offset of the application's instantiation of
-    //            a loop or steerable region.
+    //NOTE(cdw): Param 'walk_distance' is optional, defaults to 2
+    //           so we walk out of this method, and then walk out
+    //           of the wrapper code (i.e. a RAJA policy, or something
+    //           performance tool instrumentation), and get the module
+    //           and offset of the application's instantiation of
+    //           a loop or steerable region.
     CallpathRuntime *cp = (CallpathRuntime *) callpath_ptr;
     // Set up this Region for the first time:       (Runs only once)
     std::stringstream ss_location;
@@ -104,8 +134,8 @@ Apollo::getCallpathOffset(int walk_distance)
     // Extract out the pointer to our module+offset string and clean it up:
     std::string offsetstr = ss_location.str();
     offsetstr = offsetstr.substr((offsetstr.rfind("/") + 1), (offsetstr.length() - 1));
-    replace_all(offsetstr, "(", "_");
-    replace_all(offsetstr, ")", "_");
+    apolloUtils::strReplaceAll(offsetstr, "(", "_");
+    apolloUtils::strReplaceAll(offsetstr, ")", "_");
 
     return offsetstr;
 }
@@ -118,13 +148,13 @@ Apollo::Apollo()
     // file spreading SOS as a project build dependency, store these as void *
     // references in the class:
     log("Reading SLURM env...");
-    numNodes         = std::stoi(safe_getenv("SLURM_NNODES", "1"));
+    numNodes         = std::stoi(apolloUtils::safeGetEnv("SLURM_NNODES", "1"));
     log("    numNodes ................: ", numNodes);
-    numProcs         = std::stoi(safe_getenv("SLURM_NPROCS", "1"));
+    numProcs         = std::stoi(apolloUtils::safeGetEnv("SLURM_NPROCS", "1"));
     log("    numProcs ................: ", numProcs);
-    numCPUsOnNode    = std::stoi(safe_getenv("SLURM_CPUS_ON_NODE", "36"));
+    numCPUsOnNode    = std::stoi(apolloUtils::safeGetEnv("SLURM_CPUS_ON_NODE", "36"));
     log("    numCPUsOnNode ...........: ", numCPUsOnNode);
-    std::string envProcPerNode = safe_getenv("SLURM_TASKS_PER_NODE", "1");
+    std::string envProcPerNode = apolloUtils::safeGetEnv("SLURM_TASKS_PER_NODE", "1");
     // Sometimes SLURM sets this to something like "4(x2)" and
     // all we care about here is the "4":
     auto pos = envProcPerNode.find('(');
@@ -170,26 +200,27 @@ Apollo::Apollo()
     numThreads = ompDefaultNumThreads;
 
     // Initialize config with defaults
-    Config::APOLLO_INIT_MODEL = safe_getenv( "APOLLO_INIT_MODEL", "Static,0" );
-    //std::cout << "init model " << Config::APOLLO_INIT_MODEL << std::endl;
-    Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( safe_getenv( "APOLLO_COLLECTIVE_TRAINING", "1" ) );
-    //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
-    Config::APOLLO_LOCAL_TRAINING = std::stoi( safe_getenv( "APOLLO_LOCAL_TRAINING", "0" ) );
-    //std::cout << "local " << Config::APOLLO_LOCAL_TRAINING << std::endl;
-    Config::APOLLO_SINGLE_MODEL = std::stoi( safe_getenv( "APOLLO_SINGLE_MODEL", "0" ) );
-    //std::cout << "global " << Config::APOLLO_SINGLE_MODEL << std::endl;
-    Config::APOLLO_REGION_MODEL = std::stoi( safe_getenv( "APOLLO_REGION_MODEL", "1" ) );
-    //std::cout << "region " << Config::APOLLO_REGION_MODEL << std::endl;
-    Config::APOLLO_TRACE_MEASURES = std::stoi( safe_getenv( "APOLLO_TRACE_MEASURES", "0" ) );
-    Config::APOLLO_NUM_POLICIES = std::stoi( safe_getenv( "APOLLO_NUM_POLICIES", "0" ) );
-    Config::APOLLO_TRACE_POLICY = std::stoi( safe_getenv( "APOLLO_TRACE_POLICY", "0" ) );
-    Config::APOLLO_RETRAIN_ENABLE = std::stoi( safe_getenv( "APOLLO_RETRAIN_ENABLE", "1" ) );
-    Config::APOLLO_RETRAIN_TIME_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
-    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
-    Config::APOLLO_STORE_MODELS = std::stoi( safe_getenv( "APOLLO_STORE_MODELS", "0" ) );
-    Config::APOLLO_TRACE_RETRAIN = std::stoi( safe_getenv( "APOLLO_TRACE_RETRAIN", "0" ) );
-    Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
+    Config::APOLLO_INIT_MODEL          = apolloUtils::safeGetEnv( "APOLLO_INIT_MODEL", "Static,0" );
+    Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "1" ) );
+    Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "0" ) );
+    Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
+    Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
+    Config::APOLLO_TRACE_MEASURES      = std::stoi( safe_getenv( "APOLLO_TRACE_MEASURES", "0" ) );
+    Config::APOLLO_NUM_POLICIES        = std::stoi( safe_getenv( "APOLLO_NUM_POLICIES", "0" ) );
+    Config::APOLLO_TRACE_POLICY        = std::stoi( safe_getenv( "APOLLO_TRACE_POLICY", "0" ) );
+    Config::APOLLO_STORE_MODELS        = std::stoi( safe_getenv( "APOLLO_STORE_MODELS", "0" ) );
+    Config::APOLLO_TRACE_RETRAIN       = std::stoi( safe_getenv( "APOLLO_TRACE_RETRAIN", "0" ) );
+    Config::APOLLO_TRACE_ALLGATHER     = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
+    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( safe_getenv( "APOLLO_RETRAIN_ENABLE", "1" ) );
+    Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( safe_getenv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
+    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
+
+    //std::cout << "init model " << Config::APOLLO_INIT_MODEL << std::endl;
+    //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
+    //std::cout << "local "      << Config::APOLLO_LOCAL_TRAINING << std::endl;
+    //std::cout << "global "     << Config::APOLLO_SINGLE_MODEL << std::endl;
+    //std::cout << "region "     << Config::APOLLO_REGION_MODEL << std::endl;
 
 #ifndef ENABLE_MPI
     // MPI is disabled...
@@ -232,6 +263,46 @@ Apollo::Apollo()
     mpi_rank = 0;
 #endif //ENABLE_MPI
 
+    //////////
+    //
+    // TODO(cdw): Move these implementation details into a dedicated 'Trace' class.
+    //
+    // Trace output settings:
+    //
+    std::string trace_enabled \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_ENABLED", "false", true);
+    std::string trace_emit_online \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ONLINE", "false", true);
+    std::string trace_emit_all_features \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ALL_FEATURES", "false", true);
+    std::string trace_output_file \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_OUTPUT_FILE", "stdout", true);
+    //
+    traceEnabled          = ::apolloUtils::strOptionIsEnabled(trace_enabled);
+    traceEmitOnline       = ::apolloUtils::strOptionIsEnabled(trace_emit_online);
+    traceEmitAllFeatures  = ::apolloUtils::strOptionIsEnabled(trace_emit_all_features);
+    //
+    traceOutputFileName   = trace_output_file;
+    if (traceOutputFileName.compare("stdout") == 0) {
+        traceOutputIsActualFile = false;
+    } else {
+        try {
+            traceOutputFileHandle.open(traceOutputFileName, std::fstream::out);
+            traceOutputIsActualFile = true;
+        } catch (...) {
+            std::cerr << "== APOLLO: ** ERROR ** Unable to open the filename specified in" \
+                << "APOLLO_TRACE_OUTPUT_FILE environment variable:" << std::endl;
+            std::cerr << "== APOLLO: ** ERROR **    \"" << traceOutputFileName << "\"" << std::endl;
+            std::cerr << "== APOLLO: ** ERROR ** Defaulting to std::cout ..." << std::endl;
+            traceOutputIsActualFile = false;
+        }
+        if (traceEmitOnline) {
+            writeTraceHeader();
+        }
+    }
+    //
+    //////////
+
     log("Initialized.");
 
     return;
@@ -239,8 +310,92 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
+    // TODO(cdw): Move this into dedicated 'Trace' class in refactor.
+    if (traceEnabled and (not traceEmitOnline)) {
+        // We've been storing up our trace data to emit now.
+        writeTraceHeader();
+        writeTraceVector();
+        if (traceOutputIsActualFile) {
+            traceOutputFileHandle.close();
+        }
+    }
+
     delete (CallpathRuntime *)callpath_ptr;
 }
+
+
+//////////
+//
+// TODO(cdw): Move this into 'Trace' class during code refactor.
+//
+void
+Apollo::writeTraceHeader(void) {
+    if (traceOutputIsActualFile) {
+        writeTraceHeaderImpl(traceOutputFileHandle);
+    } else {
+        writeTraceHeaderImpl(std::cout);
+    }
+}
+//
+void
+Apollo::writeTraceHeaderImpl(std::ostream &sink) {
+    std::string optional_column_label;
+    if (traceEmitAllFeatures) {
+        optional_column_label = ",all_features_json\n";
+    } else {
+        optional_column_label = "\n";
+    }
+    sink.precision(17);
+    sink \
+        << "type," \
+        << "time_wall," \
+        << "node_id," \
+        << "step," \
+        << "region_name," \
+        << "policy_index," \
+        << "num_threads," \
+        << "num_elements," \
+        << "time_exec" \
+        << optional_column_label;
+}
+//
+void Apollo::storeTraceLine(TraceLine_t &t) {
+    trace_data.push_back(t);
+}
+//
+void
+Apollo::writeTraceLine(TraceLine_t &t) {
+    if (traceOutputIsActualFile) {
+        writeTraceLineImpl(t, traceOutputFileHandle);
+    } else {
+        writeTraceLineImpl(t, std::cout);
+    }
+}
+//
+void
+Apollo::writeTraceLineImpl(TraceLine_t &t, std::ostream &sink) {
+    sink \
+       << "TRACE," << std::fixed \
+       << std::get<0>(t) /* exec_time_end */ << "," \
+       << std::get<1>(t) /* node_id */       << "," \
+       << std::get<2>(t) /* comm_rank */     << "," \
+       << std::get<3>(t) /* region_name */   << "," \
+       << std::get<4>(t) /* policy_index */  << "," \
+       << std::get<5>(t) /* num_threads */   << "," \
+       << std::get<6>(t) /* num_elements */  << "," \
+       << std::fixed << std::get<7>(t) /* (exec_time_end - exec_time_begin) */ \
+       << std::get<8>(t) /* (", " + all features, optionally) */ \
+       << "\n";
+}
+//
+void
+Apollo::writeTraceVector(void) {
+    for (auto &t : trace_data) {
+        writeTraceLine(t);
+    }
+}
+//
+//////////
 
 #ifdef ENABLE_MPI
 int
@@ -338,6 +493,14 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     std::stringstream trace_out;
     if( Config::APOLLO_TRACE_ALLGATHER )
         trace_out << "rank, region_name, features, policy, time_avg" << std::endl;
+    //std::cout << "Rank " << rank << " TOTAL_MEASURES: " << total_measures << std::endl;
+
+    //int my_rank; \
+    MPI_Comm_rank( comm, &my_rank ); \
+    std::ofstream fout("step-" + std::to_string(step) + \
+                "-rank-" + std::to_string(my_rank) + "-gather.txt");
+    //std::stringstream dbgout; \
+    dbgout << "rank, region_name, features, policy_index, time_avg" << std::endl;
 
     int pos = 0;
     while( pos < recv_size ) {
@@ -408,7 +571,11 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
-    int rank = 0;
+    // TODO: when to train?
+    //if( step <= 1 ) {
+    //    std::cout << "Skip " << step << std::endl;
+    //    return;
+    //}
 
     // Reduce local region measurements to best policies
     // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
