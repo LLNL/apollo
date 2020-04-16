@@ -283,21 +283,25 @@ Apollo::Apollo()
     traceEmitAllFeatures  = ::apolloUtils::strOptionIsEnabled(trace_emit_all_features);
     //
     traceOutputFileName   = trace_output_file;
-    if (traceOutputFileName.compare("stdout") == 0) {
-        traceOutputIsActualFile = false;
-    } else {
-        try {
-            traceOutputFileHandle.open(traceOutputFileName, std::fstream::out);
-            traceOutputIsActualFile = true;
-        } catch (...) {
-            std::cerr << "== APOLLO: ** ERROR ** Unable to open the filename specified in" \
-                << "APOLLO_TRACE_OUTPUT_FILE environment variable:" << std::endl;
-            std::cerr << "== APOLLO: ** ERROR **    \"" << traceOutputFileName << "\"" << std::endl;
-            std::cerr << "== APOLLO: ** ERROR ** Defaulting to std::cout ..." << std::endl;
+    if (traceEnabled) {
+        if (traceOutputFileName.compare("stdout") == 0) {
             traceOutputIsActualFile = false;
-        }
-        if (traceEmitOnline) {
-            writeTraceHeader();
+        } else {
+            traceOutputFileName += std::to_string(mpiRank);
+            traceOutputFileName += ".csv";
+            try {
+                traceOutputFileHandle.open(traceOutputFileName, std::fstream::out);
+                traceOutputIsActualFile = true;
+            } catch (...) {
+                std::cerr << "== APOLLO: ** ERROR ** Unable to open the filename specified in" \
+                    << "APOLLO_TRACE_OUTPUT_FILE environment variable:" << std::endl;
+                std::cerr << "== APOLLO: ** ERROR **    \"" << traceOutputFileName << "\"" << std::endl;
+                std::cerr << "== APOLLO: ** ERROR ** Defaulting to std::cout ..." << std::endl;
+                traceOutputIsActualFile = false;
+            }
+            if (traceEmitOnline) {
+                writeTraceHeader();
+            }
         }
     }
     //
@@ -330,6 +334,8 @@ Apollo::~Apollo()
 //
 void
 Apollo::writeTraceHeader(void) {
+    if (not traceEnabled) { return; }
+
     if (traceOutputIsActualFile) {
         writeTraceHeaderImpl(traceOutputFileHandle);
     } else {
@@ -339,13 +345,15 @@ Apollo::writeTraceHeader(void) {
 //
 void
 Apollo::writeTraceHeaderImpl(std::ostream &sink) {
+    if (not traceEnabled) { return; }
+
     std::string optional_column_label;
     if (traceEmitAllFeatures) {
         optional_column_label = ",all_features_json\n";
     } else {
         optional_column_label = "\n";
     }
-    sink.precision(17);
+    sink.precision(11);
     sink \
         << "type," \
         << "time_wall," \
@@ -360,11 +368,14 @@ Apollo::writeTraceHeaderImpl(std::ostream &sink) {
 }
 //
 void Apollo::storeTraceLine(TraceLine_t &t) {
+    if (not traceEnabled) { return; }
+
     trace_data.push_back(t);
 }
 //
 void
 Apollo::writeTraceLine(TraceLine_t &t) {
+    if (not traceEnabled) { return; }
     if (traceOutputIsActualFile) {
         writeTraceLineImpl(t, traceOutputFileHandle);
     } else {
@@ -374,6 +385,7 @@ Apollo::writeTraceLine(TraceLine_t &t) {
 //
 void
 Apollo::writeTraceLineImpl(TraceLine_t &t, std::ostream &sink) {
+    if (not traceEnabled) { return; }
     sink \
        << "TRACE," << std::fixed \
        << std::get<0>(t) /* exec_time_end */ << "," \
@@ -390,6 +402,7 @@ Apollo::writeTraceLineImpl(TraceLine_t &t, std::ostream &sink) {
 //
 void
 Apollo::writeTraceVector(void) {
+    if (not traceEnabled) { return; }
     for (auto &t : trace_data) {
         writeTraceLine(t);
     }

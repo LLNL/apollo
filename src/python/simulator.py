@@ -6,6 +6,7 @@ import json
 import pickle
 
 from multiprocessing import Process
+from zipfile import ZipFile
 
 import numpy as np
 import pandas as pd
@@ -38,10 +39,12 @@ def no_log(level, msg):
 def main():
     global data
     data['path'] = '../../data/intel/001.node.001.rank'
-    data['apollo.tracefile']         = 'trace.policy.0.csv'
-    data['apollo.flushfile']         = 'intel.combined.out'
-    data['apollo.stepsfile']         = 'steps.apollo.silent.csv'
-    data['normal.stepsfile']         = 'steps.normal.silent.csv'
+    data['zipped.tracefile']         = 'apollo_trace.all.zip'
+    data['apollo.tracefile']         = 'apollo_trace.0.csv'
+
+    #data['apollo.flushfile']         = 'intel.combined.out'
+    #data['apollo.stepsfile']         = 'steps.apollo.silent.csv'
+    #data['normal.stepsfile']         = 'steps.normal.silent.csv'
     data['policy.times.bestfile']    = 'policy.times.best.csv'
     data['policy.times.defaultfile'] = 'policy.times.default.csv'
 

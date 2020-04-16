@@ -33,11 +33,13 @@ class Apollo::Region {
 
         void     begin();
         void     end();
-        void     end(double synthetic_duration_or_weight); // lower == better, 0.0 == perfect
+        void     end(double synthetic_duration_or_weight);
+                    // lower == better, 0.0 == perfect
 
         int      getPolicyIndex(void);
 
         int      current_policy;
+        int      current_elem_count;
 
         int      num_features;
         void     setFeature(float value);

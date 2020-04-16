@@ -43,7 +43,7 @@ source ${RETURN_PATH}/common_unsetenv.sh
 #source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 source ${RETURN_PATH}/common_copy_files.sh
-source ${RETURN_PATH}/common_launch_sos.sh
+#source ${RETURN_PATH}/common_launch_sos.sh
 source ${RETURN_PATH}/common_srun_cmds.sh
 #
 #
