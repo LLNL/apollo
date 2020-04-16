@@ -77,6 +77,9 @@ class Apollo
         int         ompDefaultNumThreads;
         int         ompDefaultChunkSize;
         //
+        int mpiSize;
+        int mpiRank;
+        //
         int numThreads;  // <-- how many to use / are in use
 
         // NOTE(chad): We default to walk_distance of 2 so we can

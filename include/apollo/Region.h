@@ -35,6 +35,7 @@ class Apollo::Region {
         int                   getPolicyIndex(void);
 
         int            current_policy;
+        int            current_elem_count;
 
         int            num_features;
         void    setFeature(float value);

@@ -34,6 +34,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <ctime>
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -229,8 +230,8 @@ Apollo::Region::end()
     if (apollo->traceEnabled) {
         // TODO(cdw): extract the correct values.
         int num_threads      = -999;
-        int num_elements     = -888;
-        int policy_index     = -777;
+        int num_elements     = current_elem_count;
+        int policy_index     = current_policy;
         std::string node_id  = "localhost";
         int comm_rank        = 0;
         //for (Apollo::Feature ft : apollo->features)
@@ -240,9 +241,20 @@ Apollo::Region::end()
         //    else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
         //}
 
+        std::chrono::duration<double, std::milli> wall_elapsed \
+            = current_exec_time_end.time_since_epoch();
+        double wall_time = wall_elapsed.count();
+
+        std::chrono::duration<double, std::milli> loop_elapsed \
+            = current_exec_time_end - current_exec_time_begin;
+        double loop_time = loop_elapsed.count();
+
+        std::string optional_all_feature_column = "";
+
         // TODO(cdw): Construct a JSON of all features to emit as an extra column,
         //            in the future when we have more features.
-        std::string optional_all_feature_column;
+        // NOTE.....: This works when features are a key/value map.
+        //
         //if (apollo->traceEmitAllFeatures) {
         //    if (apollo->features.size() > 0) {
         //        std::stringstream ss;
@@ -255,15 +267,26 @@ Apollo::Region::end()
         //        ss << "}\"";
         //        optional_all_feature_column = ss.str();
         //    } else {
-                  optional_all_feature_column = ",\"{'none':'none'}\"";
+        //          optional_all_feature_column = "";
+        //          optional_all_feature_column = ",\"{'none':'none'}\"";
         //    }
         //}
 
-        double wall_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    current_exec_time_end.time_since_epoch()).count();
-
-        double loop_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    current_exec_time_end - current_exec_time_begin).count();
+        // TODO(cdw): ...for now, we make a quoted CSV of the elements counts
+        //            for OpenMP collapsed loops.
+        if (apollo->traceEmitAllFeatures) {
+            std::stringstream ssvec;
+            ssvec << "\"";
+            for (auto &ft : features) {
+                ssvec << ft;
+                if (&ft != &features.back()) {
+                    ssvec << ",";
+                }
+            }
+            ssvec << "\"";
+            optional_all_feature_column += ",";
+            optional_all_feature_column += ssvec.str();
+        }
 
         Apollo::TraceLine_t \
            t = std::make_tuple(
@@ -409,5 +432,6 @@ void
 Apollo::Region::setFeature(float value)
 {
     features.push_back( value );
+    current_elem_count = value;
     return;
 }
