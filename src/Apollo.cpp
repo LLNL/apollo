@@ -186,6 +186,16 @@ Apollo::Apollo()
     Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
 
+#ifndef APOLLO_MPI_ENABLED
+    // MPI is disabled...
+    if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
+        std::cerr << "Collective training requires MPI support to be enabled" << std::endl;
+        abort();
+    }
+    //TODO[chad]: Deepen this sanity check when additional collectives/training
+    //            backends are added to the code.
+#endif //APOLLO_MPI_ENABLED
+
     if( Config::APOLLO_COLLECTIVE_TRAINING && Config::APOLLO_LOCAL_TRAINING ) {
         std::cerr << "Both collective and local training cannot be enabled" << std::endl;
         abort();
@@ -224,7 +234,7 @@ Apollo::~Apollo()
 
 #ifdef APOLLO_MPI_ENABLED
 int
-get_measure_size(int num_features, MPI_Comm comm)
+get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 {
     int size = 0, measure_size = 0;
     // rank
@@ -253,11 +263,22 @@ get_measure_size(int num_features, MPI_Comm comm)
 void
 Apollo::gatherReduceCollectiveTrainingData(int step)
 {
+#ifndef APOLLO_MPI_ENABLED
+    // MPI is disabled, skip everything in this method.
+    //
+    // NOTE[chad]: Skipping this entire method is equivilant to
+    //             doing LOCAL only training.  This ifdef guard is
+    //             redundant to the one in flush, anticipating adding
+    //             generic abstraction for collectives to support
+    //             different backends or learning scenarios (SOS,
+    //             python SKL modeling, etc.)
+#else
+    // MPI is enabled, proceed...
     int send_size = 0;
     for( auto &it: regions ) {
         Region *reg = it.second;
         // XXX assumes reg->reduceBestPolicies() has run
-        send_size += ( get_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
+        send_size += ( get_mpi_pack_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
     }
 
     char *sendbuf = (char *)malloc( send_size );
@@ -265,7 +286,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        int reg_measures_size = ( reg->best_policies.size() * get_measure_size( reg->num_features, comm ) );
+        int reg_measures_size = ( reg->best_policies.size() * get_mpi_pack_measure_size( reg->num_features, comm ) );
         reg->packMeasurements( sendbuf + offset, reg_measures_size, comm );
         offset += reg_measures_size;
     }
@@ -371,14 +392,23 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     free( sendbuf );
     free( recvbuf );
+#endif //APOLLO_MPI_ENABLED
 }
 
-#endif //APOLLO_MPI_ENABLED
 
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
+
     // Reduce local region measurements to best policies
+    // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
+    //             internally, and skip them if MPI is disabled.
+    //             We may want to allow this method to do other non-MPI
+    //             operations to regions, so we will call into it even if
+    //             MPI is disabled. Ideally the flushAllRegionMeasurements
+    //             method we are in now is only being called once per
+    //             simulation step, so this should have negligible performance
+    //             impact.
     for( auto &it: regions ) {
         Region *reg = it.second;
         reg->reduceBestPolicies(step);
@@ -387,7 +417,28 @@ Apollo::flushAllRegionMeasurements(int step)
 
     if( Config::APOLLO_COLLECTIVE_TRAINING ) {
         //std::cout << "DO COLLECTIVE TRAINING" << std::endl; //ggout
+#ifdef APOLLO_MPI_ENABLED
+        // MPI is enabled, proceed...
         gatherReduceCollectiveTrainingData(step);
+#else
+        // MPI is disabled, yet we're told to do collectives...
+        //
+        // This else represents a configuration error: collective training
+        // is being asked for in the configuration, but Apollo was compiled
+        // without MPI support. At present, MPI is the only supported
+        // mechanism for collectives.
+        //
+        // We report this configuration error during init, rather than
+        // here, since this could potentially spam N-steps of error
+        // messages to the log.
+        //
+        // NOTE[chad]: I'm including this verbose comment as a reminder about
+        //             guarding this logic carefully, anticipating the addition
+        //             of support for multiple collective and training backends.
+        // NOTE[chad]: We should conserve the mechanic of "skipping this method
+        //             call is identical to doing local-only training."
+        //
+#endif //APOLLO_MPI_ENABLED
     }
     else {
         //std::cout << "DO LOCAL TRAINING" << std::endl; //ggout

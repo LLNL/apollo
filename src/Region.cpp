@@ -45,7 +45,9 @@
 #include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 
+#ifdef APOLLO_MPI_ENABLED
 #include <mpi.h>
+#endif //APOLLO_MPI_ENABLED
 
 int
 Apollo::Region::getPolicyIndex(void)
@@ -67,7 +69,11 @@ Apollo::Region::getPolicyIndex(void)
     if( Config::APOLLO_TRACE_POLICY ) {
         std::stringstream trace_out;
         int rank;
+#ifdef APOLLO_MPI_ENABLED
         MPI_Comm_rank( apollo->comm, &rank );
+#else
+        rank = 0;
+#endif
         trace_out << "Rank " << rank \
             << " region " << name \
             << " model " << model->name \
@@ -260,7 +266,11 @@ Apollo::Region::reduceBestPolicies(int step)
     std::stringstream trace_out;
     int rank;
     if( Config::APOLLO_TRACE_MEASURES ) {
+#ifdef APOLLO_MPI_ENABLED
         MPI_Comm_rank(apollo->comm, &rank);
+#else
+        rank = 0;
+#endif //APOLLO_MPI_ENABLED
         trace_out << "=================================" << std::endl \
             << "Rank " << rank << " Region " << name << " MEASURES "  << std::endl;
     }
@@ -319,6 +329,16 @@ Apollo::Region::reduceBestPolicies(int step)
     return best_policies.size();
 }
 
+#ifndef APOLLO_MPI_ENABLED
+//MPI is disabled...
+void
+Apollo::Region::packMeasurements(char *buf, int size) {
+    // This is a stub, since we're not doing MPI.
+    return;
+}
+
+#else
+//MPI is enabled...
 void
 Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
     int pos = 0;
@@ -359,6 +379,8 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
 
     return;
 }
+#endif //APOLLO_MPI_ENABLED
+
 
 void
 Apollo::Region::setFeature(float value)
