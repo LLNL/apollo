@@ -1,5 +1,5 @@
 
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+// Copyright (c) 2020, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 //
 // This file is part of Apollo.
@@ -254,7 +254,7 @@ Apollo::Region::end()
     return;
 }
 
-int 
+int
 Apollo::Region::reduceBestPolicies(int step)
 {
     std::stringstream trace_out;
@@ -281,7 +281,7 @@ Apollo::Region::reduceBestPolicies(int step)
             trace_out << " = " << mul << " ]: "
                 << "policy: " << policy_index
                 << " , count: " << time_set->exec_count
-                << " , total: " << time_set->time_total 
+                << " , total: " << time_set->time_total
                 << " , time_avg: " <<  ( time_set->time_total / time_set->exec_count ) << std::endl;
         }
         double time_avg = ( time_set->time_total / time_set->exec_count );
@@ -335,7 +335,7 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
-        // num features 
+        // num features
         MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 

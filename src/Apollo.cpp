@@ -208,7 +208,9 @@ Apollo::Apollo()
     }
 
     // Duplicate world for Apollo library communication
+#ifdef APOLLO_ENABLE_MPI
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+#endif //APOLLO_ENABLE_MPI
 
     log("Initialized.");
 
@@ -220,7 +222,8 @@ Apollo::~Apollo()
     delete (CallpathRuntime *)callpath_ptr;
 }
 
-int 
+#ifdef APOLLO_MPI_ENABLED
+int
 get_measure_size(int num_features, MPI_Comm comm)
 {
     int size = 0, measure_size = 0;
@@ -245,8 +248,9 @@ get_measure_size(int num_features, MPI_Comm comm)
 
     return measure_size;
 }
+#endif //APOLLO_MPI_ENABLED
 
-void 
+void
 Apollo::gatherReduceCollectiveTrainingData(int step)
 {
     int send_size = 0;
@@ -325,7 +329,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
         MPI_Unpack(recvbuf, recv_size, &pos, &policy_index, 1, MPI_INT, comm);
         MPI_Unpack(recvbuf, recv_size, &pos, region_name, 64, MPI_CHAR, comm);
         MPI_Unpack(recvbuf, recv_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
-        
+
         if( Config::APOLLO_TRACE_ALLGATHER ) {
             trace_out << rank << ", " << region_name << ", ";
             trace_out << "[ ";
@@ -368,6 +372,8 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     free( sendbuf );
     free( recvbuf );
 }
+
+#endif //APOLLO_MPI_ENABLED
 
 void
 Apollo::flushAllRegionMeasurements(int step)

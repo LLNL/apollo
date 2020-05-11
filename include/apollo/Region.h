@@ -27,22 +27,32 @@ class Apollo::Region {
             Measure(int e, double t) : exec_count(e), time_total(t) {}
         } Measure;
 
-        char    name[64];
+        char     name[64];
 
         void     begin();
         void     end();
 
-        int                   getPolicyIndex(void);
+        int      getPolicyIndex(void);
 
-        int            current_policy;
+        int      current_policy;
 
-        int            num_features;
-        void    setFeature(float value);
-        int reduceBestPolicies(int step);
-        void packMeasurements(char *buf, int size, MPI_Comm comm);
-        std::map< std::vector< float >, std::pair< int, double > > best_policies;
+        int      num_features;
+        void     setFeature(float value);
+        int      reduceBestPolicies(int step);
+
+#ifdef APOLLO_MPI_ENABLED
+        void     packMeasurements(char *buf, int size, MPI_Comm comm);
+#endif APOLLO_MPI_ENABLED
+
+        std::map<
+            std::vector< float >,
+            std::pair< int, double > > best_policies;
+
         // Key: < features, policy >, value: < time measurement >
-        std::map< std::pair< std::vector<float>, int >, std::unique_ptr<Apollo::Region::Measure> > measures;
+        std::map<
+            std::pair< std::vector<float>, int >,
+            std::unique_ptr<Apollo::Region::Measure> > measures;
+
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;
 
