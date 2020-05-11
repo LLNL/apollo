@@ -399,6 +399,10 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
+    int rank = 0;
+#ifdef APOLLO_MPI_ENABLED
+    MPI_Comm_rank(comm, &rank);
+#endif //APOLLO_MPI_ENABLED
 
     // Reduce local region measurements to best policies
     // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
@@ -517,8 +521,6 @@ Apollo::flushAllRegionMeasurements(int step)
 
             if( Config::APOLLO_TRACE_BEST_POLICIES ) {
                 std::stringstream trace_out;
-                int rank;
-                MPI_Comm_rank(comm, &rank);
                 trace_out << "=== Rank " << rank \
                     << " BEST POLICIES Region " << reg->name << " ===" << std::endl;
                 for( auto &b : reg->best_policies ) {
@@ -546,8 +548,6 @@ Apollo::flushAllRegionMeasurements(int step)
                     train_time_responses );
 
             if( Config::APOLLO_STORE_MODELS ) {
-                int rank;
-                MPI_Comm_rank(comm, &rank);
                 reg->model->store( "dtree-step-" + std::to_string( step ) \
                         + "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml" );
@@ -579,8 +579,6 @@ Apollo::flushAllRegionMeasurements(int step)
                         drifting++;
                         if( Config::APOLLO_TRACE_RETRAIN ) {
                             std::ios_base::fmtflags f( trace_out.flags() );
-                            int rank;
-                            MPI_Comm_rank(comm, &rank);
                             trace_out << std::setprecision(3) << std::scientific \
                                 << "step " << step \
                                 << " rank " << rank \
@@ -604,8 +602,6 @@ Apollo::flushAllRegionMeasurements(int step)
                         >=
                         Config::APOLLO_RETRAIN_REGION_THRESHOLD ) {
                     if( Config::APOLLO_TRACE_RETRAIN ) {
-                        int rank;
-                        MPI_Comm_rank( comm, &rank );
                         trace_out << "step " << step \
                             << " rank " << rank \
                             << " retrain " << reg->name \
@@ -619,8 +615,6 @@ Apollo::flushAllRegionMeasurements(int step)
 
                 if( Config::APOLLO_TRACE_RETRAIN ) {
                     std::cout << trace_out.str();
-                    int rank;
-                    MPI_Comm_rank( comm, &rank );
                     std::ofstream fout("step-" + std::to_string(step) \
                             + "-rank-" + std::to_string(rank) \
                             + "-retrain.txt");
