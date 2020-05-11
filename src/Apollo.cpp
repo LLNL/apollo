@@ -287,6 +287,7 @@ Apollo::Apollo()
         if (traceOutputFileName.compare("stdout") == 0) {
             traceOutputIsActualFile = false;
         } else {
+            traceOutputFileName += ".";
             traceOutputFileName += std::to_string(mpiRank);
             traceOutputFileName += ".csv";
             try {
