@@ -11,9 +11,9 @@
 #include "apollo/PolicyModel.h"
 #include "apollo/TimingModel.h"
 
-#ifdef APOLLO_MPI_ENABLED
+#ifdef APOLLO_ENABLE_MPI
 #include <mpi.h>
-#endif //APOLLO_MPI_ENABLED
+#endif //APOLLO_ENABLE_MPI
 
 class Apollo::Region {
     public:
@@ -42,11 +42,11 @@ class Apollo::Region {
         void     setFeature(float value);
         int      reduceBestPolicies(int step);
 
-#ifdef APOLLO_MPI_ENABLED
+#ifdef APOLLO_ENABLE_MPI
         void     packMeasurements(char *buf, int size, MPI_Comm comm);
 #else
         void     packMeasurements(char *buf, int size);
-#endif //APOLLO_MPI_ENABLED
+#endif //APOLLO_ENABLE_MPI
 
         std::map<
             std::vector< float >,

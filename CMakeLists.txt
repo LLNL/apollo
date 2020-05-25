@@ -45,7 +45,7 @@ set(CMAKE_CXX_STANDARD 14)
 #
 # Options
 #
-option(APOLLO_MPI_ENABLED "Require and enabled MPI for collective training?" ON)
+option(APOLLO_ENABLE_MPI "Require and enabled MPI for collective training?" ON)
 #
 set(APOLLO_ENABLE_TESTS    ON  CACHE STRING "")
 set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
@@ -163,11 +163,11 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
 # External libraries
 #
 
-if (APOLLO_MPI_ENABLED)
+if (APOLLO_ENABLE_MPI)
     find_package(MPI REQUIRED)
     if (MPI_FOUND)
         message(STATUS "---- MPI:  Found!")
-        add_definitions(-DAPOLLO_MPI_ENABLED)
+        add_definitions(-DAPOLLO_ENABLE_MPI)
     else()
         message(STATUS "---- MPI:  ** ERROR ** Could not locate MPI installation.")
     endif()

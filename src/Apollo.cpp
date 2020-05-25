@@ -56,6 +56,11 @@
 //
 #include "util/Debug.h"
 
+#ifdef APOLLO_ENABLE_MPI
+    MPI_Comm apollo_comm;
+#endif
+
+
 inline void replace_all(std::string& input, const std::string& from, const std::string& to) {
 	size_t pos = 0;
 	while ((pos = input.find(from, pos)) != std::string::npos) {
@@ -186,7 +191,7 @@ Apollo::Apollo()
     Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
 
-#ifndef APOLLO_MPI_ENABLED
+#ifndef APOLLO_ENABLE_MPI
     // MPI is disabled...
     if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
         std::cerr << "Collective training requires MPI support to be enabled" << std::endl;
@@ -194,7 +199,7 @@ Apollo::Apollo()
     }
     //TODO[chad]: Deepen this sanity check when additional collectives/training
     //            backends are added to the code.
-#endif //APOLLO_MPI_ENABLED
+#endif //APOLLO_ENABLE_MPI
 
     if( Config::APOLLO_COLLECTIVE_TRAINING && Config::APOLLO_LOCAL_TRAINING ) {
         std::cerr << "Both collective and local training cannot be enabled" << std::endl;
@@ -219,7 +224,12 @@ Apollo::Apollo()
 
     // Duplicate world for Apollo library communication
 #ifdef APOLLO_ENABLE_MPI
-    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    MPI_Comm_rank(apollo_mpi_comm, &mpi_rank);
+    MPI_Comm_size(apollo_mpi_comm, &mpi_size);
+#else
+    mpi_size = 0;
+    mpi_rank = 0;
 #endif //APOLLO_ENABLE_MPI
 
     log("Initialized.");
@@ -232,7 +242,7 @@ Apollo::~Apollo()
     delete (CallpathRuntime *)callpath_ptr;
 }
 
-#ifdef APOLLO_MPI_ENABLED
+#ifdef APOLLO_ENABLE_MPI
 int
 get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 {
@@ -258,12 +268,12 @@ get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 
     return measure_size;
 }
-#endif //APOLLO_MPI_ENABLED
+#endif //APOLLO_ENABLE_MPI
 
 void
 Apollo::gatherReduceCollectiveTrainingData(int step)
 {
-#ifndef APOLLO_MPI_ENABLED
+#ifndef APOLLO_ENABLE_MPI
     // MPI is disabled, skip everything in this method.
     //
     // NOTE[chad]: Skipping this entire method is equivilant to
@@ -292,7 +302,6 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     }
 
     int num_ranks;
-    MPI_Comm_size( comm, &num_ranks );
     //std::cout << "num_ranks: " << num_ranks << std::endl;
 
     int recv_size_per_rank[ num_ranks ];
@@ -392,7 +401,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     free( sendbuf );
     free( recvbuf );
-#endif //APOLLO_MPI_ENABLED
+#endif //APOLLO_ENABLE_MPI
 }
 
 
@@ -400,9 +409,8 @@ void
 Apollo::flushAllRegionMeasurements(int step)
 {
     int rank = 0;
-#ifdef APOLLO_MPI_ENABLED
-    MPI_Comm_rank(comm, &rank);
-#endif //APOLLO_MPI_ENABLED
+#ifdef APOLLO_ENABLE_MPI
+#endif //APOLLO_ENABLE_MPI
 
     // Reduce local region measurements to best policies
     // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
@@ -421,28 +429,7 @@ Apollo::flushAllRegionMeasurements(int step)
 
     if( Config::APOLLO_COLLECTIVE_TRAINING ) {
         //std::cout << "DO COLLECTIVE TRAINING" << std::endl; //ggout
-#ifdef APOLLO_MPI_ENABLED
-        // MPI is enabled, proceed...
         gatherReduceCollectiveTrainingData(step);
-#else
-        // MPI is disabled, yet we're told to do collectives...
-        //
-        // This else represents a configuration error: collective training
-        // is being asked for in the configuration, but Apollo was compiled
-        // without MPI support. At present, MPI is the only supported
-        // mechanism for collectives.
-        //
-        // We report this configuration error during init, rather than
-        // here, since this could potentially spam N-steps of error
-        // messages to the log.
-        //
-        // NOTE[chad]: I'm including this verbose comment as a reminder about
-        //             guarding this logic carefully, anticipating the addition
-        //             of support for multiple collective and training backends.
-        // NOTE[chad]: We should conserve the mechanic of "skipping this method
-        //             call is identical to doing local-only training."
-        //
-#endif //APOLLO_MPI_ENABLED
     }
     else {
         //std::cout << "DO LOCAL TRAINING" << std::endl; //ggout
