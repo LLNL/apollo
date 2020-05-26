@@ -202,10 +202,12 @@ Apollo::Region::begin()
     return;
 }
 
+
+
+
 void
-Apollo::Region::end()
+Apollo::Region::end(double duration)
 {
-    current_exec_time_end = std::chrono::steady_clock::now();
 
 #if VERBOSE_DEBUG
     if (not currently_inside_region) {
@@ -215,13 +217,10 @@ Apollo::Region::end()
                         " consequences. (region->name == %s)\n", name);
         fflush(stderr);
     }
-
     assert( currently_inside_region );
 #endif
-
     currently_inside_region = false;
 
-    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
 
     // TODO reduce overhead, move time calculation to reduceBestPolicies?
     // TODO buckets of features?
@@ -259,6 +258,15 @@ Apollo::Region::end()
 
     return;
 }
+
+void
+Apollo::Region::end(void)
+{
+    current_exec_time_end = std::chrono::steady_clock::now();
+    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
+    end(duration);
+}
+
 
 int
 Apollo::Region::reduceBestPolicies(int step)
@@ -329,20 +337,10 @@ Apollo::Region::reduceBestPolicies(int step)
     return best_policies.size();
 }
 
-#ifndef APOLLO_ENABLE_MPI
-//MPI is disabled...
 void
 Apollo::Region::packMeasurements(char *buf, int size) {
-    // This is a stub, since we're not doing MPI.
-    return;
-}
-
-#else
-//MPI is enabled...
-void
-Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
+#ifdef APOLLO_ENABLE_MPI
     int pos = 0;
-
     int rank;
     MPI_Comm_rank( comm, &rank );
 
@@ -376,10 +374,9 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
         //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
     }
-
+#endif //APOLLO_ENABLE_MPI
     return;
 }
-#endif //APOLLO_ENABLE_MPI
 
 
 void

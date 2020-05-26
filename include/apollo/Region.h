@@ -33,6 +33,7 @@ class Apollo::Region {
 
         void     begin();
         void     end();
+        void     end(double synthetic_duration_or_weight); // lower == better, 0.0 == perfect
 
         int      getPolicyIndex(void);
 
@@ -42,11 +43,7 @@ class Apollo::Region {
         void     setFeature(float value);
         int      reduceBestPolicies(int step);
 
-#ifdef APOLLO_ENABLE_MPI
-        void     packMeasurements(char *buf, int size, MPI_Comm comm);
-#else
         void     packMeasurements(char *buf, int size);
-#endif //APOLLO_ENABLE_MPI
 
         std::map<
             std::vector< float >,
