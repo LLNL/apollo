@@ -1,5 +1,5 @@
 
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+// Copyright (c) 2020, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 //
 // This file is part of Apollo.
@@ -45,7 +45,9 @@
 #include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 
+#ifdef APOLLO_ENABLE_MPI
 #include <mpi.h>
+#endif //APOLLO_ENABLE_MPI
 
 int
 Apollo::Region::getPolicyIndex(void)
@@ -67,7 +69,11 @@ Apollo::Region::getPolicyIndex(void)
     if( Config::APOLLO_TRACE_POLICY ) {
         std::stringstream trace_out;
         int rank;
+#ifdef APOLLO_ENABLE_MPI
         MPI_Comm_rank( apollo->comm, &rank );
+#else
+        rank = 0;
+#endif //APOLLO_ENABLE_MPI
         trace_out << "Rank " << rank \
             << " region " << name \
             << " model " << model->name \
@@ -196,10 +202,12 @@ Apollo::Region::begin()
     return;
 }
 
+
+
+
 void
-Apollo::Region::end()
+Apollo::Region::end(double duration)
 {
-    current_exec_time_end = std::chrono::steady_clock::now();
 
 #if VERBOSE_DEBUG
     if (not currently_inside_region) {
@@ -209,13 +217,10 @@ Apollo::Region::end()
                         " consequences. (region->name == %s)\n", name);
         fflush(stderr);
     }
-
     assert( currently_inside_region );
 #endif
-
     currently_inside_region = false;
 
-    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
 
     // TODO reduce overhead, move time calculation to reduceBestPolicies?
     // TODO buckets of features?
@@ -254,13 +259,26 @@ Apollo::Region::end()
     return;
 }
 
-int 
+void
+Apollo::Region::end(void)
+{
+    current_exec_time_end = std::chrono::steady_clock::now();
+    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
+    end(duration);
+}
+
+
+int
 Apollo::Region::reduceBestPolicies(int step)
 {
     std::stringstream trace_out;
     int rank;
     if( Config::APOLLO_TRACE_MEASURES ) {
+#ifdef APOLLO_ENABLE_MPI
         MPI_Comm_rank(apollo->comm, &rank);
+#else
+        rank = 0;
+#endif //APOLLO_ENABLE_MPI
         trace_out << "=================================" << std::endl \
             << "Rank " << rank << " Region " << name << " MEASURES "  << std::endl;
     }
@@ -281,7 +299,7 @@ Apollo::Region::reduceBestPolicies(int step)
             trace_out << " = " << mul << " ]: "
                 << "policy: " << policy_index
                 << " , count: " << time_set->exec_count
-                << " , total: " << time_set->time_total 
+                << " , total: " << time_set->time_total
                 << " , time_avg: " <<  ( time_set->time_total / time_set->exec_count ) << std::endl;
         }
         double time_avg = ( time_set->time_total / time_set->exec_count );
@@ -320,9 +338,9 @@ Apollo::Region::reduceBestPolicies(int step)
 }
 
 void
-Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
+Apollo::Region::packMeasurements(char *buf, int size) {
+#ifdef APOLLO_ENABLE_MPI
     int pos = 0;
-
     int rank;
     MPI_Comm_rank( comm, &rank );
 
@@ -335,7 +353,7 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
-        // num features 
+        // num features
         MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
         //std::cout << "rank," << rank << " pos: " << pos << std::endl;
 
@@ -356,9 +374,10 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
         //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
     }
-
+#endif //APOLLO_ENABLE_MPI
     return;
 }
+
 
 void
 Apollo::Region::setFeature(float value)

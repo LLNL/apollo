@@ -6,7 +6,10 @@
 #include <vector>
 
 #include <omp.h>
+
+#ifdef APOLLO_ENABLE_MPI
 #include <mpi.h>
+#endif //APOLLO_ENABLE_MPI
 
 #include "apollo/Config.h"
 
@@ -51,7 +54,10 @@ class Apollo
 
         void flushAllRegionMeasurements(int step);
     private:
-        MPI_Comm comm;
+        //
+        int mpi_rank;
+        int mpi_size;
+        //
         Apollo();
         void gatherReduceCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer

@@ -56,6 +56,11 @@
 //
 #include "util/Debug.h"
 
+#ifdef APOLLO_ENABLE_MPI
+    MPI_Comm apollo_comm;
+#endif
+
+
 inline void replace_all(std::string& input, const std::string& from, const std::string& to) {
 	size_t pos = 0;
 	while ((pos = input.find(from, pos)) != std::string::npos) {
@@ -186,6 +191,16 @@ Apollo::Apollo()
     Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
 
+#ifndef APOLLO_ENABLE_MPI
+    // MPI is disabled...
+    if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
+        std::cerr << "Collective training requires MPI support to be enabled" << std::endl;
+        abort();
+    }
+    //TODO[chad]: Deepen this sanity check when additional collectives/training
+    //            backends are added to the code.
+#endif //APOLLO_ENABLE_MPI
+
     if( Config::APOLLO_COLLECTIVE_TRAINING && Config::APOLLO_LOCAL_TRAINING ) {
         std::cerr << "Both collective and local training cannot be enabled" << std::endl;
         abort();
@@ -208,7 +223,14 @@ Apollo::Apollo()
     }
 
     // Duplicate world for Apollo library communication
-    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+#ifdef APOLLO_ENABLE_MPI
+    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    MPI_Comm_rank(apollo_mpi_comm, &mpi_rank);
+    MPI_Comm_size(apollo_mpi_comm, &mpi_size);
+#else
+    mpi_size = 0;
+    mpi_rank = 0;
+#endif //APOLLO_ENABLE_MPI
 
     log("Initialized.");
 
@@ -220,8 +242,9 @@ Apollo::~Apollo()
     delete (CallpathRuntime *)callpath_ptr;
 }
 
-int 
-get_measure_size(int num_features, MPI_Comm comm)
+#ifdef APOLLO_ENABLE_MPI
+int
+get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 {
     int size = 0, measure_size = 0;
     // rank
@@ -245,15 +268,27 @@ get_measure_size(int num_features, MPI_Comm comm)
 
     return measure_size;
 }
+#endif //APOLLO_ENABLE_MPI
 
-void 
+void
 Apollo::gatherReduceCollectiveTrainingData(int step)
 {
+#ifndef APOLLO_ENABLE_MPI
+    // MPI is disabled, skip everything in this method.
+    //
+    // NOTE[chad]: Skipping this entire method is equivilant to
+    //             doing LOCAL only training.  This ifdef guard is
+    //             redundant to the one in flush, anticipating adding
+    //             generic abstraction for collectives to support
+    //             different backends or learning scenarios (SOS,
+    //             python SKL modeling, etc.)
+#else
+    // MPI is enabled, proceed...
     int send_size = 0;
     for( auto &it: regions ) {
         Region *reg = it.second;
         // XXX assumes reg->reduceBestPolicies() has run
-        send_size += ( get_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
+        send_size += ( get_mpi_pack_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
     }
 
     char *sendbuf = (char *)malloc( send_size );
@@ -261,13 +296,12 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        int reg_measures_size = ( reg->best_policies.size() * get_measure_size( reg->num_features, comm ) );
+        int reg_measures_size = ( reg->best_policies.size() * get_mpi_pack_measure_size( reg->num_features, comm ) );
         reg->packMeasurements( sendbuf + offset, reg_measures_size, comm );
         offset += reg_measures_size;
     }
 
     int num_ranks;
-    MPI_Comm_size( comm, &num_ranks );
     //std::cout << "num_ranks: " << num_ranks << std::endl;
 
     int recv_size_per_rank[ num_ranks ];
@@ -325,7 +359,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
         MPI_Unpack(recvbuf, recv_size, &pos, &policy_index, 1, MPI_INT, comm);
         MPI_Unpack(recvbuf, recv_size, &pos, region_name, 64, MPI_CHAR, comm);
         MPI_Unpack(recvbuf, recv_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
-        
+
         if( Config::APOLLO_TRACE_ALLGATHER ) {
             trace_out << rank << ", " << region_name << ", ";
             trace_out << "[ ";
@@ -367,12 +401,26 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     free( sendbuf );
     free( recvbuf );
+#endif //APOLLO_ENABLE_MPI
 }
+
 
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
+    int rank = 0;
+#ifdef APOLLO_ENABLE_MPI
+#endif //APOLLO_ENABLE_MPI
+
     // Reduce local region measurements to best policies
+    // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
+    //             internally, and skip them if MPI is disabled.
+    //             We may want to allow this method to do other non-MPI
+    //             operations to regions, so we will call into it even if
+    //             MPI is disabled. Ideally the flushAllRegionMeasurements
+    //             method we are in now is only being called once per
+    //             simulation step, so this should have negligible performance
+    //             impact.
     for( auto &it: regions ) {
         Region *reg = it.second;
         reg->reduceBestPolicies(step);
@@ -460,8 +508,6 @@ Apollo::flushAllRegionMeasurements(int step)
 
             if( Config::APOLLO_TRACE_BEST_POLICIES ) {
                 std::stringstream trace_out;
-                int rank;
-                MPI_Comm_rank(comm, &rank);
                 trace_out << "=== Rank " << rank \
                     << " BEST POLICIES Region " << reg->name << " ===" << std::endl;
                 for( auto &b : reg->best_policies ) {
@@ -489,8 +535,6 @@ Apollo::flushAllRegionMeasurements(int step)
                     train_time_responses );
 
             if( Config::APOLLO_STORE_MODELS ) {
-                int rank;
-                MPI_Comm_rank(comm, &rank);
                 reg->model->store( "dtree-step-" + std::to_string( step ) \
                         + "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml" );
@@ -522,8 +566,6 @@ Apollo::flushAllRegionMeasurements(int step)
                         drifting++;
                         if( Config::APOLLO_TRACE_RETRAIN ) {
                             std::ios_base::fmtflags f( trace_out.flags() );
-                            int rank;
-                            MPI_Comm_rank(comm, &rank);
                             trace_out << std::setprecision(3) << std::scientific \
                                 << "step " << step \
                                 << " rank " << rank \
@@ -547,8 +589,6 @@ Apollo::flushAllRegionMeasurements(int step)
                         >=
                         Config::APOLLO_RETRAIN_REGION_THRESHOLD ) {
                     if( Config::APOLLO_TRACE_RETRAIN ) {
-                        int rank;
-                        MPI_Comm_rank( comm, &rank );
                         trace_out << "step " << step \
                             << " rank " << rank \
                             << " retrain " << reg->name \
@@ -562,8 +602,6 @@ Apollo::flushAllRegionMeasurements(int step)
 
                 if( Config::APOLLO_TRACE_RETRAIN ) {
                     std::cout << trace_out.str();
-                    int rank;
-                    MPI_Comm_rank( comm, &rank );
                     std::ofstream fout("step-" + std::to_string(step) \
                             + "-rank-" + std::to_string(rank) \
                             + "-retrain.txt");
