@@ -15,6 +15,6 @@ cmake   \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DOpenCV_DIR=$HOME/src/ml/opencv/install/lib64/cmake/opencv4 \
     -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
-    -DAPOLLO_ENABLE_MPI=OFF \
+    -DENABLE_MPI=OFF \
     ..
 make -j 8 && make install && cd .. && tree install

@@ -56,7 +56,7 @@
 //
 #include "util/Debug.h"
 
-#ifdef APOLLO_ENABLE_MPI
+#ifdef ENABLE_MPI
     MPI_Comm apollo_comm;
 #endif
 
@@ -191,7 +191,7 @@ Apollo::Apollo()
     Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
 
-#ifndef APOLLO_ENABLE_MPI
+#ifndef ENABLE_MPI
     // MPI is disabled...
     if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
         std::cerr << "Collective training requires MPI support to be enabled" << std::endl;
@@ -199,7 +199,7 @@ Apollo::Apollo()
     }
     //TODO[chad]: Deepen this sanity check when additional collectives/training
     //            backends are added to the code.
-#endif //APOLLO_ENABLE_MPI
+#endif //ENABLE_MPI
 
     if( Config::APOLLO_COLLECTIVE_TRAINING && Config::APOLLO_LOCAL_TRAINING ) {
         std::cerr << "Both collective and local training cannot be enabled" << std::endl;
@@ -223,14 +223,14 @@ Apollo::Apollo()
     }
 
     // Duplicate world for Apollo library communication
-#ifdef APOLLO_ENABLE_MPI
+#ifdef ENABLE_MPI
     MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
     MPI_Comm_rank(apollo_mpi_comm, &mpi_rank);
     MPI_Comm_size(apollo_mpi_comm, &mpi_size);
 #else
     mpi_size = 0;
     mpi_rank = 0;
-#endif //APOLLO_ENABLE_MPI
+#endif //ENABLE_MPI
 
     log("Initialized.");
 
@@ -242,7 +242,7 @@ Apollo::~Apollo()
     delete (CallpathRuntime *)callpath_ptr;
 }
 
-#ifdef APOLLO_ENABLE_MPI
+#ifdef ENABLE_MPI
 int
 get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 {
@@ -268,12 +268,12 @@ get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 
     return measure_size;
 }
-#endif //APOLLO_ENABLE_MPI
+#endif //ENABLE_MPI
 
 void
 Apollo::gatherReduceCollectiveTrainingData(int step)
 {
-#ifndef APOLLO_ENABLE_MPI
+#ifndef ENABLE_MPI
     // MPI is disabled, skip everything in this method.
     //
     // NOTE[chad]: Skipping this entire method is equivilant to
@@ -401,7 +401,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     free( sendbuf );
     free( recvbuf );
-#endif //APOLLO_ENABLE_MPI
+#endif //ENABLE_MPI
 }
 
 
@@ -409,8 +409,6 @@ void
 Apollo::flushAllRegionMeasurements(int step)
 {
     int rank = 0;
-#ifdef APOLLO_ENABLE_MPI
-#endif //APOLLO_ENABLE_MPI
 
     // Reduce local region measurements to best policies
     // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
