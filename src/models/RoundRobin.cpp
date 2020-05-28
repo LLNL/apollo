@@ -45,6 +45,11 @@ RoundRobin::getIndex(std::vector<float> &features)
     if( policies.find( features ) == policies.end() ) {
         policies[ features ] = 0;
     }
+    else {
+        // made a full circle, stop
+        if( policies[ features ] == 0 )
+            return 0;
+    }
     choice = policies[ features ];
     policies[ features ] = ( policies[ features ] + 1) % policy_count;
     //std::cout \

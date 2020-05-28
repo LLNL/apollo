@@ -1,5 +1,5 @@
 
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+// Copyright (c) 2020, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 //
 // This file is part of Apollo.
@@ -46,7 +46,9 @@
 #include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 
+#ifdef ENABLE_MPI
 #include <mpi.h>
+#endif //ENABLE_MPI
 
 int
 Apollo::Region::getPolicyIndex(void)
@@ -59,17 +61,32 @@ Apollo::Region::getPolicyIndex(void)
                         " when selecting a policy. (region->name == %s)\n", name);
         fflush(stderr);
     }
-#endif
+
     assert( currently_inside_region );
+#endif
 
     int choice = model->getIndex( features );
-    //ggout
-    //if( !model->training ) {
-    //    std::cout << "Model " << model->name << " features: [ ";
-    //    for(auto &f: features)
-    //        std::cout << (int)f << ", ";
-    //    std::cout << "] ->  " << choice << std::endl;
-    //}
+
+    if( Config::APOLLO_TRACE_POLICY ) {
+        std::stringstream trace_out;
+        int rank;
+#ifdef ENABLE_MPI
+        MPI_Comm_rank( apollo->comm, &rank );
+#else
+        rank = 0;
+#endif //ENABLE_MPI
+        trace_out << "Rank " << rank \
+            << " region " << name \
+            << " model " << model->name \
+            << " features [ ";
+        for(auto &f: features)
+            trace_out << (int)f << ", ";
+        trace_out << "] policy " << choice << std::endl;
+        std::cout << trace_out.str();
+        std::ofstream fout( "rank-" + std::to_string(rank) + "-policies.txt", std::ofstream::app );
+        fout << trace_out.str();
+        fout.close();
+    }
 
 #if 0
     if (choice != current_policy) {
@@ -98,9 +115,12 @@ Apollo::Region::Region(
         num_features(num_features)
 {
     apollo = Apollo::instance();
-    apollo->num_policies = numAvailablePolicies;
-    // TODO XXX uncomment above
-    //apollo->num_policies = 2;
+    if( Config::APOLLO_NUM_POLICIES ) {
+        apollo->num_policies = Config::APOLLO_NUM_POLICIES;
+    }
+    else {
+        apollo->num_policies = numAvailablePolicies;
+    }
 
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
@@ -108,7 +128,7 @@ Apollo::Region::Region(
     current_policy            = -1;
     currently_inside_region   = false;
 
-    // TODO: use best_policies to train a model for new region for which there's training data
+    // TODO use best_policies to train a model for new region for which there's training data
     size_t pos = Config::APOLLO_INIT_MODEL.find(",");
     std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
     if( "Static" == model_str ) {
@@ -136,8 +156,6 @@ Apollo::Region::Region(
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     const auto ret = apollo->regions.insert( { name, this } );
 
-    assert( ret.second == true );
-
     return;
 }
 
@@ -163,9 +181,10 @@ Apollo::Region::begin()
                         name);
         fflush(stderr);
     }
-#endif
 
     assert( !currently_inside_region );
+#endif
+
 
     currently_inside_region = true;
 
@@ -184,11 +203,12 @@ Apollo::Region::begin()
     return;
 }
 
-void
-Apollo::Region::end()
-{
 
-    current_exec_time_end = std::chrono::steady_clock::now();
+
+
+void
+Apollo::Region::end(double duration)
+{
 
 #if VERBOSE_DEBUG
     if (not currently_inside_region) {
@@ -198,16 +218,13 @@ Apollo::Region::end()
                         " consequences. (region->name == %s)\n", name);
         fflush(stderr);
     }
-#endif
-
     assert( currently_inside_region );
-
+#endif
     currently_inside_region = false;
 
-    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
 
-    // TODO: reduce overhead, move time calculation to reduceBestPolicies?
-    // TODO: buckets of features?
+    // TODO reduce overhead, move time calculation to reduceBestPolicies?
+    // TODO buckets of features?
     //const int bucket = 10;
     //for(auto &it : apollo->features) {
     //    //std::cout << "feature: " << it;
@@ -327,14 +344,29 @@ Apollo::Region::end()
     return;
 }
 
+void
+Apollo::Region::end(void)
+{
+    current_exec_time_end = std::chrono::steady_clock::now();
+    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
+    end(duration);
+}
+
+
 int
 Apollo::Region::reduceBestPolicies(int step)
 {
-    //int rank; \
-    MPI_Comm_rank(apollo->comm, &rank); \
-    std::stringstream dbgout; \
-    dbgout << "=================================" << std::endl \
-        << "Rank " << rank << " Region " << name << " MEASURES "  << std::endl;
+    std::stringstream trace_out;
+    int rank;
+    if( Config::APOLLO_TRACE_MEASURES ) {
+#ifdef ENABLE_MPI
+        MPI_Comm_rank(apollo->comm, &rank);
+#else
+        rank = 0;
+#endif //ENABLE_MPI
+        trace_out << "=================================" << std::endl \
+            << "Rank " << rank << " Region " << name << " MEASURES "  << std::endl;
+    }
     for (auto iter_measure = measures.begin();
             iter_measure != measures.end();   iter_measure++) {
 
@@ -342,18 +374,19 @@ Apollo::Region::reduceBestPolicies(int step)
         const int policy_index                   = iter_measure->first.second;
         auto                           &time_set = iter_measure->second;
 
-        //dbgout << "features: [ "; \
-            int mul = 1; \
-        for(auto &f : feature_vector ) { \
-            dbgout << (int)f << ", "; \
-            mul *= f; \
-        } \
-        dbgout << " = " << mul << " ]: " \
-            << "policy: " << policy_index \
-            << " , count: " << time_set->exec_count \
-            << " , total: " << time_set->time_total \
-            << " , time_avg: " <<  ( time_set->time_total / time_set->exec_count ) << std::endl;
-        assert( time_set->exec_count > 0 );
+        if( Config::APOLLO_TRACE_MEASURES ) {
+            trace_out << "features: [ ";
+            int mul = 1;
+            for(auto &f : feature_vector ) { \
+                trace_out << (int)f << ", ";
+                mul *= f;
+            }
+            trace_out << " = " << mul << " ]: "
+                << "policy: " << policy_index
+                << " , count: " << time_set->exec_count
+                << " , total: " << time_set->time_total
+                << " , time_avg: " <<  ( time_set->time_total / time_set->exec_count ) << std::endl;
+        }
         double time_avg = ( time_set->time_total / time_set->exec_count );
 
         auto iter =  best_policies.find( feature_vector );
@@ -368,29 +401,31 @@ Apollo::Region::reduceBestPolicies(int step)
         }
     }
 
-    //dbgout << ".-" << std::endl; \
-    dbgout << "Rank " << rank << " Region " << name << " Reduce " << std::endl; \
-    for( auto &b : best_policies ) { \
-        dbgout << "features: [ "; \
-        for(auto &f : b.first ) \
-            dbgout << (int)f << ", "; \
-        dbgout << "]: P:" \
-            << b.second.first << " T: " << b.second.second << std::endl; \
-    } \
-    dbgout << ".-" << std::endl; \
-    std::cout << dbgout.str(); //ggout
-    //std::ofstream fout("step-" + std::to_string(step) + \
-            "-rank-" + std::to_string(rank) + "-" + name + "-measures.txt"); \
-    fout << dbgout.str(); \
-    fout.close();
+    if( Config::APOLLO_TRACE_MEASURES ) {
+        trace_out << ".-" << std::endl;
+        trace_out << "Rank " << rank << " Region " << name << " Reduce " << std::endl;
+        for( auto &b : best_policies ) {
+            trace_out << "features: [ ";
+            for(auto &f : b.first )
+                trace_out << (int)f << ", ";
+            trace_out << "]: P:"
+                << b.second.first << " T: " << b.second.second << std::endl;
+        }
+        trace_out << ".-" << std::endl;
+        std::cout << trace_out.str();
+        std::ofstream fout("step-" + std::to_string(step) +
+                "-rank-" + std::to_string(rank) + "-" + name + "-measures.txt"); \
+            fout << trace_out.str();
+        fout.close();
+    }
 
     return best_policies.size();
 }
 
 void
-Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
+Apollo::Region::packMeasurements(char *buf, int size) {
+#ifdef ENABLE_MPI
     int pos = 0;
-
     int rank;
     MPI_Comm_rank( comm, &rank );
 
@@ -424,9 +459,10 @@ Apollo::Region::packMeasurements(char *buf, int size, MPI_Comm comm) {
         MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
         //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
     }
-
+#endif //ENABLE_MPI
     return;
 }
+
 
 void
 Apollo::Region::setFeature(float value)

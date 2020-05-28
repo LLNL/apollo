@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <omp.h>
-#include <mpi.h>
 
 #include "apollo/Config.h"
 
@@ -38,6 +37,7 @@ class Apollo
         std::string   traceOutputFileName;
         std::ofstream traceOutputFileHandle;
         //
+        //  TODO(cdw): Generalize these fields for CUDA in addition to OpenMP
         typedef std::tuple<
             double,
             std::string,
@@ -62,11 +62,16 @@ class Apollo
         //////////
 
 
-        //TODO(cdw): migrate to multi-feature class.
-        //XXX: assumes features are the same globally for all regions
-        int                       num_policies;
+        //TODO(cdw): This is serving as an override that is defined by an
+        //           environment variable.  Apollo::Region's are able to
+        //           have different policy counts, so a global setting here
+        //           should indicate that it is an override, or find
+        //           a better place to live.  Leaving it for now, as a low-
+        //           priority task.
+        int  num_policies;
 
-        // Precalculated at Apollo::Init from evironment variable strings to
+        // These are convienience values that get precalculated
+        // at Apollo::Init from evironment variables / strings to
         // facilitate quick calculations during model evaluation later.
         int numNodes;
         int numCPUsOnNode;
@@ -77,8 +82,8 @@ class Apollo
         int         ompDefaultNumThreads;
         int         ompDefaultChunkSize;
         //
-        int mpiSize;
-        int mpiRank;
+        int mpiSize;   // 1 if no MPI
+        int mpiRank;   // 0 if no MPI
         //
         int numThreads;  // <-- how many to use / are in use
 
@@ -92,7 +97,10 @@ class Apollo
 
         void flushAllRegionMeasurements(int step);
     private:
-        MPI_Comm comm;
+        //
+        int mpi_rank;
+        int mpi_size;
+        //
         Apollo();
         //
         TraceVector_t trace_data;
