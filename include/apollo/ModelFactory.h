@@ -13,6 +13,8 @@ class ModelFactory {
         static std::unique_ptr<PolicyModel> createRandom(int num_policies);
         static std::unique_ptr<PolicyModel> createRoundRobin(int num_policies);
 
+        static std::unique_ptr<PolicyModel> loadDecisionTree(int num_policies,
+                std::string path);
         static std::unique_ptr<PolicyModel> createDecisionTree(int num_policies,
                 std::vector< std::vector<float> > &features,
                 std::vector<int> &responses );
