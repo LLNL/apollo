@@ -18,11 +18,17 @@ std::unique_ptr<PolicyModel> ModelFactory::createRoundRobin(int num_policies) {
     return std::make_unique<RoundRobin>( num_policies );
 }
 
+
+std::unique_ptr<PolicyModel> ModelFactory::loadDecisionTree(int num_policies,
+        std::string path) {
+    return std::make_unique<DecisionTree>( num_policies, path );
+}
 std::unique_ptr<PolicyModel> ModelFactory::createDecisionTree(int num_policies,
         std::vector< std::vector<float> > &features,
         std::vector<int> &responses ) {
     return std::make_unique<DecisionTree>( num_policies, features, responses );
 }
+
 
 std::unique_ptr<TimingModel> ModelFactory::createRegressionTree(
         std::vector< std::vector<float> > &features,

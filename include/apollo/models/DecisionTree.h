@@ -20,6 +20,7 @@ class DecisionTree : public PolicyModel {
         int  getIndex(void);
         int  getIndex(std::vector<float> &features);
         void store(const std::string &filename);
+        void load(const std::string &filename);
 
     private:
         //Ptr<DTrees> dtree;

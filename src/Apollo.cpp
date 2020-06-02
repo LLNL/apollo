@@ -170,7 +170,9 @@ Apollo::Apollo()
     numThreads = ompDefaultNumThreads;
 
     // Initialize config with defaults
-    Config::APOLLO_INIT_MODEL = safe_getenv( "APOLLO_INIT_MODEL", "Static,0" );
+    Config::APOLLO_INIT_MODEL = safe_getenv( "APOLLO_INIT_MODEL", "Static,0" ); // Create this kind of model.
+    Config::APOLLO_LOAD_MODEL = safe_getenv( "APOLLO_LOAD_MODEL", "" );         // Load a model from this file.
+
     //std::cout << "init model " << Config::APOLLO_INIT_MODEL << std::endl;
     Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( safe_getenv( "APOLLO_COLLECTIVE_TRAINING", "1" ) );
     //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
@@ -523,6 +525,7 @@ Apollo::flushAllRegionMeasurements(int step)
                     fout.close();
             }
 
+            // TODO(cdw): Load prior decisiontree...
             reg->model = ModelFactory::createDecisionTree(
                     num_policies,
                     train_features,
