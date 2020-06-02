@@ -57,7 +57,7 @@
 #include "util/Debug.h"
 
 #ifdef ENABLE_MPI
-    MPI_Comm apollo_comm;
+    MPI_Comm apollo_mpi_comm;
 #endif
 
 namespace apolloUtils { //----------
@@ -207,16 +207,16 @@ Apollo::Apollo()
     //std::cout << "global " << Config::APOLLO_SINGLE_MODEL << std::endl;
     Config::APOLLO_REGION_MODEL = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
     //std::cout << "region " << Config::APOLLO_REGION_MODEL << std::endl;
-    Config::APOLLO_TRACE_MEASURES = std::stoi( safe_getenv( "APOLLO_TRACE_MEASURES", "0" ) );
-    Config::APOLLO_NUM_POLICIES = std::stoi( safe_getenv( "APOLLO_NUM_POLICIES", "0" ) );
-    Config::APOLLO_TRACE_POLICY = std::stoi( safe_getenv( "APOLLO_TRACE_POLICY", "0" ) );
-    Config::APOLLO_RETRAIN_ENABLE = std::stoi( safe_getenv( "APOLLO_RETRAIN_ENABLE", "1" ) );
-    Config::APOLLO_RETRAIN_TIME_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
-    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
-    Config::APOLLO_STORE_MODELS = std::stoi( safe_getenv( "APOLLO_STORE_MODELS", "0" ) );
-    Config::APOLLO_TRACE_RETRAIN = std::stoi( safe_getenv( "APOLLO_TRACE_RETRAIN", "0" ) );
-    Config::APOLLO_TRACE_ALLGATHER = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
-    Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
+    Config::APOLLO_TRACE_MEASURES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
+    Config::APOLLO_NUM_POLICIES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
+    Config::APOLLO_TRACE_POLICY = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
+    Config::APOLLO_RETRAIN_ENABLE = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "1" ) );
+    Config::APOLLO_RETRAIN_TIME_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
+    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
+    Config::APOLLO_STORE_MODELS = std::stoi( apolloUtils::safeGetEnv( "APOLLO_STORE_MODELS", "0" ) );
+    Config::APOLLO_TRACE_RETRAIN = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
+    Config::APOLLO_TRACE_ALLGATHER = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_ALLGATHER", "0" ) );
+    Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
 
 #ifndef ENABLE_MPI
     // MPI is disabled...
@@ -295,12 +295,12 @@ Apollo::Apollo()
     //////////
 
 #ifdef ENABLE_MPI
-    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
-    MPI_Comm_rank(apollo_mpi_comm, &mpi_rank);
-    MPI_Comm_size(apollo_mpi_comm, &mpi_size);
+    MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
+    MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
+    MPI_Comm_size(apollo_mpi_comm, &mpiSize);
 #else
-    mpi_size = 0;
-    mpi_rank = 0;
+    mpiSize = 1;
+    mpiRank = 0;
 #endif //ENABLE_MPI
 
     log("Initialized.");
@@ -433,7 +433,47 @@ get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 
     return measure_size;
 }
-#endif //ENABLE_MPI
+
+void
+Apollo::packMeasurements(char *buf, int size, void *_reg) {
+    int pos = 0;
+
+    Apollo::Region *reg = (Apollo::Region *) _reg;
+
+    for( auto &it : reg->best_policies ) {
+        auto &feature_vector = it.first;
+        int policy_index = it.second.first;
+        double time_avg = it.second.second;
+
+        // rank
+        MPI_Pack( &mpiRank, 1, MPI_INT, buf, size, &pos, apollo_mpi_comm );
+        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
+
+        // num features
+        MPI_Pack( &reg->num_features, 1, MPI_INT, buf, size, &pos, apollo_mpi_comm );
+        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
+
+        // feature vector
+        for (float value : feature_vector ) {
+            MPI_Pack( &value, 1, MPI_FLOAT, buf, size, &pos, apollo_mpi_comm);
+            //std::cout << "feature," << value << " pos: " << pos << std::endl;
+        }
+
+        // policy index
+        MPI_Pack( &policy_index, 1, MPI_INT, buf, size, &pos, apollo_mpi_comm);
+        //std::cout << "policy_index," << policy_index << " pos: " << pos << std::endl;
+        // XXX: use 64 bytes fixed for region_name
+        // region name
+        MPI_Pack( reg->name, 64, MPI_CHAR, buf, size, &pos, apollo_mpi_comm);
+        //std::cout << "region_name," << name << " pos: " << pos << std::endl;
+        // average time
+        MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, apollo_mpi_comm);
+        //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
+    }
+    return;
+}
+#endif
+
 
 void
 Apollo::gatherReduceCollectiveTrainingData(int step)
@@ -453,7 +493,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     for( auto &it: regions ) {
         Region *reg = it.second;
         // XXX assumes reg->reduceBestPolicies() has run
-        send_size += ( get_mpi_pack_measure_size( reg->num_features, comm ) * reg->best_policies.size() );
+        send_size += ( get_mpi_pack_measure_size( reg->num_features, apollo_mpi_comm ) * reg->best_policies.size() );
     }
 
     char *sendbuf = (char *)malloc( send_size );
@@ -461,8 +501,8 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        int reg_measures_size = ( reg->best_policies.size() * get_mpi_pack_measure_size( reg->num_features, comm ) );
-        reg->packMeasurements( sendbuf + offset, reg_measures_size, comm );
+        int reg_measures_size = ( reg->best_policies.size() * get_mpi_pack_measure_size( reg->num_features, apollo_mpi_comm ) );
+        packMeasurements( sendbuf + offset, reg_measures_size, (void *) reg );
         offset += reg_measures_size;
     }
 
@@ -471,7 +511,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     int recv_size_per_rank[ num_ranks ];
 
-    MPI_Allgather( &send_size, 1, MPI_INT, &recv_size_per_rank, 1, MPI_INT, comm);
+    MPI_Allgather( &send_size, 1, MPI_INT, &recv_size_per_rank, 1, MPI_INT, apollo_mpi_comm);
 
     int recv_size = 0;
     //std::cout << "RECV SIZES: " ;
@@ -496,7 +536,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     std::cout << std::endl;
 
     MPI_Allgatherv( sendbuf, send_size, MPI_PACKED, \
-            recvbuf, recv_size_per_rank, disp, MPI_PACKED, comm );
+            recvbuf, recv_size_per_rank, disp, MPI_PACKED, apollo_mpi_comm );
 
     //std::cout << "BYTES TRANSFERRED: " << num_measures * measure_size << std::endl;
 
@@ -514,16 +554,16 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
         int exec_count;
         double time_avg;
 
-        MPI_Unpack(recvbuf, recv_size, &pos, &rank, 1, MPI_INT, comm);
-        MPI_Unpack(recvbuf, recv_size, &pos, &num_features, 1, MPI_INT, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &rank, 1, MPI_INT, apollo_mpi_comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &num_features, 1, MPI_INT, apollo_mpi_comm);
         for(int j = 0; j < num_features; j++)  {
             float value;
-            MPI_Unpack(recvbuf, recv_size, &pos, &value, 1, MPI_FLOAT, comm);
+            MPI_Unpack(recvbuf, recv_size, &pos, &value, 1, MPI_FLOAT, apollo_mpi_comm);
             feature_vector.push_back( value );
         }
-        MPI_Unpack(recvbuf, recv_size, &pos, &policy_index, 1, MPI_INT, comm);
-        MPI_Unpack(recvbuf, recv_size, &pos, region_name, 64, MPI_CHAR, comm);
-        MPI_Unpack(recvbuf, recv_size, &pos, &time_avg, 1, MPI_DOUBLE, comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &policy_index, 1, MPI_INT, apollo_mpi_comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, region_name, 64, MPI_CHAR, apollo_mpi_comm);
+        MPI_Unpack(recvbuf, recv_size, &pos, &time_avg, 1, MPI_DOUBLE, apollo_mpi_comm);
 
         if( Config::APOLLO_TRACE_ALLGATHER ) {
             trace_out << rank << ", " << region_name << ", ";
@@ -555,10 +595,8 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 
     if( Config::APOLLO_TRACE_ALLGATHER ) {
         std::cout << trace_out.str() << std::endl;
-        int rank;
-        MPI_Comm_rank( comm, &rank );
         std::ofstream fout("step-" + std::to_string(step) + \
-                "-rank-" + std::to_string(rank) + "-allgather.txt");
+                "-rank-" + std::to_string(mpiRank) + "-allgather.txt");
 
         fout << trace_out.str();
         fout.close();
@@ -573,7 +611,7 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
-    int rank = apollo->mpiRank;  //Automatically 0 if not an MPI environment.
+    int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     // Reduce local region measurements to best policies
     // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives

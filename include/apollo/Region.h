@@ -44,7 +44,8 @@ class Apollo::Region {
         void     setFeature(float value);
         int      reduceBestPolicies(int step);
 
-        void     packMeasurements(char *buf, int size);
+        //NOTE(cdw): Moving this to Apollo class for MPI-OpenCV to access MPI_comm obj.
+        //void     packMeasurements(char *buf, int size);
 
         std::map<
             std::vector< float >,

@@ -62,6 +62,7 @@ class Apollo
         //////////
 
 
+
         //TODO(cdw): This is serving as an override that is defined by an
         //           environment variable.  Apollo::Region's are able to
         //           have different policy counts, so a global setting here
@@ -96,15 +97,13 @@ class Apollo
         void *callpath_ptr;
 
         void flushAllRegionMeasurements(int step);
+
     private:
-        //
-        int mpi_rank;
-        int mpi_size;
-        //
         Apollo();
         //
         TraceVector_t trace_data;
         //
+        void packMeasurements(char *buf, int size, void *_reg);
         void gatherReduceCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer
         std::map<std::string, Apollo::Region *> regions;
