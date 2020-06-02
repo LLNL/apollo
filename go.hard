@@ -6,15 +6,15 @@ mkdir build
 mkdir install
 cd build
 #
-#    -DCMAKE_C_COMPILER=mpicc \
-#    -DCMAKE_CXX_COMPILER=mpicxx \
 #
 cmake   \
+    -DCMAKE_C_COMPILER=mpicc \
+    -DCMAKE_CXX_COMPILER=mpicxx \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_INSTALL_PREFIX=../install \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DOpenCV_DIR=$HOME/src/ml/opencv/install/lib64/cmake/opencv4 \
     -Dcallpath_DIR=$HOME/src/callpath/install/share/cmake/callpath \
-    -DENABLE_MPI=OFF \
+    -DENABLE_MPI=ON \
     ..
 make -j 8 && make install && cd .. && tree install

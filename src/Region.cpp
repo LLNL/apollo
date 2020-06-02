@@ -70,11 +70,7 @@ Apollo::Region::getPolicyIndex(void)
     if( Config::APOLLO_TRACE_POLICY ) {
         std::stringstream trace_out;
         int rank;
-#ifdef ENABLE_MPI
-        MPI_Comm_rank( apollo->comm, &rank );
-#else
-        rank = 0;
-#endif //ENABLE_MPI
+        rank = apollo->mpiRank;
         trace_out << "Rank " << rank \
             << " region " << name \
             << " model " << model->name \
@@ -360,7 +356,7 @@ Apollo::Region::reduceBestPolicies(int step)
     int rank;
     if( Config::APOLLO_TRACE_MEASURES ) {
 #ifdef ENABLE_MPI
-        MPI_Comm_rank(apollo->comm, &rank);
+        rank = apollo->mpiRank;
 #else
         rank = 0;
 #endif //ENABLE_MPI
@@ -420,47 +416,6 @@ Apollo::Region::reduceBestPolicies(int step)
     }
 
     return best_policies.size();
-}
-
-void
-Apollo::Region::packMeasurements(char *buf, int size) {
-#ifdef ENABLE_MPI
-    int pos = 0;
-    int rank;
-    MPI_Comm_rank( comm, &rank );
-
-    for( auto &it : best_policies ) {
-        auto &feature_vector = it.first;
-        int policy_index = it.second.first;
-        double time_avg = it.second.second;
-
-        // rank
-        MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
-        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
-
-        // num features
-        MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
-        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
-
-        // feature vector
-        for (float value : feature_vector ) {
-            MPI_Pack( &value, 1, MPI_FLOAT, buf, size, &pos, comm );
-            //std::cout << "feature," << value << " pos: " << pos << std::endl;
-        }
-
-        // policy index
-        MPI_Pack( &policy_index, 1, MPI_INT, buf, size, &pos, comm );
-        //std::cout << "policy_index," << policy_index << " pos: " << pos << std::endl;
-        // XXX: use 64 bytes fixed for region_name
-        // region name
-        MPI_Pack( name, 64, MPI_CHAR, buf, size, &pos, comm );
-        //std::cout << "region_name," << name << " pos: " << pos << std::endl;
-        // average time
-        MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
-        //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
-    }
-#endif //ENABLE_MPI
-    return;
 }
 
 
