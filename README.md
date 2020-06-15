@@ -5,6 +5,12 @@ instrument your code with the Apollo API, tell Apollo what the tuning
 options are, and Apollo recommends tuning options so that your code
 runs faster.
 
+## Contributing
+
+To contribute to Apollo please send a
+[pull request](https://help.github.com/articles/using-pull-requests/) on the
+`develop` branch of this repo. Apollo follows Gitflow for managing development.
+
 ## Authors
 
 Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
