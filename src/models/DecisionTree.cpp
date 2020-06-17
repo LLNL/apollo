@@ -53,9 +53,9 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     : PolicyModel(num_policies, "DecisionTree", false)
 {
 
-    std::chrono::steady_clock::time_point t1, t2;
-    t1 = std::chrono::steady_clock::now();
-    int training_set_depth = features.size();
+    //std::chrono::steady_clock::time_point t1, t2;
+    //t1 = std::chrono::steady_clock::now();
+    //int training_set_depth = features.size();
 
     //dtree = NormalBayesClassifier::create();
     //
@@ -129,10 +129,9 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
     //}
 
 
-    t2 = std::chrono::steady_clock::now();
-    double duration = std::chrono::duration<double>(t2 - t1).count();
-
-    std::cout << "train," << training_set_depth << "," << name<< "," << std::fixed << std::setprecision(12) << duration << "\n";
+    //t2 = std::chrono::steady_clock::now();
+    //double duration = std::chrono::duration<double>(t2 - t1).count();
+    //std::cout << "train," << training_set_depth << "," << name<< "," << std::fixed << std::setprecision(12) << duration << "\n";
 
     return;
 }
@@ -145,17 +144,16 @@ DecisionTree::~DecisionTree()
 int
 DecisionTree::getIndex(std::vector<float> &features)
 {
-    std::chrono::steady_clock::time_point t1, t2;
-    t1 = std::chrono::steady_clock::now();
+    //std::chrono::steady_clock::time_point t1, t2;
+    //t1 = std::chrono::steady_clock::now();
+    //int choice = dtree->predict( features );
+    //t2 = std::chrono::steady_clock::now();
+    //double duration = std::chrono::duration<double>(t2 - t1).count();
+    //std::cout << "predict," << features.size() << "," << choice << "," << std::fixed << std::setprecision(12) << duration << "\n"; //ggout
 
-    int choice = dtree->predict( features );
+    //return choice;
+    return dtree->predict( features );
 
-    t2 = std::chrono::steady_clock::now();
-    double duration = std::chrono::duration<double>(t2 - t1).count();
-
-    std::cout << "predict," << features.size() << "," << choice << "," << std::fixed << std::setprecision(12) << duration << "\n"; //ggout
-
-    return choice;
 }
 
 void DecisionTree::store(const std::string &filename)
