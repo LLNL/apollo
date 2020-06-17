@@ -11,9 +11,9 @@
 #include "apollo/PolicyModel.h"
 #include "apollo/TimingModel.h"
 
-#ifdef APOLLO_ENABLE_MPI
+#ifdef ENABLE_MPI
 #include <mpi.h>
-#endif //APOLLO_ENABLE_MPI
+#endif //ENABLE_MPI
 
 class Apollo::Region {
     public:
@@ -52,10 +52,10 @@ class Apollo::Region {
             std::vector< float >,
             std::pair< int, double > > best_policies;
 
-        // Key: < features, policy >, value: < time measurement >
         std::map<
             std::pair< std::vector<float>, int >,
             std::unique_ptr<Apollo::Region::Measure> > measures;
+        //^--Explanation: < features, policy >, value: < time measurement >
 
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;

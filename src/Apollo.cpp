@@ -253,14 +253,58 @@ Apollo::Apollo()
         abort();
     }
 
-    // Duplicate world for Apollo library communication
+    //////////
+    //
+    // TODO(cdw): Move these implementation details into a dedicated 'Trace' class.
+    //
+    // Trace output settings:
+    //
+    std::string trace_enabled \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_ENABLED", "false", true);
+    std::string trace_emit_online \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ONLINE", "false", true);
+    std::string trace_emit_all_features \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ALL_FEATURES", "false", true);
+    std::string trace_output_file \
+        = apolloUtils::safeGetEnv("APOLLO_TRACE_OUTPUT_FILE", "stdout", true);
+    //
+    traceEnabled          = ::apolloUtils::strOptionIsEnabled(trace_enabled);
+    traceEmitOnline       = ::apolloUtils::strOptionIsEnabled(trace_emit_online);
+    traceEmitAllFeatures  = ::apolloUtils::strOptionIsEnabled(trace_emit_all_features);
+    //
+    traceOutputFileName   = trace_output_file;
+    if (traceEnabled) {
+        if (traceOutputFileName.compare("stdout") == 0) {
+            traceOutputIsActualFile = false;
+        } else {
+            traceOutputFileName += ".";
+            traceOutputFileName += std::to_string(mpiRank);
+            traceOutputFileName += ".csv";
+            try {
+                traceOutputFileHandle.open(traceOutputFileName, std::fstream::out);
+                traceOutputIsActualFile = true;
+            } catch (...) {
+                std::cerr << "== APOLLO: ** ERROR ** Unable to open the filename specified in" \
+                    << "APOLLO_TRACE_OUTPUT_FILE environment variable:" << std::endl;
+                std::cerr << "== APOLLO: ** ERROR **    \"" << traceOutputFileName << "\"" << std::endl;
+                std::cerr << "== APOLLO: ** ERROR ** Defaulting to std::cout ..." << std::endl;
+                traceOutputIsActualFile = false;
+            }
+            if (traceEmitOnline) {
+                writeTraceHeader();
+            }
+        }
+    }
+    //
+    //////////
+
 #ifdef ENABLE_MPI
-    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
-    MPI_Comm_rank(apollo_mpi_comm, &mpi_rank);
-    MPI_Comm_size(apollo_mpi_comm, &mpi_size);
+    MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
+    MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
+    MPI_Comm_size(apollo_mpi_comm, &mpiSize);
 #else
-    mpi_size = 0;
-    mpi_rank = 0;
+    mpiSize = 1;
+    mpiRank = 0;
 #endif //ENABLE_MPI
 
     //////////
@@ -341,6 +385,7 @@ Apollo::~Apollo()
 //////////
 //
 // TODO(cdw): Move this into 'Trace' class during code refactor.
+// TODO(cdw): Generalize the fields slightly for CUDA also...
 //
 void
 Apollo::writeTraceHeader(void) {
@@ -632,11 +677,6 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 void
 Apollo::flushAllRegionMeasurements(int step)
 {
-    // TODO: when to train?
-    //if( step <= 1 ) {
-    //    std::cout << "Skip " << step << std::endl;
-    //    return;
-    //}
     int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     // Reduce local region measurements to best policies

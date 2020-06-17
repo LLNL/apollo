@@ -8,10 +8,6 @@
 
 #include <omp.h>
 
-#ifdef APOLLO_ENABLE_MPI
-#include <mpi.h>
-#endif //APOLLO_ENABLE_MPI
-
 #include "apollo/Config.h"
 
 //TODO(cdw): Convert 'Apollo' into a namespace and convert this into
@@ -41,6 +37,7 @@ class Apollo
         std::string   traceOutputFileName;
         std::ofstream traceOutputFileHandle;
         //
+        //  TODO(cdw): Generalize these fields for CUDA in addition to OpenMP
         typedef std::tuple<
             double,
             std::string,
@@ -73,7 +70,8 @@ class Apollo
         //           priority task.
         int  num_policies;
 
-        // Precalculated at Apollo::Init from evironment variable strings to
+        // These are convienience values that get precalculated
+        // at Apollo::Init from evironment variables / strings to
         // facilitate quick calculations during model evaluation later.
         int numNodes;
         int numCPUsOnNode;
@@ -84,14 +82,14 @@ class Apollo
         int         ompDefaultNumThreads;
         int         ompDefaultChunkSize;
         //
-        int mpiSize;
-        int mpiRank;
+        int mpiSize;   // 1 if no MPI
+        int mpiRank;   // 0 if no MPI
         //
         int numThreads;  // <-- how many to use / are in use
 
         // NOTE(chad): We default to walk_distance of 2 so we can
         //             step out of this method, then step out of
-        //             our RAJA policy template, and get to the
+        //             some portable policy template, and get to the
         //             module name and offset where that template
         //             has been instantiated in the application code.
         std::string getCallpathOffset(int walk_distance=2);
