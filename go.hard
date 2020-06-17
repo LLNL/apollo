@@ -8,6 +8,7 @@ cd build
 #
 #
 cmake   \
+    -Wno-dev \
     -DCMAKE_C_COMPILER=mpicc \
     -DCMAKE_CXX_COMPILER=mpicxx \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \

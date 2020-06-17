@@ -205,16 +205,16 @@ Apollo::Apollo()
     Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "0" ) );
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
-    Config::APOLLO_TRACE_MEASURES      = std::stoi( safe_getenv( "APOLLO_TRACE_MEASURES", "0" ) );
-    Config::APOLLO_NUM_POLICIES        = std::stoi( safe_getenv( "APOLLO_NUM_POLICIES", "0" ) );
-    Config::APOLLO_TRACE_POLICY        = std::stoi( safe_getenv( "APOLLO_TRACE_POLICY", "0" ) );
-    Config::APOLLO_STORE_MODELS        = std::stoi( safe_getenv( "APOLLO_STORE_MODELS", "0" ) );
-    Config::APOLLO_TRACE_RETRAIN       = std::stoi( safe_getenv( "APOLLO_TRACE_RETRAIN", "0" ) );
-    Config::APOLLO_TRACE_ALLGATHER     = std::stoi( safe_getenv( "APOLLO_TRACE_ALLGATHER", "0" ) );
-    Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( safe_getenv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
-    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( safe_getenv( "APOLLO_RETRAIN_ENABLE", "1" ) );
-    Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( safe_getenv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
-    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( safe_getenv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
+    Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
+    Config::APOLLO_NUM_POLICIES        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
+    Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
+    Config::APOLLO_STORE_MODELS        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_STORE_MODELS", "0" ) );
+    Config::APOLLO_TRACE_RETRAIN       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
+    Config::APOLLO_TRACE_ALLGATHER     = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_ALLGATHER", "0" ) );
+    Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
+    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "1" ) );
+    Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
+    Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
 
     //std::cout << "init model " << Config::APOLLO_INIT_MODEL << std::endl;
     //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
@@ -252,60 +252,6 @@ Apollo::Apollo()
         std::cerr << "Either global or region modeling must be enabled" << std::endl;
         abort();
     }
-
-    //////////
-    //
-    // TODO(cdw): Move these implementation details into a dedicated 'Trace' class.
-    //
-    // Trace output settings:
-    //
-    std::string trace_enabled \
-        = apolloUtils::safeGetEnv("APOLLO_TRACE_ENABLED", "false", true);
-    std::string trace_emit_online \
-        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ONLINE", "false", true);
-    std::string trace_emit_all_features \
-        = apolloUtils::safeGetEnv("APOLLO_TRACE_EMIT_ALL_FEATURES", "false", true);
-    std::string trace_output_file \
-        = apolloUtils::safeGetEnv("APOLLO_TRACE_OUTPUT_FILE", "stdout", true);
-    //
-    traceEnabled          = ::apolloUtils::strOptionIsEnabled(trace_enabled);
-    traceEmitOnline       = ::apolloUtils::strOptionIsEnabled(trace_emit_online);
-    traceEmitAllFeatures  = ::apolloUtils::strOptionIsEnabled(trace_emit_all_features);
-    //
-    traceOutputFileName   = trace_output_file;
-    if (traceEnabled) {
-        if (traceOutputFileName.compare("stdout") == 0) {
-            traceOutputIsActualFile = false;
-        } else {
-            traceOutputFileName += ".";
-            traceOutputFileName += std::to_string(mpiRank);
-            traceOutputFileName += ".csv";
-            try {
-                traceOutputFileHandle.open(traceOutputFileName, std::fstream::out);
-                traceOutputIsActualFile = true;
-            } catch (...) {
-                std::cerr << "== APOLLO: ** ERROR ** Unable to open the filename specified in" \
-                    << "APOLLO_TRACE_OUTPUT_FILE environment variable:" << std::endl;
-                std::cerr << "== APOLLO: ** ERROR **    \"" << traceOutputFileName << "\"" << std::endl;
-                std::cerr << "== APOLLO: ** ERROR ** Defaulting to std::cout ..." << std::endl;
-                traceOutputIsActualFile = false;
-            }
-            if (traceEmitOnline) {
-                writeTraceHeader();
-            }
-        }
-    }
-    //
-    //////////
-
-#ifdef ENABLE_MPI
-    MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
-    MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
-    MPI_Comm_size(apollo_mpi_comm, &mpiSize);
-#else
-    mpiSize = 1;
-    mpiRank = 0;
-#endif //ENABLE_MPI
 
     //////////
     //
