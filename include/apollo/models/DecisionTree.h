@@ -14,6 +14,7 @@ class DecisionTree : public PolicyModel {
 
     public:
         DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses);
+        DecisionTree(int num_policies, std::string path);
 
         ~DecisionTree();
 
