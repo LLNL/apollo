@@ -65,6 +65,8 @@ DecisionTree::DecisionTree(int num_policies, std::string path)
         exit(EXIT_FAILURE);
     } else {
         // The file at least exists... attempt to load a model from it!
+        std::cout << "== APOLLO: Loading the requested DecisionTree:\n" \
+                  << "== APOLLO:     " << path << "\n";
         dtree = RTrees::load(path.c_str());
     }
     return;
