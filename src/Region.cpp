@@ -162,6 +162,36 @@ Apollo::Region::Region(
     return;
 }
 
+Apollo::Region::Region(
+        const int num_features,
+        const char  *regionName,
+        int          numAvailablePolicies,
+        std::string  loadModelFromThisYamlFile)
+    :
+        num_features(num_features)
+{
+    apollo = Apollo::instance();
+    if( Config::APOLLO_NUM_POLICIES ) {
+        apollo->num_policies = Config::APOLLO_NUM_POLICIES;
+    }
+    else {
+        apollo->num_policies = numAvailablePolicies;
+    }
+
+    strncpy(name, regionName, sizeof(name)-1 );
+    name[ sizeof(name)-1 ] = '\0';
+
+    current_policy            = -1;
+    currently_inside_region   = false;
+
+
+    model = ModelFactory::loadDecisionTree( apollo->num_policies, loadModelFromThisYamlFile );
+    //std::cout << "Insert region " << name << " ptr " << this << std::endl;
+    const auto ret = apollo->regions.insert( { name, this } );
+
+    return;
+}
+
 Apollo::Region::~Region()
 {
     if (currently_inside_region) {
