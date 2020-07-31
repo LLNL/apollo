@@ -36,7 +36,7 @@
 #
 
 project(APOLLO LANGUAGES CXX C)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.9)
 
 set(CMAKE_CXX_STANDARD 14)
 

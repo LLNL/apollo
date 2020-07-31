@@ -74,6 +74,10 @@ set(APOLLO_SOURCES
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
 
+if (ENABLE_MPI)
+    target_link_libraries(apollo PUBLIC MPI::MPI_CXX)
+endif()
+
 target_link_libraries(apollo PRIVATE dl ${OpenCV_LIBS})
 
 foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
