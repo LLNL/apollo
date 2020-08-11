@@ -36,7 +36,7 @@ source ${RETURN_PATH}/common_unsetenv.sh
 #source ${RETURN_PATH}/common_spack.sh
 source ${RETURN_PATH}/common_setenv.sh
 source ${RETURN_PATH}/common_copy_files.sh
-source ${RETURN_PATH}/common_launch_sos.sh
+#source ${RETURN_PATH}/common_launch_sos.sh
 source ${RETURN_PATH}/common_srun_cmds.sh
 #
 #
@@ -70,9 +70,9 @@ echo ">>>> Launching experiment codes..."
 echo ""
 #
 
-export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-relwithdebinfo "
-export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo "
-export CLEVERLEAF_TRACED_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-relwithdebinfo "
+export CLEVERLEAF_APOLLO_BINARY=" ${SOS_WORK}/bin/cleverleaf-apollo-release "
+export CLEVERLEAF_NORMAL_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
+export CLEVERLEAF_TRACED_BINARY=" ${SOS_WORK}/bin/cleverleaf-normal-release "
 
 export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_50.in"
@@ -81,48 +81,55 @@ export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_triple_pt_25.in"
 #export CLEVERLEAF_INPUT="${SOS_WORK}/cleaf_test.in"
 
 export SRUN_CLEVERLEAF=" "
-export SRUN_CLEVERLEAF+=" --cpu-bind=none "
-export SRUN_CLEVERLEAF+=" -c 32 "
-export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
 export SRUN_CLEVERLEAF+=" -N ${WORK_NODE_COUNT} "
 export SRUN_CLEVERLEAF+=" -n ${APPLICATION_RANKS} "
-export SRUN_CLEVERLEAF+=" -r 1 "
+export SRUN_CLEVERLEAF+=" --ntasks-per-node=1 "
+export SRUN_CLEVERLEAF+=" --mpibind=off "
+
+#export SRUN_CLEVERLEAF+=" -o ${SOS_WORK}/output/cleverleaf.%4t.stdout "
+#export SRUN_CLEVERLEAF+=" --cpu-bind=none "
+#export SRUN_CLEVERLEAF+=" -c 32 "
+#export SRUN_CLEVERLEAF+=" -r 1 "
 
 ##### --- OpenMP Settings ---
-export KMP_WARNINGS="0"
-export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
-export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
-export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
-export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
-echo ""
-echo "KMP_AFFINITY=${KMP_AFFINITY}"
-echo ""
+#export KMP_WARNINGS="0"
+#export KMP_AFFINITY="noverbose,nowarnings,norespect,granularity=fine,explicit"
+#export KMP_AFFINITY="${KMP_AFFINITY},proclist=[0,1,2,3,4,5,6,7,8,9,10,11"
+#export KMP_AFFINITY="${KMP_AFFINITY},12,13,14,15,16,17,18,19,20,21,22,23"
+#export KMP_AFFINITY="${KMP_AFFINITY},24,25,26,27,28,29,30,31,32,33,34,35]"
+#echo ""
+#echo "KMP_AFFINITY=${KMP_AFFINITY}"
+#echo ""
+#
+export KMP_AFFINITY="explicit,proclist=[0-35]"
+#
 ##### --- OpenMP Settings ---
 
-function wipe_all_sos_data_from_database() {
-    SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
-    SOS_SQL=${SQL_DELETE_DATA} srun ${SRUN_SQL_EXEC}
-    SOS_SQL=${SQL_DELETE_PUBS} srun ${SRUN_SQL_EXEC}
-    SOS_SQL="VACUUM;" srun ${SRUN_SQL_EXEC}
-}
+#function wipe_all_sos_data_from_database() {
+#    SOS_SQL=${SQL_DELETE_VALS} srun ${SRUN_SQL_EXEC}
+#    SOS_SQL=${SQL_DELETE_DATA} srun ${SRUN_SQL_EXEC}
+#    SOS_SQL=${SQL_DELETE_PUBS} srun ${SRUN_SQL_EXEC}
+#    SOS_SQL="VACUUM;" srun ${SRUN_SQL_EXEC}
+#}
+#
+#function run_cleverleaf_with_model() {
+#    export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
+#    #wipe_all_sos_data_from_database
+#    cd output
+#    printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
+#        $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
+#    /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
+#    cd ${SOS_WORK}
+#}
+#
+#
+#export APOLLO_INIT_MODEL=${SOS_WORK}/model.static.0.default
 
-function run_cleverleaf_with_model() {
-    export APOLLO_INIT_MODEL="${SOS_WORK}/$3"
-    #wipe_all_sos_data_from_database
-    cd output
-    printf "\t%4s, %-20s, %-30s, " ${APPLICATION_RANKS} \
-        $(basename -- ${CLEVERLEAF_INPUT}) $(basename -- ${APOLLO_INIT_MODEL})
-    /usr/bin/time -f %e -- srun ${SRUN_CLEVERLEAF} $1 $2
-    cd ${SOS_WORK}
-}
-
-
-export APOLLO_INIT_MODEL=${SOS_WORK}/model.static.0.default
 cd ${SOS_WORK}
 
 #####
 #
-source ${RETURN_PATH}/common_parting.sh
+#source ${RETURN_PATH}/common_parting.sh
 #
 echo ""
 echo "OK!  You are now ready to run Apollo experiments."

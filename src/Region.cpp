@@ -34,6 +34,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <ctime>
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -69,11 +70,7 @@ Apollo::Region::getPolicyIndex(void)
     if( Config::APOLLO_TRACE_POLICY ) {
         std::stringstream trace_out;
         int rank;
-#ifdef ENABLE_MPI
-        MPI_Comm_rank( apollo->comm, &rank );
-#else
-        rank = 0;
-#endif //ENABLE_MPI
+        rank = apollo->mpiRank;
         trace_out << "Rank " << rank \
             << " region " << name \
             << " model " << model->name \
@@ -277,6 +274,90 @@ Apollo::Region::end(double duration)
         iter->second->time_total += duration;
     }
 
+    if (apollo->traceEnabled) {
+        // TODO(cdw): extract the correct values.
+        int num_threads      = -999;
+        int num_elements     = current_elem_count;
+        int policy_index     = current_policy;
+        std::string node_id  = "localhost";
+        int comm_rank        = 0;
+        //for (Apollo::Feature ft : apollo->features)
+        //{
+        //    if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
+        //    else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
+        //    else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
+        //}
+
+        std::chrono::duration<double, std::milli> wall_elapsed \
+            = current_exec_time_end.time_since_epoch();
+        double wall_time = wall_elapsed.count();
+
+        std::chrono::duration<double, std::milli> loop_elapsed \
+            = current_exec_time_end - current_exec_time_begin;
+        double loop_time = loop_elapsed.count();
+
+        std::string optional_all_feature_column = "";
+
+        // TODO(cdw): Construct a JSON of all features to emit as an extra column,
+        //            in the future when we have more features.
+        // NOTE.....: This works when features are a key/value map.
+        //
+        //if (apollo->traceEmitAllFeatures) {
+        //    if (apollo->features.size() > 0) {
+        //        std::stringstream ss;
+        //        ss.precision(17);
+        //        ss << ",\"{";
+        //        for (Apollo::Feature &ft : apollo->features) {
+        //            ss << "'" << ft.name << "':'" << std::fixed << ft.value << "',";
+        //        }
+        //        ss.seekp(-1, ss.cur);
+        //        ss << "}\"";
+        //        optional_all_feature_column = ss.str();
+        //    } else {
+        //          optional_all_feature_column = "";
+        //          optional_all_feature_column = ",\"{'none':'none'}\"";
+        //    }
+        //}
+
+        // TODO(cdw): ...for now, we make a quoted CSV of the elements counts
+        //            for OpenMP collapsed loops.
+        if (apollo->traceEmitAllFeatures) {
+            std::stringstream ssvec;
+            ssvec << "\"";
+            for (auto &ft : features) {
+                ssvec << ft;
+                if (&ft != &features.back()) {
+                    ssvec << ",";
+                }
+            }
+            ssvec << "\"";
+            optional_all_feature_column += ",";
+            optional_all_feature_column += ssvec.str();
+        }
+
+        Apollo::TraceLine_t \
+           t = std::make_tuple(
+                wall_time,
+                node_id,
+                comm_rank,
+                name,
+                policy_index,
+                num_threads,
+                num_elements,
+                loop_time,
+                optional_all_feature_column
+            );
+
+        if (apollo->traceEmitOnline) {
+            apollo->writeTraceLine(t);
+        } else {
+            apollo->storeTraceLine(t);
+        }
+    } // end: if (apollo->traceEnabled)
+
+
+    // TODO: re-train from regression model every region execution?
+    //
     //std::cout << "=== INSERT MEASURE ===" << std::endl; \
     std::cout << name << ": " << "[ "; \
         for(auto &f : apollo->features) { \
@@ -309,7 +390,7 @@ Apollo::Region::reduceBestPolicies(int step)
     int rank;
     if( Config::APOLLO_TRACE_MEASURES ) {
 #ifdef ENABLE_MPI
-        MPI_Comm_rank(apollo->comm, &rank);
+        rank = apollo->mpiRank;
 #else
         rank = 0;
 #endif //ENABLE_MPI
@@ -371,51 +452,11 @@ Apollo::Region::reduceBestPolicies(int step)
     return best_policies.size();
 }
 
-void
-Apollo::Region::packMeasurements(char *buf, int size) {
-#ifdef ENABLE_MPI
-    int pos = 0;
-    int rank;
-    MPI_Comm_rank( comm, &rank );
-
-    for( auto &it : best_policies ) {
-        auto &feature_vector = it.first;
-        int policy_index = it.second.first;
-        double time_avg = it.second.second;
-
-        // rank
-        MPI_Pack( &rank, 1, MPI_INT, buf, size, &pos, comm);
-        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
-
-        // num features
-        MPI_Pack( &num_features, 1, MPI_INT, buf, size, &pos, comm);
-        //std::cout << "rank," << rank << " pos: " << pos << std::endl;
-
-        // feature vector
-        for (float value : feature_vector ) {
-            MPI_Pack( &value, 1, MPI_FLOAT, buf, size, &pos, comm );
-            //std::cout << "feature," << value << " pos: " << pos << std::endl;
-        }
-
-        // policy index
-        MPI_Pack( &policy_index, 1, MPI_INT, buf, size, &pos, comm );
-        //std::cout << "policy_index," << policy_index << " pos: " << pos << std::endl;
-        // XXX: use 64 bytes fixed for region_name
-        // region name
-        MPI_Pack( name, 64, MPI_CHAR, buf, size, &pos, comm );
-        //std::cout << "region_name," << name << " pos: " << pos << std::endl;
-        // average time
-        MPI_Pack( &time_avg, 1, MPI_DOUBLE, buf, size, &pos, comm );
-        //std::cout << "time_avg," << time_avg << " pos: " << pos << std::endl;
-    }
-#endif //ENABLE_MPI
-    return;
-}
-
 
 void
 Apollo::Region::setFeature(float value)
 {
     features.push_back( value );
+    current_elem_count = value;
     return;
 }
