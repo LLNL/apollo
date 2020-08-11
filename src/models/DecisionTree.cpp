@@ -39,6 +39,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <sys/stat.h>
+
 #include "apollo/models/DecisionTree.h"
 #include <opencv2/core/types.hpp>
 
@@ -47,6 +49,28 @@
 
 
 using namespace std;
+
+static inline bool fileExists(std::string path) {
+    struct stat stbuf;
+    return (stat(path.c_str(), &stbuf) == 0);
+}
+
+DecisionTree::DecisionTree(int num_policies, std::string path)
+    : PolicyModel(num_policies, "DecisionTree", false)
+{
+    if (not fileExists(path)) {
+        std::cerr << "== APOLLO: Cannot access the DecisionTree model requested:\n" \
+                  << "== APOLLO:     " << path << "\n" \
+                  << "== APOLLO: Exiting.\n";
+        exit(EXIT_FAILURE);
+    } else {
+        // The file at least exists... attempt to load a model from it!
+        std::cout << "== APOLLO: Loading the requested DecisionTree:\n" \
+                  << "== APOLLO:     " << path << "\n";
+        dtree = RTrees::load(path.c_str());
+    }
+    return;
+}
 
 DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses)
     : PolicyModel(num_policies, "DecisionTree", false)

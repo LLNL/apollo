@@ -14,12 +14,14 @@ class DecisionTree : public PolicyModel {
 
     public:
         DecisionTree(int num_policies, std::vector< std::vector<float> > &features, std::vector<int> &responses);
+        DecisionTree(int num_policies, std::string path);
 
         ~DecisionTree();
 
         int  getIndex(void);
         int  getIndex(std::vector<float> &features);
         void store(const std::string &filename);
+        void load(const std::string &filename);
 
     private:
         //Ptr<DTrees> dtree;

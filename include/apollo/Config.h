@@ -18,6 +18,7 @@ class Config {
         static int APOLLO_TRACE_ALLGATHER;
         static int APOLLO_TRACE_BEST_POLICIES;
         static std::string APOLLO_INIT_MODEL;
+        static std::string APOLLO_LOAD_MODEL;
 
     private:
         Config();

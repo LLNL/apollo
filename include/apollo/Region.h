@@ -21,6 +21,11 @@ class Apollo::Region {
                 const int    num_features,
                 const char   *regionName,
                 int           numAvailablePolicies);
+         Region(
+                const int    num_features,
+                const char   *regionName,
+                int           numAvailablePolicies,
+                std::string   loadModelFromThisYamlFile);
         ~Region();
 
         typedef struct Measure {

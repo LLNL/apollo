@@ -127,31 +127,65 @@ Apollo::Region::Region(
     current_policy            = -1;
     currently_inside_region   = false;
 
-    // TODO use best_policies to train a model for new region for which there's training data
-    size_t pos = Config::APOLLO_INIT_MODEL.find(",");
-    std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
-    if( "Static" == model_str ) {
-        int policy_choice = std::stoi( Config::APOLLO_INIT_MODEL.substr( pos+1 ) );
-        if( policy_choice < 0 || policy_choice >= numAvailablePolicies ) {
-            std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
+
+    if( Config::APOLLO_LOAD_MODEL != "" ) {
+        model = ModelFactory::loadDecisionTree( apollo->num_policies, Config::APOLLO_LOAD_MODEL );
+    } else {
+        // TODO use best_policies to train a model for new region for which there's training data
+        size_t pos = Config::APOLLO_INIT_MODEL.find(",");
+        std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
+        if( "Static" == model_str ) {
+            int policy_choice = std::stoi( Config::APOLLO_INIT_MODEL.substr( pos+1 ) );
+            if( policy_choice < 0 || policy_choice >= numAvailablePolicies ) {
+                std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
+                abort();
+            }
+            model = ModelFactory::createStatic( apollo->num_policies, policy_choice );
+            //std::cout << "Model Static policy " << policy_choice << std::endl;
+        }
+        else if( "Random" == model_str ) {
+            model = ModelFactory::createRandom( apollo->num_policies );
+            //std::cout << "Model Random" << std::endl;
+        }
+        else if( "RoundRobin" == model_str ) {
+            model = ModelFactory::createRoundRobin( apollo->num_policies );
+            //std::cout << "Model RoundRobin" << std::endl;
+        }
+        else {
+            std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL << std::endl;
             abort();
         }
-        model = ModelFactory::createStatic( apollo->num_policies, policy_choice );
-        //std::cout << "Model Static policy " << policy_choice << std::endl;
     }
-    else if( "Random" == model_str ) {
-        model = ModelFactory::createRandom( apollo->num_policies );
-        //std::cout << "Model Random" << std::endl;
-    }
-    else if( "RoundRobin" == model_str ) {
-        model = ModelFactory::createRoundRobin( apollo->num_policies );
-        //std::cout << "Model RoundRobin" << std::endl;
+    //std::cout << "Insert region " << name << " ptr " << this << std::endl;
+    const auto ret = apollo->regions.insert( { name, this } );
+
+    return;
+}
+
+Apollo::Region::Region(
+        const int num_features,
+        const char  *regionName,
+        int          numAvailablePolicies,
+        std::string  loadModelFromThisYamlFile)
+    :
+        num_features(num_features)
+{
+    apollo = Apollo::instance();
+    if( Config::APOLLO_NUM_POLICIES ) {
+        apollo->num_policies = Config::APOLLO_NUM_POLICIES;
     }
     else {
-        std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL << std::endl;
-        abort();
+        apollo->num_policies = numAvailablePolicies;
     }
 
+    strncpy(name, regionName, sizeof(name)-1 );
+    name[ sizeof(name)-1 ] = '\0';
+
+    current_policy            = -1;
+    currently_inside_region   = false;
+
+
+    model = ModelFactory::loadDecisionTree( apollo->num_policies, loadModelFromThisYamlFile );
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     const auto ret = apollo->regions.insert( { name, this } );
 
