@@ -10,6 +10,7 @@ sosd.*.db
 sosd.*.key
 *.swp
 .gdb_history
+.vscode
 examples/caliper-examples
 CMakeCache.txt
 CMakeFiles/
