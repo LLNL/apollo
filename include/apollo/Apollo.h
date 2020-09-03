@@ -102,7 +102,6 @@ class Apollo
         //
         TraceVector_t trace_data;
         //
-        void packMeasurements(char *buf, int size, void *_reg);
         void gatherReduceCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer
         std::map<std::string, Apollo::Region *> regions;

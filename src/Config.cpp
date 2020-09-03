@@ -17,5 +17,3 @@ int Config::APOLLO_TRACE_RETRAIN;
 int Config::APOLLO_TRACE_ALLGATHER;
 int Config::APOLLO_TRACE_BEST_POLICIES;
 std::string Config::APOLLO_INIT_MODEL;
-std::string Config::APOLLO_LOAD_MODEL;
-

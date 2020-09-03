@@ -104,7 +104,7 @@ DecisionTree::DecisionTree(int num_policies, std::vector< std::vector<float> > &
 
     dtree->setMaxDepth(2);
 
-    dtree->setMinSampleCount(2);
+    dtree->setMinSampleCount(1);
     dtree->setRegressionAccuracy(0);
     dtree->setUseSurrogates(false);
     dtree->setMaxCategories(policy_count);

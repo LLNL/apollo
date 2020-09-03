@@ -439,10 +439,8 @@ get_mpi_pack_measure_size(int num_features, MPI_Comm comm)
 }
 
 void
-Apollo::packMeasurements(char *buf, int size, void *_reg) {
+packMeasurements(char *buf, int size, int mpiRank, Apollo::Region *reg) {
     int pos = 0;
-
-    Apollo::Region *reg = (Apollo::Region *) _reg;
 
     for( auto &it : reg->best_policies ) {
         auto &feature_vector = it.first;
@@ -506,11 +504,11 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
         int reg_measures_size = ( reg->best_policies.size() * get_mpi_pack_measure_size( reg->num_features, apollo_mpi_comm ) );
-        packMeasurements( sendbuf + offset, reg_measures_size, (void *) reg );
+        packMeasurements( sendbuf + offset, reg_measures_size, mpiRank, reg );
         offset += reg_measures_size;
     }
 
-    int num_ranks;
+    int num_ranks = mpiSize;
     //std::cout << "num_ranks: " << num_ranks << std::endl;
 
     int recv_size_per_rank[ num_ranks ];
