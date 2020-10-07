@@ -199,6 +199,8 @@ Apollo::Apollo()
 
     numThreads = ompDefaultNumThreads;
 
+    region_executions = 0;
+
     // Initialize config with defaults
     Config::APOLLO_INIT_MODEL          = apolloUtils::safeGetEnv( "APOLLO_INIT_MODEL", "Static,0" );
     Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "1" ) );
@@ -207,6 +209,7 @@ Apollo::Apollo()
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
     Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
     Config::APOLLO_NUM_POLICIES        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
+    Config::APOLLO_FLUSH_PERIOD       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_FLUSH_PERIOD", "0" ) );
     Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
     Config::APOLLO_STORE_MODELS        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_STORE_MODELS", "0" ) );
     Config::APOLLO_TRACE_RETRAIN       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
@@ -299,9 +302,11 @@ Apollo::Apollo()
     //////////
 
 #ifdef ENABLE_MPI
-    MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
-    MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
-    MPI_Comm_size(apollo_mpi_comm, &mpiSize);
+    if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
+        MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
+        MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
+        MPI_Comm_size(apollo_mpi_comm, &mpiSize);
+    }
 #else
     mpiSize = 1;
     mpiRank = 0;
@@ -827,4 +832,35 @@ Apollo::flushAllRegionMeasurements(int step)
     }
 
     return;
+}
+
+extern "C" {
+ void *__apollo_region_create(int num_features, char *id, int num_policies) {
+     static Apollo *apollo = Apollo::instance();
+     std::string callpathOffset = apollo->getCallpathOffset(3);
+     std::cout << "CREATE region " << callpathOffset << " " << id << " num_features " << num_features
+               << " num policies " << num_policies << std::endl;
+     return new Apollo::Region(num_features, callpathOffset.c_str(), num_policies);
+ }
+
+ void __apollo_region_begin(Apollo::Region *r) {
+     //std::cout << "BEGIN region " << r->name << std::endl;
+     r->begin();
+ }
+
+ void __apollo_region_end(Apollo::Region *r) {
+     //std::cout << "END region " << r->name << std::endl;
+     r->end();
+ }
+
+ void __apollo_region_set_feature(Apollo::Region *r, float feature) {
+     //std::cout << "SET FEATURE " << feature << " region " << r->name << std::endl;
+     r->setFeature(feature);
+ }
+
+ int __apollo_region_get_policy(Apollo::Region *r) {
+     int policy = r->getPolicyIndex();
+     //std::cout << "GET POLICY " << policy << " region " << r->name << std::endl;
+     return policy;
+ }
 }

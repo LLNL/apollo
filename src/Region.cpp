@@ -377,6 +377,13 @@ Apollo::Region::end(double duration)
 
     features.clear();
 
+    apollo->region_executions++;
+
+    if( Config::APOLLO_FLUSH_PERIOD && ( apollo->region_executions% Config::APOLLO_FLUSH_PERIOD ) == 0 ) {
+        //std::cout << "FLUSH PERIOD! region_executions " << apollo->region_executions<< std::endl; //ggout
+        apollo->flushAllRegionMeasurements(apollo->region_executions);
+    }
+
     return;
 }
 

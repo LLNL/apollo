@@ -107,6 +107,16 @@ class Apollo
         std::map<std::string, Apollo::Region *> regions;
         // Key: region name, value: map key: num_elements, value: policy_index, time_avg
         std::map< std::vector< float >, std::pair< int, double > > best_policies_global;
+        // Count total number of region invocations
+        unsigned long long region_executions;
 }; //end: Apollo
+
+extern "C" {
+ void *__apollo_region_create(int num_features, char *id, int num_policies);
+ void __apollo_region_begin(Apollo::Region *r);
+ void __apollo_region_end(Apollo::Region *r);
+ void __apollo_region_set_feature(Apollo::Region *r, float feature);
+ int __apollo_region_get_policy(Apollo::Region *r);
+}
 
 #endif
