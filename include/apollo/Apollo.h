@@ -26,6 +26,7 @@ class Apollo
         }
 
         class Region;
+        struct RegionContext;
 
         //////////
         //
