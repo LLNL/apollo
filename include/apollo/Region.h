@@ -36,18 +36,25 @@ class Apollo::Region {
 
         char     name[64];
 
-        void     begin();
+        // DEPRECATED interface assuming synchronous execution, will be removed
         void     end();
+        // lower == better, 0.0 == perfect
         void     end(double synthetic_duration_or_weight);
-                    // lower == better, 0.0 == perfect
-
         int      getPolicyIndex(void);
+        void     setFeature(float value);
+        // END of DEPRECATED
 
-        int      current_policy;
+        Apollo::RegionContext *begin();
+        Apollo::RegionContext *begin(std::vector<float>);
+        void end(Apollo::RegionContext *);
+        void end(Apollo::RegionContext *, double);
+        int  getPolicyIndex(Apollo::RegionContext *);
+        void setFeature(Apollo::RegionContext *, float value);
+
+        // TODO: is it relevant? remove?
         int      current_elem_count;
 
         int      num_features;
-        void     setFeature(float value);
         int      reduceBestPolicies(int step);
 
         std::map<
@@ -65,12 +72,17 @@ class Apollo::Region {
     private:
         //
         Apollo        *apollo;
-        bool           currently_inside_region;
-        //
-        std::chrono::steady_clock::time_point current_exec_time_begin;
-        std::chrono::steady_clock::time_point current_exec_time_end;
-        std::vector<float>            features;
-        //
+        // DEPRECATED wil be removed
+        Apollo::RegionContext *current_context;
+        // End of DEPRECATED
 }; //end: Apollo::Region
+
+struct Apollo::RegionContext
+{
+    std::chrono::steady_clock::time_point exec_time_begin;
+    std::chrono::steady_clock::time_point exec_time_end;
+    std::vector<float> features;
+    int policy;
+}; //end: Apollo::RegionContext
 
 #endif

@@ -51,21 +51,9 @@
 #endif //ENABLE_MPI
 
 int
-Apollo::Region::getPolicyIndex(void)
+Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 {
-#if VERBOSE_DEBUG
-    if (not currently_inside_region) {
-        fprintf(stderr, "== APOLLO: [WARNING] region->getPolicyIndex() called"
-                        " while NOT inside the region. Please call"
-                        " region->begin() first so the model has values to use"
-                        " when selecting a policy. (region->name == %s)\n", name);
-        fflush(stderr);
-    }
-
-    assert( currently_inside_region );
-#endif
-
-    int choice = model->getIndex( features );
+    int choice = model->getIndex( context->features );
 
     if( Config::APOLLO_TRACE_POLICY ) {
         std::stringstream trace_out;
@@ -75,7 +63,7 @@ Apollo::Region::getPolicyIndex(void)
             << " region " << name \
             << " model " << model->name \
             << " features [ ";
-        for(auto &f: features)
+        for(auto &f: context->features)
             trace_out << (int)f << ", ";
         trace_out << "] policy " << choice << std::endl;
         std::cout << trace_out.str();
@@ -85,8 +73,8 @@ Apollo::Region::getPolicyIndex(void)
     }
 
 #if 0
-    if (choice != current_policy) {
-        std::cout << "Change policy " << current_policy \
+    if (choice != context->policy) {
+        std::cout << "Change policy " << context->policy\
             << " -> " << choice << " region " << name \
             << " training " << model->training \
             << " features: "; \
@@ -97,18 +85,17 @@ Apollo::Region::getPolicyIndex(void)
         //std::cout << "No policy change for region " << name << ", policy " << current_policy << std::endl; //gout
     }
 #endif
-    current_policy = choice;
+    context->policy = choice;
     //log("getPolicyIndex took ", evaluation_time_total, " seconds.\n");
     return choice;
 }
-
 
 Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
         int          numAvailablePolicies)
     :
-        num_features(num_features)
+        num_features(num_features), current_context(nullptr)
 {
     apollo = Apollo::instance();
     if( Config::APOLLO_NUM_POLICIES ) {
@@ -120,9 +107,6 @@ Apollo::Region::Region(
 
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
-
-    current_policy            = -1;
-    currently_inside_region   = false;
 
     // TODO use best_policies to train a model for new region for which there's training data
     size_t pos = Config::APOLLO_INIT_MODEL.find(",");
@@ -165,6 +149,7 @@ Apollo::Region::Region(
     return;
 }
 
+// TODO: Is this constructor used? remove?
 Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
@@ -184,10 +169,6 @@ Apollo::Region::Region(
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
 
-    current_policy            = -1;
-    currently_inside_region   = false;
-
-
     model = ModelFactory::loadDecisionTree( apollo->num_policies, loadModelFromThisYamlFile );
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     const auto ret = apollo->regions.insert( { name, this } );
@@ -197,94 +178,47 @@ Apollo::Region::Region(
 
 Apollo::Region::~Region()
 {
-    if (currently_inside_region) {
         this->end();
-    }
 
     return;
 }
 
-
-void
+Apollo::RegionContext *
 Apollo::Region::begin()
 {
-#if VERBOSE_DEBUG
-    if (currently_inside_region) {
-        fprintf(stderr, "== APOLLO: [WARNING] region->begin() called"
-                        " while already inside the region. Please call"
-                        " region->end() first to avoid unintended"
-                        " consequences. (region->name == %s)\n",
-                        name);
-        fflush(stderr);
+    Apollo::RegionContext *context = new Apollo::RegionContext();
+    current_context = context;
+    context->exec_time_begin = std::chrono::steady_clock::now();
+    return context;
     }
 
-    assert( !currently_inside_region );
-#endif
-
-
-    currently_inside_region = true;
-
-    // NOTE: Features are tracked globally within the process.
-    //       Apollo semantics require that region.begin/end calls happen
-    //       from the top-level process thread, they are not encountered
-    //       within a parallel code region.
-    //
-    //       We update this value here in case another region used a different
-    //       policy index, in case this value gets looked up between this
-    //       call to region.begin and our model being newly evaluated by
-    //       region.getPolicyIndex ...
-    //
-
-    current_exec_time_begin = std::chrono::steady_clock::now();
-    return;
+Apollo::RegionContext *
+Apollo::Region::begin(std::vector<float> features)
+{
+    Apollo::RegionContext *context = begin();
+    context->features = features;
+    return context;
 }
 
-
-
-
 void
-Apollo::Region::end(double duration)
+Apollo::Region::end(Apollo::RegionContext *context, double metric)
 {
-
-#if VERBOSE_DEBUG
-    if (not currently_inside_region) {
-        fprintf(stderr, "== APOLLO: [WARNING] region->end() called"
-                        " while NOT inside the region. Please call"
-                        " region->begin(step) first to avoid unintended"
-                        " consequences. (region->name == %s)\n", name);
-        fflush(stderr);
-    }
-    assert( currently_inside_region );
-#endif
-    currently_inside_region = false;
-
-
-    // TODO reduce overhead, move time calculation to reduceBestPolicies?
-    // TODO buckets of features?
-    //const int bucket = 10;
-    //for(auto &it : apollo->features) {
-    //    //std::cout << "feature: " << it;
-    //    int idiv = int(it) / bucket;
-    //    it = ( idiv + 1 )* bucket;
-    //    //std::cout << " -> " << it;
-    //    //std::cout << std::endl;
-    //}
-
-    auto iter = measures.find( { features, current_policy } );
+    auto iter = measures.find({context->features, context->policy});
     if (iter == measures.end()) {
-        iter = measures.insert(std::make_pair( std::make_pair( features, current_policy ),
-                std::move( std::make_unique<Apollo::Region::Measure>(1, duration) )
+        iter = measures.insert(std::make_pair( std::make_pair( context->features, context->policy ),
+                std::move( std::make_unique<Apollo::Region::Measure>(1, metric) )
                 ) ).first;
     } else {
         iter->second->exec_count++;
-        iter->second->time_total += duration;
+        iter->second->time_total += metric;
     }
 
+    // TODO: is this code still relevant?
     if (apollo->traceEnabled) {
         // TODO(cdw): extract the correct values.
         int num_threads      = -999;
         int num_elements     = current_elem_count;
-        int policy_index     = current_policy;
+        int policy_index     = context->policy;
         std::string node_id  = "localhost";
         int comm_rank        = 0;
         //for (Apollo::Feature ft : apollo->features)
@@ -294,12 +228,10 @@ Apollo::Region::end(double duration)
         //    else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
         //}
 
-        std::chrono::duration<double, std::milli> wall_elapsed \
-            = current_exec_time_end.time_since_epoch();
+        std::chrono::duration<double, std::milli> wall_elapsed = context->exec_time_end.time_since_epoch();
         double wall_time = wall_elapsed.count();
 
-        std::chrono::duration<double, std::milli> loop_elapsed \
-            = current_exec_time_end - current_exec_time_begin;
+        std::chrono::duration<double, std::milli> loop_elapsed = context->exec_time_end - context->exec_time_begin;
         double loop_time = loop_elapsed.count();
 
         std::string optional_all_feature_column = "";
@@ -327,12 +259,13 @@ Apollo::Region::end(double duration)
 
         // TODO(cdw): ...for now, we make a quoted CSV of the elements counts
         //            for OpenMP collapsed loops.
-        if (apollo->traceEmitAllFeatures) {
+        if (apollo->traceEmitAllFeatures)
+        {
             std::stringstream ssvec;
             ssvec << "\"";
-            for (auto &ft : features) {
+            for (auto &ft : context->features) {
                 ssvec << ft;
-                if (&ft != &features.back()) {
+                if (&ft != &context->features.back()) {
                     ssvec << ",";
                 }
             }
@@ -361,22 +294,6 @@ Apollo::Region::end(double duration)
         }
     } // end: if (apollo->traceEnabled)
 
-
-    // TODO: re-train from regression model every region execution?
-    //
-    //std::cout << "=== INSERT MEASURE ===" << std::endl; \
-    std::cout << name << ": " << "[ "; \
-        for(auto &f : apollo->features) { \
-            std::cout << (int)f << ", "; \
-        } \
-    std::cout << " ]: " \
-        << current_policy << " = ( " << iter->second->exec_count \
-        << ", " << iter->second->time_total << " ) " << std::endl; \
-    std::cout << ".-" << std::endl;
-
-
-    features.clear();
-
     apollo->region_executions++;
 
     if( Config::APOLLO_FLUSH_PERIOD && ( apollo->region_executions% Config::APOLLO_FLUSH_PERIOD ) == 0 ) {
@@ -384,15 +301,40 @@ Apollo::Region::end(double duration)
         apollo->flushAllRegionMeasurements(apollo->region_executions);
     }
 
+    delete context;
+    current_context = nullptr;
+
     return;
 }
 
 void
+Apollo::Region::end(Apollo::RegionContext *context)
+{
+    context->exec_time_end = std::chrono::steady_clock::now();
+    double duration = std::chrono::duration<double>(context->exec_time_end - context->exec_time_begin).count();
+    end(context, duration);
+}
+
+
+// DEPRECATED
+int
+Apollo::Region::getPolicyIndex(void)
+{
+    return getPolicyIndex(current_context);
+}
+
+// DEPRECATED
+void
+Apollo::Region::end(double metric)
+{
+    end(current_context, metric);
+}
+
+// DEPRECATED
+void
 Apollo::Region::end(void)
 {
-    current_exec_time_end = std::chrono::steady_clock::now();
-    double duration = std::chrono::duration<double>(current_exec_time_end - current_exec_time_begin).count();
-    end(duration);
+    end(current_context);
 }
 
 
@@ -465,11 +407,17 @@ Apollo::Region::reduceBestPolicies(int step)
     return best_policies.size();
 }
 
+void
+Apollo::Region::setFeature(Apollo::RegionContext *context, float value)
+{
+    context->features.push_back(value);
+    current_elem_count = value;
+    return;
+}
 
+// DEPRECATED
 void
 Apollo::Region::setFeature(float value)
 {
-    features.push_back( value );
-    current_elem_count = value;
-    return;
+    setFeature(current_context, value);
 }
