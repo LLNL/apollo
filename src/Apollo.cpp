@@ -304,9 +304,10 @@ Apollo::Apollo()
 #ifdef ENABLE_MPI
     if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
         MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);
-        MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
-        MPI_Comm_size(apollo_mpi_comm, &mpiSize);
     }
+    // Initialize mpi rank and size even if doing local training with MPI.
+    MPI_Comm_rank(apollo_mpi_comm, &mpiRank);
+    MPI_Comm_size(apollo_mpi_comm, &mpiSize);
 #else
     mpiSize = 1;
     mpiRank = 0;

@@ -124,9 +124,17 @@ Apollo::Region::Region(
     }
     else if ("Load" == model_str)
     {
-        std::string model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
-        model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
+        std::string model_file;
+        if(pos == std::string::npos) {
+            // Load per region model using the region name for the model file.
+            model_file = "dtree-" + std::string(name) + ".yaml";
+        }
+        else {
+            // Load the same model for all regions.
+            model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
+        }
         //std::cout << "Model Load " << model_file << std::endl;
+        model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
     }
     else if ("Random" == model_str)
     {
