@@ -753,8 +753,15 @@ Apollo::flushAllRegionMeasurements(int step)
                 reg->model->store( "dtree-step-" + std::to_string( step ) \
                         + "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml" );
+                reg->model->store( "dtree-latest" \
+                        "-rank-" + std::to_string( rank ) \
+                        + "-" + reg->name + ".yaml" );
+
                 reg->time_model->store("regtree-step-" + std::to_string( step ) \
                         + "-rank-" + std::to_string( rank ) \
+                        + "-" + reg->name + ".yaml");
+                reg->time_model->store("regtree-latest" \
+                        "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml");
             }
         }

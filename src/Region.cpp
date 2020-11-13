@@ -127,7 +127,7 @@ Apollo::Region::Region(
         std::string model_file;
         if(pos == std::string::npos) {
             // Load per region model using the region name for the model file.
-            model_file = "dtree-" + std::string(name) + ".yaml";
+            model_file = "dtree-latest-rank-" + std::to_string(apollo->mpiRank) + "-" + std::string(name) + ".yaml";
         }
         else {
             // Load the same model for all regions.
