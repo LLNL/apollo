@@ -225,15 +225,12 @@ Apollo::Apollo()
     //std::cout << "global "     << Config::APOLLO_SINGLE_MODEL << std::endl;
     //std::cout << "region "     << Config::APOLLO_REGION_MODEL << std::endl;
 
-#ifndef ENABLE_MPI
-    // MPI is disabled...
     if ( Config::APOLLO_COLLECTIVE_TRAINING ) {
+#ifndef ENABLE_MPI
         std::cerr << "Collective training requires MPI support to be enabled" << std::endl;
         abort();
-    }
-    //TODO[chad]: Deepen this sanity check when additional collectives/training
-    //            backends are added to the code.
 #endif //ENABLE_MPI
+    }
 
     if( Config::APOLLO_COLLECTIVE_TRAINING && Config::APOLLO_LOCAL_TRAINING ) {
         std::cerr << "Both collective and local training cannot be enabled" << std::endl;
