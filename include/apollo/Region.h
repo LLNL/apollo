@@ -20,12 +20,8 @@ class Apollo::Region {
         Region(
                 const int    num_features,
                 const char   *regionName,
-                int           numAvailablePolicies);
-         Region(
-                const int    num_features,
-                const char   *regionName,
                 int           numAvailablePolicies,
-                std::string   loadModelFromThisYamlFile);
+                const std::string &modelYamlFile="");
         ~Region();
 
         typedef struct Measure {
@@ -51,9 +47,7 @@ class Apollo::Region {
         int  getPolicyIndex(Apollo::RegionContext *);
         void setFeature(Apollo::RegionContext *, float value);
 
-        // TODO: is it relevant? remove?
-        int      current_elem_count;
-
+        int idx;
         int      num_features;
         int      reduceBestPolicies(int step);
 
@@ -83,6 +77,7 @@ struct Apollo::RegionContext
     std::chrono::steady_clock::time_point exec_time_end;
     std::vector<float> features;
     int policy;
+    int idx;
 }; //end: Apollo::RegionContext
 
 #endif

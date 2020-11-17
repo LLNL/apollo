@@ -42,10 +42,10 @@
 
 
 #define NUM_FEATURES 1
-#define NUM_POLICIES 2
-#define ITERS        20
-#define FLUSH        10
-#define DELAY        1
+#define NUM_POLICIES 4
+#define FLUSH        (NUM_POLICIES * NUM_POLICIES)
+#define ITERS        (2 * FLUSH)
+#define DELAY        0.1
 
 int main()
 {
@@ -56,7 +56,7 @@ int main()
 
     Apollo *apollo = Apollo::instance();
 
-    Apollo::Region *r = new Apollo::Region(NUM_FEATURES, "region", NUM_POLICIES);
+    Apollo::Region *r = new Apollo::Region(NUM_FEATURES, "test-region", NUM_POLICIES);
 
     for (int i = 0; i < ITERS; i++)
     {
@@ -82,7 +82,7 @@ int main()
             match++;
         }
 
-        if( ( (i+1) % FLUSH) == 0 ) {
+        if( ( i>0 && i%FLUSH) == 0 ) {
             printf("Install model i %d FLUSH %d\n", i, FLUSH);
             apollo->flushAllRegionMeasurements(i);
         }

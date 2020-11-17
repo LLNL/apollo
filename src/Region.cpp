@@ -50,6 +50,8 @@
 #include <mpi.h>
 #endif //ENABLE_MPI
 
+static std::ofstream trace_file;
+
 int
 Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 {
@@ -93,9 +95,10 @@ Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
-        int          numAvailablePolicies)
+        int          numAvailablePolicies,
+        const std::string &modelYamlFile)
     :
-        num_features(num_features), current_context(nullptr)
+        num_features(num_features), current_context(nullptr), idx(0)
 {
     apollo = Apollo::instance();
     if( Config::APOLLO_NUM_POLICIES ) {
@@ -108,76 +111,69 @@ Apollo::Region::Region(
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
 
-    // TODO use best_policies to train a model for new region for which there's training data
-    size_t pos = Config::APOLLO_INIT_MODEL.find(",");
-    std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
-    if ("Static" == model_str)
-    {
-        int policy_choice = std::stoi(Config::APOLLO_INIT_MODEL.substr(pos + 1));
-        if (policy_choice < 0 || policy_choice >= numAvailablePolicies)
+    if (!modelYamlFile.empty()) {
+        model = ModelFactory::loadDecisionTree(apollo->num_policies, modelYamlFile);
+    }
+    else {
+        // TODO use best_policies to train a model for new region for which there's training data
+        size_t pos = Config::APOLLO_INIT_MODEL.find(",");
+        std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
+        if ("Static" == model_str)
         {
-            std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
+            int policy_choice = std::stoi(Config::APOLLO_INIT_MODEL.substr(pos + 1));
+            if (policy_choice < 0 || policy_choice >= numAvailablePolicies)
+            {
+                std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
+                abort();
+            }
+            model = ModelFactory::createStatic(apollo->num_policies, policy_choice);
+            //std::cout << "Model Static policy " << policy_choice << std::endl;
+        }
+        else if ("Load" == model_str)
+        {
+            std::string model_file;
+            if (pos == std::string::npos)
+            {
+                // Load per region model using the region name for the model file.
+                model_file = "dtree-latest-rank-" + std::to_string(apollo->mpiRank) + "-" + std::string(name) + ".yaml";
+            }
+            else
+            {
+                // Load the same model for all regions.
+                model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
+            }
+            //std::cout << "Model Load " << model_file << std::endl;
+            model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
+        }
+        else if ("Random" == model_str)
+        {
+            model = ModelFactory::createRandom(apollo->num_policies);
+            //std::cout << "Model Random" << std::endl;
+        }
+        else if ("RoundRobin" == model_str)
+        {
+            model = ModelFactory::createRoundRobin(apollo->num_policies);
+            //std::cout << "Model RoundRobin" << std::endl;
+        }
+        else
+        {
+            std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL << std::endl;
             abort();
         }
-        model = ModelFactory::createStatic(apollo->num_policies, policy_choice);
-        //std::cout << "Model Static policy " << policy_choice << std::endl;
-    }
-    else if ("Load" == model_str)
-    {
-        std::string model_file;
-        if(pos == std::string::npos) {
-            // Load per region model using the region name for the model file.
-            model_file = "dtree-latest-rank-" + std::to_string(apollo->mpiRank) + "-" + std::string(name) + ".yaml";
-        }
-        else {
-            // Load the same model for all regions.
-            model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
-        }
-        //std::cout << "Model Load " << model_file << std::endl;
-        model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
-    }
-    else if ("Random" == model_str)
-    {
-        model = ModelFactory::createRandom(apollo->num_policies);
-        //std::cout << "Model Random" << std::endl;
-    }
-    else if ("RoundRobin" == model_str)
-    {
-        model = ModelFactory::createRoundRobin(apollo->num_policies);
-        //std::cout << "Model RoundRobin" << std::endl;
-    }
-    else
-    {
-        std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL << std::endl;
-        abort();
-    }
-    //std::cout << "Insert region " << name << " ptr " << this << std::endl;
-    const auto ret = apollo->regions.insert( { name, this } );
-
-    return;
-}
-
-// TODO: Is this constructor used? remove?
-Apollo::Region::Region(
-        const int num_features,
-        const char  *regionName,
-        int          numAvailablePolicies,
-        std::string  loadModelFromThisYamlFile)
-    :
-        num_features(num_features)
-{
-    apollo = Apollo::instance();
-    if( Config::APOLLO_NUM_POLICIES ) {
-        apollo->num_policies = Config::APOLLO_NUM_POLICIES;
-    }
-    else {
-        apollo->num_policies = numAvailablePolicies;
     }
 
-    strncpy(name, regionName, sizeof(name)-1 );
-    name[ sizeof(name)-1 ] = '\0';
-
-    model = ModelFactory::loadDecisionTree( apollo->num_policies, loadModelFromThisYamlFile );
+    if( Config::APOLLO_TRACE_CSV ) {
+        // TODO: assumes model comes from env, fix to use model provided in the constructor
+        std::string fname("trace-" + Config::APOLLO_INIT_MODEL + "-rank-" + std::to_string(apollo->mpiRank) + ".csv");
+        trace_file.open(fname);
+        assert(!trace_file.fail() && "Error opening trace file " + fname);
+        // Write header.
+        trace_file << "rankid region idx";
+        //trace_file << "features";
+        for(int i=0; i<num_features; i++)
+            trace_file << " f" << i;
+        trace_file << " policy xtime\n";
+    }
     //std::cout << "Insert region " << name << " ptr " << this << std::endl;
     const auto ret = apollo->regions.insert( { name, this } );
 
@@ -186,7 +182,9 @@ Apollo::Region::Region(
 
 Apollo::Region::~Region()
 {
-        this->end();
+    if( Config::APOLLO_TRACE_CSV ) {
+        trace_file.close();
+    }
 
     return;
 }
@@ -196,9 +194,11 @@ Apollo::Region::begin()
 {
     Apollo::RegionContext *context = new Apollo::RegionContext();
     current_context = context;
+    context->idx = this->idx;
+    this->idx++;
     context->exec_time_begin = std::chrono::steady_clock::now();
     return context;
-    }
+}
 
 Apollo::RegionContext *
 Apollo::Region::begin(std::vector<float> features)
@@ -221,86 +221,15 @@ Apollo::Region::end(Apollo::RegionContext *context, double metric)
         iter->second->time_total += metric;
     }
 
-    // TODO: is this code still relevant?
-    if (apollo->traceEnabled) {
-        // TODO(cdw): extract the correct values.
-        int num_threads      = -999;
-        int num_elements     = current_elem_count;
-        int policy_index     = context->policy;
-        std::string node_id  = "localhost";
-        int comm_rank        = 0;
-        //for (Apollo::Feature ft : apollo->features)
-        //{
-        //    if (     ft.name == "policy_index") { policy_index = (int) ft.value; }
-        //    else if (ft.name == "num_threads")  { num_threads  = (int) ft.value; }
-        //    else if (ft.name == "num_elements") { num_elements = (int) ft.value; }
-        //}
-
-        std::chrono::duration<double, std::milli> wall_elapsed = context->exec_time_end.time_since_epoch();
-        double wall_time = wall_elapsed.count();
-
-        std::chrono::duration<double, std::milli> loop_elapsed = context->exec_time_end - context->exec_time_begin;
-        double loop_time = loop_elapsed.count();
-
-        std::string optional_all_feature_column = "";
-
-        // TODO(cdw): Construct a JSON of all features to emit as an extra column,
-        //            in the future when we have more features.
-        // NOTE.....: This works when features are a key/value map.
-        //
-        //if (apollo->traceEmitAllFeatures) {
-        //    if (apollo->features.size() > 0) {
-        //        std::stringstream ss;
-        //        ss.precision(17);
-        //        ss << ",\"{";
-        //        for (Apollo::Feature &ft : apollo->features) {
-        //            ss << "'" << ft.name << "':'" << std::fixed << ft.value << "',";
-        //        }
-        //        ss.seekp(-1, ss.cur);
-        //        ss << "}\"";
-        //        optional_all_feature_column = ss.str();
-        //    } else {
-        //          optional_all_feature_column = "";
-        //          optional_all_feature_column = ",\"{'none':'none'}\"";
-        //    }
-        //}
-
-        // TODO(cdw): ...for now, we make a quoted CSV of the elements counts
-        //            for OpenMP collapsed loops.
-        if (apollo->traceEmitAllFeatures)
-        {
-            std::stringstream ssvec;
-            ssvec << "\"";
-            for (auto &ft : context->features) {
-                ssvec << ft;
-                if (&ft != &context->features.back()) {
-                    ssvec << ",";
-                }
-            }
-            ssvec << "\"";
-            optional_all_feature_column += ",";
-            optional_all_feature_column += ssvec.str();
-        }
-
-        Apollo::TraceLine_t \
-           t = std::make_tuple(
-                wall_time,
-                node_id,
-                comm_rank,
-                name,
-                policy_index,
-                num_threads,
-                num_elements,
-                loop_time,
-                optional_all_feature_column
-            );
-
-        if (apollo->traceEmitOnline) {
-            apollo->writeTraceLine(t);
-        } else {
-            apollo->storeTraceLine(t);
-        }
-    } // end: if (apollo->traceEnabled)
+    if( Config::APOLLO_TRACE_CSV ) {
+        trace_file << apollo->mpiRank << " ";
+        trace_file << this->name << " ";
+        trace_file << context->idx << " ";
+        for(auto &f : context->features)
+            trace_file << f << " ";
+        trace_file << context->policy << " ";
+        trace_file << metric << "\n";
+    }
 
     apollo->region_executions++;
 
@@ -369,12 +298,10 @@ Apollo::Region::reduceBestPolicies(int step)
 
         if( Config::APOLLO_TRACE_MEASURES ) {
             trace_out << "features: [ ";
-            int mul = 1;
             for(auto &f : feature_vector ) { \
                 trace_out << (int)f << ", ";
-                mul *= f;
             }
-            trace_out << " = " << mul << " ]: "
+            trace_out << " ]: "
                 << "policy: " << policy_index
                 << " , count: " << time_set->exec_count
                 << " , total: " << time_set->time_total
@@ -419,7 +346,6 @@ void
 Apollo::Region::setFeature(Apollo::RegionContext *context, float value)
 {
     context->features.push_back(value);
-    current_elem_count = value;
     return;
 }
 
