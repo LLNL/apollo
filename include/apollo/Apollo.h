@@ -28,41 +28,6 @@ class Apollo
         class Region;
         struct RegionContext;
 
-        //////////
-        //
-        //  TODO(cdw): Move this into a dedicated 'Trace' class during code refactor.
-        bool          traceEnabled;
-        bool          traceEmitOnline;
-        bool          traceEmitAllFeatures;
-        bool          traceOutputIsActualFile;
-        std::string   traceOutputFileName;
-        std::ofstream traceOutputFileHandle;
-        //
-        //  TODO(cdw): Generalize these fields for CUDA in addition to OpenMP
-        typedef std::tuple<
-            double,
-            std::string,
-            int,
-            std::string,
-            int,
-            int,
-            int,
-            double,
-            std::string
-            > TraceLine_t;
-        typedef std::vector<TraceLine_t> TraceVector_t;
-        //
-        void storeTraceLine(TraceLine_t &t);
-        //
-        void writeTraceHeaderImpl(std::ostream &sink);
-        void writeTraceHeader(void);
-        void writeTraceLineImpl(TraceLine_t &t, std::ostream &sink);
-        void writeTraceLine(TraceLine_t &t);
-        void writeTraceVector(void);
-        //
-        //////////
-
-
         //TODO(cdw): This is serving as an override that is defined by an
         //           environment variable.  Apollo::Region's are able to
         //           have different policy counts, so a global setting here
@@ -100,8 +65,6 @@ class Apollo
 
     private:
         Apollo();
-        //
-        TraceVector_t trace_data;
         //
         void gatherReduceCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer

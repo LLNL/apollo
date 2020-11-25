@@ -6,6 +6,7 @@
 #include <chrono>
 #include <memory>
 #include <map>
+#include <fstream>
 
 #include "apollo/Apollo.h"
 #include "apollo/PolicyModel.h"
@@ -68,6 +69,8 @@ class Apollo::Region {
         Apollo        *apollo;
         // DEPRECATED wil be removed
         Apollo::RegionContext *current_context;
+        //
+        std::ofstream trace_file;
         // End of DEPRECATED
 }; //end: Apollo::Region
 

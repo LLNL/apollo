@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 import time
 import numpy as np
+import glob
 
 # TODO: merge data per rank to analyze (clarity, performance)
 # TODO: histogram for the distribution of policies
@@ -19,55 +20,60 @@ def main():
 
     # Outer index rank, inner index static policy
     print('=== Reading csv files...')
-    data_static_per_rank = [ [ pd.read_csv('trace-Static,%d-rank-%d.csv'%(i,j), sep=' ', header=0) \
-                            for i in range(args.npolicies)] \
-                            for j in range(args.nprocesses)]
-    
-    # Index rank
-    data_rr_per_rank = [ pd.read_csv('trace-RoundRobin-rank-%d.csv'%(i), sep=' ', header=0) \
-                        for i in range(args.nprocesses)]
-
-    nrows = len(data_static_per_rank[0][0].index)
-    for i in range(args.nprocesses):
-        for j,data in enumerate(data_static_per_rank[i][1:], 1):
-            assert(nrows == len(data.index)),'nrows(%d) != data[rank=%d][static=%d]'%(nrows,i,j)
-        assert(nrows == len(data_rr_per_rank[i].index)),'nrows(%d) != data_rr_per_rank[rank=%d]'%(nrows,i)
-
-
-    for i in range(args.nprocesses):
-        for j, data in enumerate(data_static_per_rank[i]):
-            print('Rank %d Static,%d xtime %.6f'%(i,j,sum(data['xtime'])))
-        print()
-
-    for i in range(args.nprocesses):
-        print('Rank %d RoundRobin xtime %.6f'%(i,sum(data_rr_per_rank[i]['xtime'])))
+    data_map= {}
+    nfiles = len(glob.glob('trace*.csv'))
+    for i, f in enumerate(glob.glob('trace*.csv')):
+        print('\r=== Reading %-64s %06d/%06d'%(f, i+1, nfiles), flush=True, end='')
+        data_map[f] = pd.read_csv(f, sep= ' ', header=0)
     print()
 
+    data = pd.concat(data_map.values(), ignore_index=True)
+
+    for i in range(args.nprocesses):
+        # Print execution time for Static training.
+        for j in range(args.npolicies):
+            xtimes = data.loc[ \
+                    (data['rankid']==i) & \
+                    (data['training']=='Static,%d'%(j)) \
+                    ]['xtime']
+            print('Rank %d Static,%d xtime %.6f'%(i, j, sum(xtimes)))
+        # Print execution time for RoundRobin
+        xtimes = data.loc[ \
+                (data['rankid']==i) & \
+                (data['training']=='RoundRobin') \
+                ]['xtime']
+        print('Rank %d RoundRobin xtime %.6f'%(i, sum(xtimes)))
+
+    print()
     print('=== Computing optimal policy selection...')
     for i in range(args.nprocesses):
         t1 = time.perf_counter()
-        # Find optimal policy selection: concat, groupby region and index, keep only the ones with least xtime
-        opt = pd.concat(data_static_per_rank[i]).groupby(by=['region', 'idx']).\
-            apply(lambda group: group.nsmallest(1, columns='xtime'))\
-            .reset_index(drop=True)
+        # Find optimal policy selection (fastest way): select by rank equals i and training equals to Static;
+        # sort by xtime; drop_duplicates grouped by region, idx to keep minimum;
+        # sort by index to return in original order.
+        opt = data.loc[(data['rankid']==i) & (data['training'].str.contains('Static'))].\
+                sort_values(by=['xtime']).drop_duplicates(['region', 'idx'], keep='first').\
+                sort_index()
         t2 = time.perf_counter()
+        #print('=========== OPT =============\n', opt, '=============================')
+        print('opt-rank-%d eval time %.6f s'%(i, t2-t1))
+        print('opt-rank-%d xtime %.6f'%(i, sum(opt['xtime'])))
+        print('=== Write optimal selection CSV for rank %d'%(i))
         opt.to_csv('opt-rank-%d.csv'%(i), sep=' ', index=False)
-        #print('=========== OPT =============', opt, '=============================')
-        print('opt-rank-%d eval time %.6f s'%(i,t2-t1))
-        print('opt-rank-%d xtime %.6f'%(i,sum(opt['xtime'])))
 
-        # Find rows in data_rr AND in opt, so those are optimal selections
-        cond = data_rr_per_rank[i].drop('xtime', axis=1).isin(opt.drop('xtime', axis=1))
+        print('=== Compute RoundRobin accuracy...')
+        # Create dataframes indexed by region, idx to match with isin() in opt (avoids index mismatch).
+        data_rr_region_idx = data.loc[(data['rankid']==i) & (data['training']=='RoundRobin')]\
+            [['region', 'idx', 'policy']].set_index(['region','idx'])
+        opt_region_idx = opt[['region','idx','policy']].set_index(['region', 'idx'])
+        cond = data_rr_region_idx.isin(opt_region_idx)
+
         n_rr_opt = cond.all(axis=1).value_counts()[True]
-        #rr_not_opt = data_rr.drop(data_rr[cond.all(axis=1)].index)
+        nrows = len(cond.index)
         print('Rank %d accuracy %.2f%%'%(i, (n_rr_opt*100.0)/nrows))
 
-        (hist, bins) = np.histogram(data_rr_per_rank[i]['policy'], bins=np.arange(args.npolicies+1))
+        (hist, bins) = np.histogram(data_rr_region_idx['policy'], bins=np.arange(args.npolicies+1))
         print('Rank %d'%(i), 'bins', bins, 'hist', hist, '\n')
-        # Verify
-        #for i in range(0, args.npolicies):
-        #    print(i, data_rr['policy'].value_counts()[i])
-
 
 if __name__ == "__main__":
     main()

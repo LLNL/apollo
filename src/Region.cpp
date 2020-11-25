@@ -50,8 +50,6 @@
 #include <mpi.h>
 #endif //ENABLE_MPI
 
-static std::ofstream trace_file;
-
 int
 Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 {
@@ -164,11 +162,13 @@ Apollo::Region::Region(
 
     if( Config::APOLLO_TRACE_CSV ) {
         // TODO: assumes model comes from env, fix to use model provided in the constructor
-        std::string fname("trace-" + Config::APOLLO_INIT_MODEL + "-rank-" + std::to_string(apollo->mpiRank) + ".csv");
+        std::string fname("trace-" + Config::APOLLO_INIT_MODEL + "-region-" +
+                          name + "-rank-" + std::to_string(apollo->mpiRank) +
+                          ".csv");
         trace_file.open(fname);
         assert(!trace_file.fail() && "Error opening trace file " + fname);
         // Write header.
-        trace_file << "rankid region idx";
+        trace_file << "rankid training region idx";
         //trace_file << "features";
         for(int i=0; i<num_features; i++)
             trace_file << " f" << i;
@@ -223,6 +223,7 @@ Apollo::Region::end(Apollo::RegionContext *context, double metric)
 
     if( Config::APOLLO_TRACE_CSV ) {
         trace_file << apollo->mpiRank << " ";
+        trace_file << Config::APOLLO_INIT_MODEL << " ";
         trace_file << this->name << " ";
         trace_file << context->idx << " ";
         for(auto &f : context->features)
