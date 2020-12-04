@@ -60,7 +60,6 @@
     MPI_Comm apollo_mpi_comm;
 #endif
 
-//TODO(cdw): Move this into a private 'Utils' class within Apollo namespace.
 namespace apolloUtils { //----------
 
 inline std::string
@@ -219,6 +218,7 @@ Apollo::Apollo()
     Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
     Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
     Config::APOLLO_TRACE_CSV = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_CSV", "0" ) );
+    Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX = apolloUtils::safeGetEnv( "APOLLO_TRACE_CSV_FOLDER_SUFFIX", "" );
 
     //std::cout << "init model " << Config::APOLLO_INIT_MODEL << std::endl;
     //std::cout << "collective " << Config::APOLLO_COLLECTIVE_TRAINING << std::endl;
@@ -274,6 +274,7 @@ Apollo::~Apollo()
         Region *r = it.second;
         delete r;
     }
+    std::cerr << "Apollo: total region executions: " << region_executions << std::endl;
     delete (CallpathRuntime *)callpath_ptr;
 }
 

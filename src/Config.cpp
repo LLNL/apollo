@@ -19,3 +19,4 @@ int Config::APOLLO_TRACE_BEST_POLICIES;
 int Config::APOLLO_FLUSH_PERIOD;
 int Config::APOLLO_TRACE_CSV;
 std::string Config::APOLLO_INIT_MODEL;
+std::string Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX;

@@ -20,6 +20,7 @@ class Config {
         static int APOLLO_FLUSH_PERIOD;
         static int APOLLO_TRACE_CSV;
         static std::string APOLLO_INIT_MODEL;
+        static std::string APOLLO_TRACE_CSV_FOLDER_SUFFIX;
 
     private:
         Config();

@@ -27,6 +27,7 @@ class Apollo
 
         class Region;
         struct RegionContext;
+        struct CallbackDataPool;
 
         //TODO(cdw): This is serving as an override that is defined by an
         //           environment variable.  Apollo::Region's are able to

@@ -38,6 +38,10 @@
 #include <chrono>
 #include <memory>
 #include <utility>
+#include <algorithm>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "assert.h"
 
@@ -94,9 +98,10 @@ Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
         int          numAvailablePolicies,
+        Apollo::CallbackDataPool *callbackPool,
         const std::string &modelYamlFile)
     :
-        num_features(num_features), current_context(nullptr), idx(0)
+        num_features(num_features), current_context(nullptr), idx(0), callback_pool(callbackPool)
 {
     apollo = Apollo::instance();
     if( Config::APOLLO_NUM_POLICIES ) {
@@ -162,11 +167,26 @@ Apollo::Region::Region(
 
     if( Config::APOLLO_TRACE_CSV ) {
         // TODO: assumes model comes from env, fix to use model provided in the constructor
-        std::string fname("trace-" + Config::APOLLO_INIT_MODEL + "-region-" +
+        // TODO: convert to filesystem C++17 API when Apollo moves to it
+        int ret;
+        ret = mkdir(
+            std::string("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX)
+                .c_str(),
+            S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (ret != 0 && errno != EEXIST) {
+            perror("TRACE_CSV mkdir");
+            abort();
+        }
+        std::string fname("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX +
+                          "/trace-" + Config::APOLLO_INIT_MODEL + "-region-" +
                           name + "-rank-" + std::to_string(apollo->mpiRank) +
                           ".csv");
+        std::cout << "TRACE_CSV fname " << fname << std::endl;
         trace_file.open(fname);
-        assert(!trace_file.fail() && "Error opening trace file " + fname);
+        if(trace_file.fail()) {
+            std::cerr << "Error opening trace file " + fname << std::endl;
+            abort();
+        }
         // Write header.
         trace_file << "rankid training region idx";
         //trace_file << "features";
@@ -182,9 +202,14 @@ Apollo::Region::Region(
 
 Apollo::Region::~Region()
 {
-    if( Config::APOLLO_TRACE_CSV ) {
+    while(pending_contexts.size() > 0)
+       collectPendingContexts();
+
+    if(callback_pool)
+        delete callback_pool;
+
+    if( Config::APOLLO_TRACE_CSV )
         trace_file.close();
-    }
 
     return;
 }
@@ -211,6 +236,7 @@ Apollo::Region::begin(std::vector<float> features)
 void
 Apollo::Region::end(Apollo::RegionContext *context, double metric)
 {
+    //std::cout << "END REGION " << name << " metric " << metric << std::endl;
     auto iter = measures.find({context->features, context->policy});
     if (iter == measures.end()) {
         iter = measures.insert(std::make_pair( std::make_pair( context->features, context->policy ),
@@ -234,7 +260,7 @@ Apollo::Region::end(Apollo::RegionContext *context, double metric)
 
     apollo->region_executions++;
 
-    if( Config::APOLLO_FLUSH_PERIOD && ( apollo->region_executions% Config::APOLLO_FLUSH_PERIOD ) == 0 ) {
+    if( Config::APOLLO_FLUSH_PERIOD && ( apollo->region_executions%Config::APOLLO_FLUSH_PERIOD ) == 0 ) {
         //std::cout << "FLUSH PERIOD! region_executions " << apollo->region_executions<< std::endl; //ggout
         apollo->flushAllRegionMeasurements(apollo->region_executions);
     }
@@ -243,6 +269,39 @@ Apollo::Region::end(Apollo::RegionContext *context, double metric)
     current_context = nullptr;
 
     return;
+}
+
+void Apollo::Region::collectPendingContexts() {
+  auto isDone = [this](Apollo::RegionContext *ctx) {
+    bool returnsMetric;
+    double metric;
+    if (ctx->isDoneCallback(ctx->callback_arg, &returnsMetric, &metric)) {
+      if (returnsMetric)
+        end(ctx, metric);
+      else
+        end(ctx);
+      return true;
+    }
+
+    return false;
+  };
+
+  pending_contexts.erase(
+      std::remove_if(pending_contexts.begin(), pending_contexts.end(), isDone),
+      pending_contexts.end());
+}
+
+void Apollo::Region::end(Apollo::RegionContext *context,
+                         bool (*cb)(void *, bool *, double *), void *cb_arg) {
+
+  context->isDoneCallback = cb;
+  context->callback_arg = cb_arg;
+
+  pending_contexts.push_back(context);
+
+  collectPendingContexts();
+
+  return;
 }
 
 void
@@ -274,7 +333,6 @@ Apollo::Region::end(void)
 {
     end(current_context);
 }
-
 
 int
 Apollo::Region::reduceBestPolicies(int step)
