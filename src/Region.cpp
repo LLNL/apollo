@@ -202,6 +202,8 @@ Apollo::Region::Region(
 
 Apollo::Region::~Region()
 {
+    // Disable period based flushing.
+    Config::APOLLO_FLUSH_PERIOD = 0;
     while(pending_contexts.size() > 0)
        collectPendingContexts();
 

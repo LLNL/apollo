@@ -16,13 +16,15 @@ def main():
     parser = argparse.ArgumentParser(description='Analyze exhaustive experiments for a program.')
     parser.add_argument('-n', '--npolicies', type=int, help='the number of policies to test.', required=True)
     parser.add_argument('-np', '--nprocesses', type=int, help='the number of processes (ranks).', required=True)
+    parser.add_argument('-d', '--dir', help='the directory that contains the trace files.', required=True)
     args = parser.parse_args()
 
     # Outer index rank, inner index static policy
     print('=== Reading csv files...')
     data_map= {}
-    nfiles = len(glob.glob('trace*.csv'))
-    for i, f in enumerate(glob.glob('trace*.csv')):
+    globlist = glob.glob('%s/trace*.csv'%(args.dir))
+    nfiles = len(globlist)
+    for i, f in enumerate(globlist):
         print('\r=== Reading %-64s %06d/%06d'%(f, i+1, nfiles), flush=True, end='')
         data_map[f] = pd.read_csv(f, sep= ' ', header=0)
     print()
@@ -73,7 +75,7 @@ def main():
         print('Rank %d accuracy %.2f%%'%(i, (n_rr_opt*100.0)/nrows))
 
         (hist, bins) = np.histogram(data_rr_region_idx['policy'], bins=np.arange(args.npolicies+1))
-        print('Rank %d'%(i), 'bins', bins, 'hist', hist, '\n')
+        print('Rank %d'%(i), 'bins', bins[:-1], 'hist', hist, '\n')
 
 if __name__ == "__main__":
     main()
