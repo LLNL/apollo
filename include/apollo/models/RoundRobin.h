@@ -17,6 +17,7 @@ class RoundRobin : public PolicyModel {
 
     private:
         std::map< std::vector<float>, int > policies;
+        int last_policy;
 
 }; //end: RoundRobin (class)
 

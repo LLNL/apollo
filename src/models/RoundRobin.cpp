@@ -41,6 +41,11 @@
 int
 RoundRobin::getIndex(std::vector<float> &features)
 {
+    int choice = (last_policy + 1)%policy_count;
+    last_policy = choice;
+    return choice;
+
+#if 0
     int choice;
     if( policies.find( features ) == policies.end() ) {
         policies[ features ] = 0;
@@ -62,6 +67,7 @@ RoundRobin::getIndex(std::vector<float> &features)
         << std::endl;
 
     return choice;
+#endif
 }
 
 RoundRobin::RoundRobin(
@@ -76,6 +82,8 @@ RoundRobin::RoundRobin(
     } else {
        rank = 0;
     };
+
+    last_policy = -1;
 
     return;
 }

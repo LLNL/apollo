@@ -224,6 +224,8 @@ Apollo::Region::begin()
     context->idx = this->idx;
     this->idx++;
     context->exec_time_begin = std::chrono::steady_clock::now();
+    context->isDoneCallback = nullptr;
+    context->callback_arg = nullptr;
     return context;
 }
 
@@ -236,14 +238,18 @@ Apollo::Region::begin(std::vector<float> features)
 }
 
 void
-Apollo::Region::end(Apollo::RegionContext *context, double metric)
+Apollo::Region::collectContext(Apollo::RegionContext *context, double metric)
 {
-    //std::cout << "END REGION " << name << " metric " << metric << std::endl;
-    auto iter = measures.find({context->features, context->policy});
-    if (iter == measures.end()) {
-        iter = measures.insert(std::make_pair( std::make_pair( context->features, context->policy ),
-                std::move( std::make_unique<Apollo::Region::Measure>(1, metric) )
-                ) ).first;
+  // std::cout << "COLLECT CONTEXT " << context->idx << " REGION " << name \
+            << " metric " << metric << std::endl;
+  auto iter = measures.find({context->features, context->policy});
+  if (iter == measures.end()) {
+    iter = measures
+               .insert(std::make_pair(
+                   std::make_pair(context->features, context->policy),
+                   std::move(
+                       std::make_unique<Apollo::Region::Measure>(1, metric))))
+               .first;
     } else {
         iter->second->exec_count++;
         iter->second->time_total += metric;
@@ -269,19 +275,34 @@ Apollo::Region::end(Apollo::RegionContext *context, double metric)
 
     delete context;
     current_context = nullptr;
+}
+
+void
+Apollo::Region::end(Apollo::RegionContext *context, double metric)
+{
+    //std::cout << "END REGION " << name << " metric " << metric << std::endl;
+
+    collectContext(context, metric);
+
+    collectPendingContexts();
 
     return;
 }
 
 void Apollo::Region::collectPendingContexts() {
-  auto isDone = [this](Apollo::RegionContext *ctx) {
+  auto isDone = [this](Apollo::RegionContext *context) {
     bool returnsMetric;
     double metric;
-    if (ctx->isDoneCallback(ctx->callback_arg, &returnsMetric, &metric)) {
+    if (context->isDoneCallback(context->callback_arg, &returnsMetric, &metric)) {
       if (returnsMetric)
-        end(ctx, metric);
-      else
-        end(ctx);
+        collectContext(context, metric);
+      else {
+        context->exec_time_end = std::chrono::steady_clock::now();
+        double duration = std::chrono::duration<double>(
+                              context->exec_time_end - context->exec_time_begin)
+                              .count();
+        collectContext(context, duration);
+      }
       return true;
     }
 
@@ -293,25 +314,20 @@ void Apollo::Region::collectPendingContexts() {
       pending_contexts.end());
 }
 
-void Apollo::Region::end(Apollo::RegionContext *context,
-                         bool (*cb)(void *, bool *, double *), void *cb_arg) {
-
-  context->isDoneCallback = cb;
-  context->callback_arg = cb_arg;
-
-  pending_contexts.push_back(context);
-
-  collectPendingContexts();
-
-  return;
-}
-
 void
 Apollo::Region::end(Apollo::RegionContext *context)
 {
-    context->exec_time_end = std::chrono::steady_clock::now();
-    double duration = std::chrono::duration<double>(context->exec_time_end - context->exec_time_begin).count();
-    end(context, duration);
+    if(context->isDoneCallback)
+        pending_contexts.push_back(context);
+    else {
+      context->exec_time_end = std::chrono::steady_clock::now();
+      double duration = std::chrono::duration<double>(context->exec_time_end -
+                                                      context->exec_time_begin)
+                            .count();
+      collectContext(context, duration);
+    }
+
+    collectPendingContexts();
 }
 
 

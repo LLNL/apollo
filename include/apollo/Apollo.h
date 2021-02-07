@@ -6,8 +6,6 @@
 #include <map>
 #include <vector>
 
-#include <omp.h>
-
 #include "apollo/Config.h"
 
 //TODO(cdw): Convert 'Apollo' into a namespace and convert this into
@@ -37,17 +35,6 @@ class Apollo
         //           priority task.
         int  num_policies;
 
-        // These are convienience values that get precalculated
-        // at Apollo::Init from evironment variables / strings to
-        // facilitate quick calculations during model evaluation later.
-        int numNodes;
-        int numCPUsOnNode;
-        int numProcs;
-        int numProcsPerNode;
-        int numThreadsPerProcCap;
-        omp_sched_t ompDefaultSchedule;
-        int         ompDefaultNumThreads;
-        int         ompDefaultChunkSize;
         //
         int mpiSize;   // 1 if no MPI
         int mpiRank;   // 0 if no MPI

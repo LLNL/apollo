@@ -46,7 +46,6 @@ class Apollo::Region {
         Apollo::RegionContext *begin(std::vector<float>);
         void end(Apollo::RegionContext *);
         void end(Apollo::RegionContext *, double);
-        void end(Apollo::RegionContext *, bool (*isDoneCallback)(void *, bool *, double *), void *);
         int  getPolicyIndex(Apollo::RegionContext *);
         void setFeature(Apollo::RegionContext *, float value);
 
@@ -54,8 +53,8 @@ class Apollo::Region {
         int      num_features;
         int      reduceBestPolicies(int step);
         //
-        std::vector<Apollo::RegionContext *> pending_contexts;
-        void collectPendingContexts();
+        // Application specific callback data pool associated with the region, deleted by apollo.
+        Apollo::CallbackDataPool *callback_pool;
 
         std::map<
             std::vector< float >,
@@ -76,8 +75,10 @@ class Apollo::Region {
         Apollo::RegionContext *current_context;
         //
         std::ofstream trace_file;
-        // Application specific callback data pool associated with the region, deleted by apollo.
-        Apollo::CallbackDataPool *callback_pool;
+
+        std::vector<Apollo::RegionContext *> pending_contexts;
+        void collectPendingContexts();
+        void collectContext(Apollo::RegionContext *, double);
 }; // end: Apollo::Region
 
 struct Apollo::RegionContext
@@ -95,6 +96,8 @@ struct Apollo::RegionContext
 
 struct Apollo::CallbackDataPool {
     virtual ~CallbackDataPool() = default;
+    virtual void put(void *) = 0;
+    virtual void *get() = 0;
 };
 
 #endif

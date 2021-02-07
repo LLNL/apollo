@@ -44,9 +44,7 @@
 #include <algorithm>
 #include <iomanip>
 
-#include <omp.h>
-
-#include "CallpathRuntime.h"
+#include <execinfo.h>
 
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
@@ -120,84 +118,30 @@ safeGetEnv(
 std::string
 Apollo::getCallpathOffset(int walk_distance)
 {
-    //NOTE(cdw): Param 'walk_distance' is optional, defaults to 2
-    //           so we walk out of this method, and then walk out
-    //           of the wrapper code (i.e. a RAJA policy, or something
-    //           performance tool instrumentation), and get the module
-    //           and offset of the application's instantiation of
-    //           a loop or steerable region.
-    CallpathRuntime *cp = (CallpathRuntime *) callpath_ptr;
-    // Set up this Region for the first time:       (Runs only once)
-    std::stringstream ss_location;
-    ss_location << cp->doStackwalk().get(walk_distance);
-    // Extract out the pointer to our module+offset string and clean it up:
-    std::string offsetstr = ss_location.str();
-    offsetstr = offsetstr.substr((offsetstr.rfind("/") + 1), (offsetstr.length() - 1));
-    apolloUtils::strReplaceAll(offsetstr, "(", "_");
-    apolloUtils::strReplaceAll(offsetstr, ")", "_");
+  // Using backtrace to walk the stack. Region id format is <module>@<addr>.
+  void *buffer[walk_distance];
+  char **stack_infos;
 
-    return offsetstr;
+  backtrace(buffer, walk_distance);
+  stack_infos = backtrace_symbols(buffer, walk_distance);
+
+  std::string stack_info = stack_infos[walk_distance - 1];
+  free(stack_infos);
+
+  std::string module_name = stack_info.substr(0, stack_info.find_last_of(' '));
+  module_name = module_name.substr(module_name.find_last_of("/\\") + 1);
+  module_name = module_name.substr(0, module_name.find_last_of('('));
+  std::string addr = stack_info.substr(stack_info.find(' '));
+  unsigned start = addr.find_first_of('[') + 1;
+  unsigned end = addr.find_last_of(']');
+  addr = addr.substr(start, end - start);
+  std::string region_id = module_name + "@" + addr;
+  //std::cout << "region id " << region_id << "\n";
+  return region_id;
 }
 
 Apollo::Apollo()
 {
-    callpath_ptr = new CallpathRuntime;
-
-    // For other components of Apollo to access the SOS API w/out the include
-    // file spreading SOS as a project build dependency, store these as void *
-    // references in the class:
-    log("Reading SLURM env...");
-    numNodes         = std::stoi(apolloUtils::safeGetEnv("SLURM_NNODES", "1"));
-    log("    numNodes ................: ", numNodes);
-    numProcs         = std::stoi(apolloUtils::safeGetEnv("SLURM_NPROCS", "1"));
-    log("    numProcs ................: ", numProcs);
-    numCPUsOnNode    = std::stoi(apolloUtils::safeGetEnv("SLURM_CPUS_ON_NODE", "36"));
-    log("    numCPUsOnNode ...........: ", numCPUsOnNode);
-    std::string envProcPerNode = apolloUtils::safeGetEnv("SLURM_TASKS_PER_NODE", "1");
-    // Sometimes SLURM sets this to something like "4(x2)" and
-    // all we care about here is the "4":
-    auto pos = envProcPerNode.find('(');
-    if (pos != envProcPerNode.npos) {
-        numProcsPerNode = std::stoi(envProcPerNode.substr(0, pos));
-    } else {
-        numProcsPerNode = std::stoi(envProcPerNode);
-    }
-    log("    numProcsPerNode .........: ", numProcsPerNode);
-
-    numThreadsPerProcCap = std::max(1, (int)(numCPUsOnNode / numProcsPerNode));
-    log("    numThreadsPerProcCap ....: ", numThreadsPerProcCap);
-
-    log("Reading OMP env...");
-    ompDefaultSchedule   = omp_sched_static;       //<-- libgomp.so default
-    ompDefaultNumThreads = numThreadsPerProcCap;   //<-- from SLURM calc above
-    ompDefaultChunkSize  = -1;                     //<-- let OMP decide
-
-    // Override the OMP defaults if there are environment variables set:
-    char *val = NULL;
-    val = getenv("OMP_NUM_THREADS");
-    if (val != NULL) {
-        ompDefaultNumThreads = std::stoi(val);
-    }
-
-    val = NULL;
-    // We assume nonmonotinicity and chunk size of -1 for now.
-    val = getenv("OMP_SCHEDULE");
-    if (val != NULL) {
-        std::string sched = getenv("OMP_SCHEDULE");
-        if ((sched.find("static") != sched.npos)
-            || (sched.find("STATIC") != sched.npos)) {
-            ompDefaultSchedule = omp_sched_static;
-        } else if ((sched.find("dynamic") != sched.npos)
-            || (sched.find("DYNAMIC") != sched.npos)) {
-            ompDefaultSchedule = omp_sched_dynamic;
-        } else if ((sched.find("guided") != sched.npos)
-            || (sched.find("GUIDED") != sched.npos)) {
-            ompDefaultSchedule = omp_sched_guided;
-        }
-    }
-
-    numThreads = ompDefaultNumThreads;
-
     region_executions = 0;
 
     // Initialize config with defaults
@@ -275,7 +219,6 @@ Apollo::~Apollo()
         delete r;
     }
     std::cerr << "Apollo: total region executions: " << region_executions << std::endl;
-    delete (CallpathRuntime *)callpath_ptr;
 }
 
 #ifdef ENABLE_MPI
