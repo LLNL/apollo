@@ -23,7 +23,7 @@ using namespace Kokkos::Tools::Experimental;
 
 constexpr const int64_t slice_continuous = 100;
 constexpr const double epsilon = 1E-24;
-
+int flush_interval = 500;
 using valunion =
     decltype(std::declval<Kokkos::Tools::Experimental::VariableValue>().value);
 using valtype = decltype(
@@ -220,9 +220,17 @@ extern "C" void kokkosp_parse_args(int argc, char **argv) {
     }
     if (arg == "--distributed-training") {
       parsed_options.distributed_training = true;
+      continue;
     }
     if (arg == "--trace") {
       parsed_options.trace = true;
+      continue;
+    }
+    auto iter = arg.find("--flush-rate=");
+    if (iter != std::string::npos) {
+      flush_interval = atoi(arg.substr(arg.find("=") + 1).c_str());
+
+      continue;
     }
   }
 
@@ -253,6 +261,7 @@ Apollo Connector for Kokkos, supported options
 --distributed_training : allows Apollo to distribute training tasks across MPI ranks
                            (requires MPI-enabled Apollo)
 --trace                : tells Apollo to trace its result
+--flush-rate=[int]     : tells Apollo how often to flush results
 )";
 
   std::cout << OPTIONS_BLOCK;
@@ -493,7 +502,7 @@ extern "C" void kokkosp_end_context(size_t contextId) {
   region->end(context);
   tuned_contexts.erase(contextId);
   static int encounter;
-  if ((++encounter % 500) == 0) {
+  if ((++encounter % flush_interval) == 0) {
     apollo->flushAllRegionMeasurements(0);
     num_unconverged_regions = 0; // TODO: better
   }
