@@ -148,7 +148,6 @@ void associate_candidates(const size_t id,
     break;
   case CandidateValueType::kokkos_value_range:
     candidate_set_size = count_range_slices(info->candidates.range, info->type);
-    // std::cout << "[ac] range as slices: "<<candidate_set_size<<"\n";
     break;
   case CandidateValueType::kokkos_value_unbounded:
     candidate_set_size = 0;
@@ -266,7 +265,7 @@ extern "C" void kokkosp_init_library(const int loadSeq,
                                      void *deviceInfo) {
   printf("Initializing Apollo Tuning adapter\n");
   for (int x = 0; x < max_choices; ++x) {
-    choices[x] = x; // TODO constexpr smart blah blah
+    choices[x] = x;
   }
   putenv("APOLLO_STORE_MODELS=1");
   putenv("APOLLO_RETRAIN_ENABLE=0");
@@ -279,7 +278,6 @@ extern "C" void kokkosp_init_library(const int loadSeq,
 }
 
 using RegionData = std::pair<std::string, Apollo::Region *>;
-// using RegionData = Apollo::Region*;
 
 static std::map<size_t, std::pair<Apollo::Region *, Apollo::RegionContext *>>
     tuned_contexts;
@@ -293,47 +291,49 @@ extern "C" void kokkosp_finalize_library() {
   }
 }
 Kokkos::Tools::Experimental::ToolActions helper_functions;
-void invoke_fence(uint32_t devID){
-  if((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)){
+void invoke_fence(uint32_t devID) {
+  if ((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)) {
     helper_functions.fence(devID);
   }
 }
-extern "C" void kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolActions action){
-  helper_functions = action; 
+extern "C" void
+kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolActions action) {
+  helper_functions = action;
 }
 
-extern "C" void kokkosp_request_responses(Kokkos::Tools::Experimental::ToolResponses* response){
+extern "C" void kokkosp_request_responses(
+    Kokkos::Tools::Experimental::ToolResponses *response) {
   response->requires_global_fencing = false;
 }
 
 extern "C" void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
                                            uint64_t *kID) {
-  invoke_fence(devID);   
+  invoke_fence(devID);
 }
 
 extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
-  invoke_fence(0);   
+  invoke_fence(0);
 }
 
 extern "C" void kokkosp_begin_parallel_scan(const char *name,
                                             const uint32_t devID,
                                             uint64_t *kID) {
-  invoke_fence(devID);   
+  invoke_fence(devID);
 }
 
 extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
-  invoke_fence(0);   
+  invoke_fence(0);
 }
 
 extern "C" void kokkosp_begin_parallel_reduce(const char *name,
                                               const uint32_t devID,
                                               uint64_t *kID) {
-  invoke_fence(devID);   
+  invoke_fence(devID);
 }
 
 extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
-  invoke_fence(0);   
+  invoke_fence(0);
 }
 
 extern "C" void
@@ -344,12 +344,6 @@ kokkosp_declare_output_type(const char *name, const size_t id,
   strncpy(metadata->name, name, 64);
   info->toolProvidedInfo = metadata;
   associate_candidates(id, info);
-  // if ((info->valueQuantity != kokkos_value_set)) {
-  //  printf("Apollo Tuning Adaptor: won't learn %s because values are drawn "
-  //         "from a range\n",
-  //         name);
-  //  untunables.insert(id);
-  //}
 }
 
 extern "C" void
@@ -371,7 +365,7 @@ float variableToFloat(Kokkos::Tools::Experimental::VariableValue value) {
     return static_cast<float>(
         std::hash<std::string>{}(value.value.string_value)); // terrible
   default:
-    return 0.0; // break in some fashion instead
+    return 0.0; // TODO: break in some fashion instead
   }
 }
 
@@ -424,8 +418,6 @@ extern "C" void kokkosp_request_values(
     return;
   }
   static int created_regions;
-  // std::cout << "Have "<<numContextVariables<<" context,
-  // "<<numTuningVariables<<" tuning\n";
   int64_t choiceSpaceSize = 1;
   for (int x = 0; x < numTuningVariables; ++x) {
     auto *metadata = reinterpret_cast<VariableDatabaseData *>(
@@ -470,10 +462,9 @@ extern "C" void kokkosp_request_values(
   auto region = iter.first->second.second;
   auto *context = region->begin();
   tuned_contexts[contextId] = std::make_pair(region, context);
-  // std::cout <<"Cont: "<<numContextVariables<<std::endl;
   for (int x = 0; x < numContextVariables; ++x) {
     if (untunables.find(contextValues[x].type_id) == untunables.end()) {
-      region->setFeature(context,variableToFloat(contextValues[x]));
+      region->setFeature(context, variableToFloat(contextValues[x]));
     }
   }
 
@@ -489,7 +480,6 @@ extern "C" void kokkosp_request_values(
                           (tuningValues[x].metadata));
     policyChoice /= set_size;
   }
-  // assert(policyChoice == 1);
 }
 
 extern "C" void kokkosp_end_context(size_t contextId) {
