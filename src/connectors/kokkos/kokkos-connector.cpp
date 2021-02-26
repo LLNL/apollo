@@ -40,6 +40,7 @@ struct VariableDatabaseData {
 int64_t slice_helper(double upper, double lower, double step) {
   return ((upper - lower) / step);
 }
+static size_t num_unconverged_regions;
 
 int64_t count_range_slices(Kokkos::Tools::Experimental::ValueRange &in,
                            Kokkos::Tools::Experimental::ValueType type) {
@@ -291,84 +292,50 @@ extern "C" void kokkosp_finalize_library() {
     auto *region = data.second;
   }
 }
+Kokkos::Tools::Experimental::ToolActions helper_functions;
+void invoke_fence(uint32_t devID){
+  if((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)){
+    helper_functions.fence(devID);
+  }
+}
+extern "C" void kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolActions action){
+  helper_functions = action; 
+}
 
-#ifndef NO_APP_FENCES
+extern "C" void kokkosp_request_responses(Kokkos::Tools::Experimental::ToolResponses* response){
+  response->requires_global_fencing = false;
+}
+
 extern "C" void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
                                            uint64_t *kID) {
-  // printf("kokkosp_begin_parallel_for:%s:%u:%lu::", name, devID, *kID);
+  invoke_fence(devID);   
 }
 
 extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
-  // printf("kokkosp_end_parallel_for:%lu::", kID);
+  invoke_fence(0);   
 }
 
 extern "C" void kokkosp_begin_parallel_scan(const char *name,
                                             const uint32_t devID,
                                             uint64_t *kID) {
-  // printf("kokkosp_begin_parallel_scan:%s:%u:%lu::", name, devID, *kID);
+  invoke_fence(devID);   
 }
 
 extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
-  // printf("kokkosp_end_parallel_scan:%lu::", kID);
+  invoke_fence(0);   
 }
 
 extern "C" void kokkosp_begin_parallel_reduce(const char *name,
                                               const uint32_t devID,
                                               uint64_t *kID) {
-  // printf("kokkosp_begin_parallel_reduce:%s:%u:%lu::", name, devID, *kID);
+  invoke_fence(devID);   
 }
 
 extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
-  // printf("kokkosp_end_parallel_reduce:%lu::", kID);
+  invoke_fence(0);   
 }
 
-extern "C" void kokkosp_push_profile_region(char *regionName) {
-  // printf("kokkosp_push_profile_region:%s::", regionName);
-}
-
-extern "C" void kokkosp_pop_profile_region() {
-  // printf("kokkosp_pop_profile_region::");
-}
-
-extern "C" void kokkosp_allocate_data(Kokkos::Tools::SpaceHandle handle,
-                                      const char *name, void *ptr,
-                                      uint64_t size) {
-  // printf("kokkosp_allocate_data:%s:%s:%p:%lu::", handle.name, name, ptr,
-  // size);
-}
-
-extern "C" void kokkosp_deallocate_data(Kokkos::Tools::SpaceHandle handle,
-                                        const char *name, void *ptr,
-                                        uint64_t size) {
-  // printf("kokkosp_deallocate_data:%s:%s:%p:%lu::", handle.name, name, ptr,
-  //       size);
-}
-
-extern "C" void kokkosp_begin_deep_copy(Kokkos::Tools::SpaceHandle dst_handle,
-                                        const char *dst_name,
-                                        const void *dst_ptr,
-                                        Kokkos::Tools::SpaceHandle src_handle,
-                                        const char *src_name,
-                                        const void *src_ptr, uint64_t size) {
-  // printf("kokkosp_begin_deep_copy:%s:%s:%p:%s:%s:%p:%lu::", dst_handle.name,
-  //       dst_name, dst_ptr, src_handle.name, src_name, src_ptr, size);
-}
-
-extern "C" void kokkosp_end_deep_copy() { // printf("kokkosp_end_deep_copy::");
-}
-
-uint32_t section_id = 3;
-extern "C" void kokkosp_create_profile_section(const char *name,
-                                               uint32_t *sec_id) {}
-
-extern "C" void kokkosp_start_profile_section(uint32_t sec_id) {}
-
-extern "C" void kokkosp_stop_profile_section(uint32_t sec_id) {}
-extern "C" void kokkosp_destroy_profile_section(uint32_t sec_id) {}
-
-extern "C" void kokkosp_profile_event(const char *name) {}
-#endif // NO_APP_FENCES
 extern "C" void
 kokkosp_declare_output_type(const char *name, const size_t id,
                             Kokkos::Tools::Experimental::VariableInfo *info) {
@@ -496,6 +463,7 @@ extern "C" void kokkosp_request_values(
     } else {
       region = new Apollo::Region(numContextVariables, name.c_str(),
                                   choiceSpaceSize);
+      ++num_unconverged_regions;
     }
     iter.first->second = std::make_pair(name, region);
   }
@@ -505,11 +473,11 @@ extern "C" void kokkosp_request_values(
   // std::cout <<"Cont: "<<numContextVariables<<std::endl;
   for (int x = 0; x < numContextVariables; ++x) {
     if (untunables.find(contextValues[x].type_id) == untunables.end()) {
-      region->setFeature(variableToFloat(contextValues[x]));
+      region->setFeature(context,variableToFloat(contextValues[x]));
     }
   }
 
-  int policyChoice = region->getPolicyIndex();
+  int policyChoice = region->getPolicyIndex(context);
 
   for (int x = 0; x < numTuningVariables; ++x) {
     auto *metadata = reinterpret_cast<VariableDatabaseData *>(
@@ -537,5 +505,6 @@ extern "C" void kokkosp_end_context(size_t contextId) {
   static int encounter;
   if ((++encounter % 500) == 0) {
     apollo->flushAllRegionMeasurements(0);
+    num_unconverged_regions = 0; // TODO: better
   }
 }

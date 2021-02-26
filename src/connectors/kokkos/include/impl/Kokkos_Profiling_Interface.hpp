@@ -47,9 +47,7 @@
 
 #include <cinttypes>
 #include <cstddef>
-#include <string>
 
-#include <iostream>
 #include <cstdlib>
 
 // NOTE: in this Kokkos::Profiling block, do not define anything that shouldn't
@@ -65,8 +63,11 @@ enum struct DeviceType {
   HIP,
   OpenMPTarget,
   HPX,
-  Threads
+  Threads,
+  SYCL,
+  Unknown
 };
+
 template <typename ExecutionSpace>
 struct DeviceTypeTraits;
 
@@ -81,7 +82,7 @@ inline uint32_t device_id(ExecutionSpace const& space) noexcept {
 }  // namespace Tools
 }  // end namespace Kokkos
 
-#if defined(KOKKOS_ENABLE_PROFILING)
+#if defined(KOKKOS_ENABLE_LIBDL)
 // We check at configure time that libdl is available.
 #include <dlfcn.h>
 #endif
@@ -100,12 +101,20 @@ namespace Tools {
 
 namespace Experimental {
 using EventSet = Kokkos_Profiling_EventSet;
-static_assert(sizeof(EventSet) / sizeof(function_pointer) == 275,
+static_assert(sizeof(EventSet) / sizeof(Kokkos_Tools_function_pointer) == 275,
               "sizeof EventSet has changed, this is an error on the part of a "
               "Kokkos developer");
+
+using toolInvokedFenceFunction = Kokkos_Tools_toolInvokedFenceFunction;
+using transmitActionsFunction  = Kokkos_Tools_transmitActionsFunction;
+using requestResponseFunction  = Kokkos_Tools_requestResponsesFunction;
+using ToolResponses            = Kokkos_Tools_ToolResponses;
+using ToolActions              = Kokkos_Tools_ToolActions;
 }  // namespace Experimental
 using initFunction           = Kokkos_Profiling_initFunction;
 using finalizeFunction       = Kokkos_Profiling_finalizeFunction;
+using parseArgsFunction      = Kokkos_Profiling_parseArgsFunction;
+using printHelpFunction      = Kokkos_Profiling_printHelpFunction;
 using beginFunction          = Kokkos_Profiling_beginFunction;
 using endFunction            = Kokkos_Profiling_endFunction;
 using pushFunction           = Kokkos_Profiling_pushFunction;
@@ -119,9 +128,14 @@ using startProfileSectionFunction =
 using stopProfileSectionFunction = Kokkos_Profiling_stopProfileSectionFunction;
 using destroyProfileSectionFunction =
     Kokkos_Profiling_destroyProfileSectionFunction;
-using profileEventFunction  = Kokkos_Profiling_profileEventFunction;
-using beginDeepCopyFunction = Kokkos_Profiling_beginDeepCopyFunction;
-using endDeepCopyFunction   = Kokkos_Profiling_endDeepCopyFunction;
+using profileEventFunction    = Kokkos_Profiling_profileEventFunction;
+using beginDeepCopyFunction   = Kokkos_Profiling_beginDeepCopyFunction;
+using endDeepCopyFunction     = Kokkos_Profiling_endDeepCopyFunction;
+using beginFenceFunction      = Kokkos_Profiling_beginFenceFunction;
+using endFenceFunction        = Kokkos_Profiling_endFenceFunction;
+using dualViewSyncFunction    = Kokkos_Profiling_dualViewSyncFunction;
+using dualViewModifyFunction  = Kokkos_Profiling_dualViewModifyFunction;
+using declareMetadataFunction = Kokkos_Profiling_declareMetadataFunction;
 
 }  // namespace Tools
 
@@ -156,7 +170,9 @@ using Kokkos::Tools::endDeepCopyFunction;
 using Kokkos::Tools::endFunction;
 using Kokkos::Tools::finalizeFunction;
 using Kokkos::Tools::initFunction;
+using Kokkos::Tools::parseArgsFunction;
 using Kokkos::Tools::popFunction;
+using Kokkos::Tools::printHelpFunction;
 using Kokkos::Tools::profileEventFunction;
 using Kokkos::Tools::pushFunction;
 using Kokkos::Tools::SpaceHandle;
@@ -181,11 +197,6 @@ using VariableInfo        = Kokkos_Tools_VariableInfo;
 using OptimizationGoal    = Kokkos_Tools_OptimzationGoal;
 using TuningString        = Kokkos_Tools_Tuning_String;
 using VariableValue       = Kokkos_Tools_VariableValue;
-
-VariableValue make_variable_value(size_t id, bool val);
-VariableValue make_variable_value(size_t id, int64_t val);
-VariableValue make_variable_value(size_t id, double val);
-VariableValue make_variable_value(size_t id, const char* val);
 
 using outputTypeDeclarationFunction =
     Kokkos_Tools_outputTypeDeclarationFunction;
