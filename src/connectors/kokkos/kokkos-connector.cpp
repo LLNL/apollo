@@ -299,19 +299,19 @@ extern "C" void kokkosp_finalize_library() {
     auto *region = data.second;
   }
 }
-Kokkos::Tools::Experimental::ToolActions helper_functions;
+Kokkos::Tools::Experimental::ToolInvokedActions helper_functions;
 void invoke_fence(uint32_t devID) {
   if ((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)) {
     helper_functions.fence(devID);
   }
 }
 extern "C" void
-kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolActions action) {
+kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolInvokedActions action) {
   helper_functions = action;
 }
 
-extern "C" void kokkosp_request_responses(
-    Kokkos::Tools::Experimental::ToolResponses *response) {
+extern "C" void kokkosp_request_settings(
+    Kokkos::Tools::Experimental::ToolSettings *response) {
   response->requires_global_fencing = false;
 }
 
