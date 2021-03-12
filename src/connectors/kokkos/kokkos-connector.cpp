@@ -305,13 +305,15 @@ void invoke_fence(uint32_t devID) {
     helper_functions.fence(devID);
   }
 }
-extern "C" void
-kokkosp_transmit_actions(Kokkos::Tools::Experimental::ToolInvokedActions action) {
+extern "C" void kokkosp_transmit_actions(
+    uint32_t num_actions,
+    Kokkos::Tools::Experimental::ToolInvokedActions action) {
   helper_functions = action;
 }
 
-extern "C" void kokkosp_request_settings(
-    Kokkos::Tools::Experimental::ToolSettings *response) {
+extern "C" void
+kokkosp_request_settings(uint32_t num_responses,
+                         Kokkos::Tools::Experimental::ToolSettings *response) {
   response->requires_global_fencing = false;
 }
 
