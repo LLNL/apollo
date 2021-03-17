@@ -299,21 +299,21 @@ extern "C" void kokkosp_finalize_library() {
     auto *region = data.second;
   }
 }
-Kokkos::Tools::Experimental::ToolInvokedActions helper_functions;
+Kokkos::Tools::Experimental::ToolProgrammingInterface helper_functions;
 void invoke_fence(uint32_t devID) {
   if ((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)) {
     helper_functions.fence(devID);
   }
 }
-extern "C" void kokkosp_transmit_actions(
+extern "C" void kokkosp_provide_tool_programming_interface(
     uint32_t num_actions,
-    Kokkos::Tools::Experimental::ToolInvokedActions action) {
+    Kokkos::Tools::Experimental::ToolProgrammingInterface action) {
   helper_functions = action;
 }
 
-extern "C" void
-kokkosp_request_settings(uint32_t num_responses,
-                         Kokkos::Tools::Experimental::ToolSettings *response) {
+extern "C" void kokkosp_request_tool_settings(
+    uint32_t num_responses,
+    Kokkos::Tools::Experimental::ToolSettings *response) {
   response->requires_global_fencing = false;
 }
 
