@@ -321,30 +321,36 @@ extern "C" void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
                                            uint64_t *kID) {
   invoke_fence(devID);
+  *kID = devID;
 }
 
 extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
-  invoke_fence(0);
+  uint32_t devID = kID;
+  invoke_fence(devID);
 }
 
 extern "C" void kokkosp_begin_parallel_scan(const char *name,
                                             const uint32_t devID,
                                             uint64_t *kID) {
   invoke_fence(devID);
+  *kID = devID;
 }
 
 extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
-  invoke_fence(0);
+  uint32_t devID = kID;
+  invoke_fence(devID);
 }
 
 extern "C" void kokkosp_begin_parallel_reduce(const char *name,
                                               const uint32_t devID,
                                               uint64_t *kID) {
   invoke_fence(devID);
+  *kID = devID;
 }
 
 extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
-  invoke_fence(0);
+  uint32_t devID = kID;
+  invoke_fence(devID);
 }
 
 extern "C" void
