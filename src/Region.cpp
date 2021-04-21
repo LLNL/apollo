@@ -39,6 +39,7 @@
 #include <memory>
 #include <utility>
 #include <algorithm>
+#include <sstream>
 
 #include <sys/types.h>
 #include <sys/stat.h>

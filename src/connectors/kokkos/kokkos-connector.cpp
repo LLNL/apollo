@@ -190,7 +190,7 @@ int choices[max_choices];
 
 namespace std {
 template <> struct less<variableSet> {
-  bool operator()(const variableSet &l, const variableSet &r) {
+  bool operator() (const variableSet &l, const variableSet &r) const {
     if (l.num_variables != r.num_variables) {
       return l.num_variables < r.num_variables;
     }
