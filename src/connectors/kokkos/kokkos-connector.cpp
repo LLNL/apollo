@@ -46,9 +46,9 @@ int64_t count_range_slices(Kokkos::Tools::Experimental::ValueRange &in,
                            Kokkos::Tools::Experimental::ValueType type) {
   switch (type) {
   case ValueType::kokkos_value_int64:
-    return ((in.openUpper ? in.upper.int_value : (in.upper.int_value - 1)) -
-            (in.openLower ? in.lower.int_value : (in.lower.int_value + 1))) /
-           in.step.int_value;
+    return 1 + ((((!in.openUpper) ? in.upper.int_value : (in.upper.int_value - 1)) -
+            ((!in.openLower) ? in.lower.int_value : (in.lower.int_value + 1))) /
+           in.step.int_value);
   case ValueType::kokkos_value_double:
     return (in.step.double_value ==
             0.0) // intentional comparison to double value 0.0, this shouldn't
