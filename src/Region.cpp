@@ -55,6 +55,11 @@
 #include <mpi.h>
 #endif //ENABLE_MPI
 
+static inline bool fileExists(std::string path) {
+    struct stat stbuf;
+    return (stat(path.c_str(), &stbuf) == 0);
+}
+
 int
 Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 {
@@ -146,8 +151,15 @@ Apollo::Region::Region(
                 // Load the same model for all regions.
                 model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
             }
-            //std::cout << "Model Load " << model_file << std::endl;
-            model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
+
+            if (fileExists(model_file))
+                //std::cout << "Model Load " << model_file << std::endl;
+                model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
+            else
+                // Fallback to default model.
+                std::cout << "WARNING: could not load file " << model_file
+                          << ", falling back to default Static, 0" << std::endl;
+                model = ModelFactory::createStatic(apollo->num_policies, 0);
         }
         else if ("Random" == model_str)
         {
@@ -258,7 +270,7 @@ Apollo::Region::collectContext(Apollo::RegionContext *context, double metric)
 
     if( Config::APOLLO_TRACE_CSV ) {
         trace_file << apollo->mpiRank << " ";
-        trace_file << Config::APOLLO_INIT_MODEL << " ";
+        trace_file << model->name << " ";
         trace_file << this->name << " ";
         trace_file << context->idx << " ";
         for(auto &f : context->features)

@@ -37,9 +37,6 @@
 
 #include "apollo/models/Static.h"
 
-#define modelName "static"
-#define modelFile __FILE__
-
 int
 Static::getIndex(std::vector<float> &features)
 {

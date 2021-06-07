@@ -68,6 +68,7 @@ class Apollo::Region {
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;
 
+        void collectPendingContexts();
     private:
         //
         Apollo        *apollo;
@@ -77,7 +78,6 @@ class Apollo::Region {
         std::ofstream trace_file;
 
         std::vector<Apollo::RegionContext *> pending_contexts;
-        void collectPendingContexts();
         void collectContext(Apollo::RegionContext *, double);
 }; // end: Apollo::Region
 

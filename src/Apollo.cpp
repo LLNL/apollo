@@ -444,6 +444,7 @@ Apollo::flushAllRegionMeasurements(int step)
     //             impact.
     for( auto &it: regions ) {
         Region *reg = it.second;
+        reg->collectPendingContexts();
         reg->reduceBestPolicies(step);
         reg->measures.clear();
     }
@@ -552,9 +553,10 @@ Apollo::flushAllRegionMeasurements(int step)
                     train_features,
                     train_responses );
 
-            reg->time_model = ModelFactory::createRegressionTree(
-                    train_time_features,
-                    train_time_responses );
+            if (Config::APOLLO_RETRAIN_ENABLE)
+              reg->time_model =
+                  ModelFactory::createRegressionTree(train_time_features,
+                                                     train_time_responses);
 
             if( Config::APOLLO_STORE_MODELS ) {
                 reg->model->store( "dtree-step-" + std::to_string( step ) \
@@ -564,12 +566,15 @@ Apollo::flushAllRegionMeasurements(int step)
                         "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml" );
 
-                reg->time_model->store("regtree-step-" + std::to_string( step ) \
-                        + "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml");
-                reg->time_model->store("regtree-latest" \
-                        "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml");
+                if (Config::APOLLO_RETRAIN_ENABLE) {
+                  reg->time_model->store(
+                      "regtree-step-" + std::to_string(step) + "-rank-" +
+                      std::to_string(rank) + "-" + reg->name + ".yaml");
+                  reg->time_model->store(
+                      "regtree-latest"
+                      "-rank-" +
+                      std::to_string(rank) + "-" + reg->name + ".yaml");
+                }
             }
         }
         else {
@@ -649,10 +654,10 @@ Apollo::flushAllRegionMeasurements(int step)
 extern "C" {
  void *__apollo_region_create(int num_features, char *id, int num_policies) {
      static Apollo *apollo = Apollo::instance();
-     std::string callpathOffset = apollo->getCallpathOffset(3);
-     std::cout << "CREATE region " << callpathOffset << " " << id << " num_features " << num_features
+     //std::string callpathOffset = apollo->getCallpathOffset(3);
+     std::cout << "CREATE region " << id << " num_features " << num_features
                << " num policies " << num_policies << std::endl;
-     return new Apollo::Region(num_features, callpathOffset.c_str(), num_policies);
+     return new Apollo::Region(num_features, id, num_policies);
  }
 
  void __apollo_region_begin(Apollo::Region *r) {
