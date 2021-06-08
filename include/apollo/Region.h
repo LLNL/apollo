@@ -83,8 +83,8 @@ class Apollo::Region {
 
 struct Apollo::RegionContext
 {
-    std::chrono::steady_clock::time_point exec_time_begin;
-    std::chrono::steady_clock::time_point exec_time_end;
+    double exec_time_begin;
+    double exec_time_end;
     std::vector<float> features;
     int policy;
     int idx;
