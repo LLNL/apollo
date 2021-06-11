@@ -30,11 +30,13 @@ def read_csv(dir, model, csv_map):
             print('Warning: no data in', f)
 
 def compute_execution_time(rank, data, xtime_per_pol, init_model, trained_model = None):
+    num_regions = 0
     xtimes = data.loc[ \
             (data['rankid']==rank) & \
             (data['training']==init_model) \
             ]['xtime']
     xtime_init_model = sum(xtimes)
+    num_regions += len(xtimes.index)
 
     if trained_model:
         xtimes = data.loc[ \
@@ -42,11 +44,12 @@ def compute_execution_time(rank, data, xtime_per_pol, init_model, trained_model 
                 (data['training']==trained_model) \
                 ]['xtime']
         xtime_trained_model = sum(xtimes)
+        num_regions += len(xtimes.index)
     else:
         xtime_trained_model = 0
 
     xtime_per_pol[init_model] = (xtime_init_model, xtime_trained_model)
-    print('len', len(xtimes.index),
+    print('len', num_regions,
             'Rank %d %s=%.6f/%s=%.6f xtime %.6f' %
             (rank, init_model, xtime_per_pol[init_model][0], trained_model, xtime_per_pol[init_model][1],
              xtime_per_pol[init_model][0]+xtime_per_pol[init_model][1]))
@@ -99,18 +102,21 @@ def compute_accuracy(rank, data, opt_data, npolicies, DIFF_PCT, init_model, trai
 
     # Compute relaxed accuracy +/- 10% of optimal
     # Exclude matching policy indices for relaxed accuracy
-    data_rr_region_idx = data_region_idx[~data_region_idx.index\
+    data_region_idx = data_region_idx[~data_region_idx.index\
             .isin(cond[cond['policy'] == True].index)]
     opt_region_idx = opt_region_idx[~opt_region_idx.index.isin(cond[cond['policy'] == True].index)]
 
-    diff_opt_rr = abs(opt_region_idx['xtime'] - data_region_idx['xtime'])*100.0 / opt_region_idx['xtime']
-    try:
-        nrelaxed = diff_opt_rr.le(DIFF_PCT).value_counts()[True]
-    except KeyError:
-        nrelaxed = 0
-    #print('le than %.2f%% %d'%( DIFF_PCT, nrelaxed))
-    #input('cont')
-    nrelaxed += nmatch
+    if int(nmatch) < nrows:
+        diff_opt_rr = abs(opt_region_idx['xtime'] - data_region_idx['xtime'])*100.0 / opt_region_idx['xtime']
+        try:
+            nrelaxed = diff_opt_rr.le(DIFF_PCT).value_counts()[True]
+        except KeyError:
+            nrelaxed = 0
+        #print('le than %.2f%% %d'%( DIFF_PCT, nrelaxed))
+        #input('cont')
+        nrelaxed += nmatch
+    else:
+        nrelaxed = nmatch
     print('Rank %d %s|%s relaxed accuracy %.2f%% (+/- %.2f%% optimal)'%(rank, init_model, trained_model,
         (nrelaxed*100.0)/nrows, DIFF_PCT))
 
@@ -126,6 +132,7 @@ def main():
     parser.add_argument('--rr', help='include RoundRobin training traces.', action='store_true', default=False)
     parser.add_argument('--random', help='include Random training traces.', action='store_true', default=False)
     parser.add_argument('--load', help='include Load model.', action='store_true', default=False)
+    parser.add_argument('--opt', help='include optimal oracle model.', action='store_true', default=False)
     parser.add_argument('--write-opt', help='write optimal policy csv.', action='store_true', default=False)
     args = parser.parse_args()
 
@@ -156,6 +163,12 @@ def main():
         read_csv(args.dir, 'Load', csv_map)
         data_map['Load'] = pd.concat(csv_map.values(), ignore_index=True, sort=True)
 
+    if args.opt:
+        csv_map={}
+        read_csv(args.dir, 'Optimal', csv_map)
+        data_map['Optimal'] = pd.concat(csv_map.values(), ignore_index=True, sort=True)
+
+
     print()
     xtime_per_pol = {}
     for i in range(args.nranks):
@@ -170,6 +183,8 @@ def main():
             compute_execution_time(i, data_map['Random'], xtime_per_pol, 'Random', 'DecisionTree')
         if args.load:
             compute_execution_time(i, data_map['Load'], xtime_per_pol, 'Load')
+        if args.opt:
+            compute_execution_time(i, data_map['Optimal'], xtime_per_pol, 'Optimal')
 
     print()
     print('=== Computing optimal policy selection...')
@@ -192,6 +207,14 @@ def main():
         #        file=open('opt.txt','w'))
         assert len(opt.index) == len(data_map['Static'].index)/args.nstatic, 'Data error'
 
+        print('=== Writing out optimal policy selection...')
+        if args.write_opt:
+            index_set = set(opt.index.get_level_values(0))
+            for region in index_set:
+                opt_policies = [str(x) for x in opt.loc[region, 'policy']]
+                with open('opt-%s-rank-%s.txt'%(region, i), 'w') as f:
+                    f.write(','.join(opt_policies))
+
         #print('opt-rank-%d time %.6f s' % (i, t2-t1))
         print('opt-rank-%d xtime %.6f'%(i, sum(opt['xtime'])))
         min_xtime_static_pol = min(
@@ -206,10 +229,6 @@ def main():
         if args.random:
             compute_speedup(xtime_per_pol, 'Random', min_xtime_static_pol)
 
-        if args.write_opt:
-            print('=== Write optimal selection CSV for rank %d'%(i))
-            opt.to_csv('opt-rank-%d.csv'%(i), sep=' ', index=False)
-
         print('=== Compute accuracy...')
 
         accuracy= {}
@@ -222,7 +241,10 @@ def main():
                 compute_accuracy(i, data_map['Random'], opt, args.nstatic+1, DIFF_PCT, 'Random', 'DecisionTree')
         if args.load:
             accuracy['Load'] =\
-                compute_accuracy(i, data_map['Load'], opt, args.nstatic+1, DIFF_PCT, 'RoundRobin', 'DecisionTree')
+                compute_accuracy(i, data_map['Load'], opt, args.nstatic+1, DIFF_PCT, 'Load', 'Load')
+        if args.opt:
+            accuracy['Optimal'] =\
+                compute_accuracy(i, data_map['Optimal'], opt, args.nstatic+1, DIFF_PCT, 'Optimal', 'Optimal')
 
         if args.plot:
             fig, ax = plt.subplots(figsize=(10, 6))

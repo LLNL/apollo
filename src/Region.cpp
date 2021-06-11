@@ -59,6 +59,87 @@ static inline bool fileExists(std::string path) {
     return (stat(path.c_str(), &stbuf) == 0);
 }
 
+void Apollo::Region::train(int step)
+{
+  if (!model->training) return;
+
+  collectPendingContexts();
+  reduceBestPolicies(step);
+  if (best_policies.size() <= 0) return;
+
+  measures.clear();
+
+  std::vector<std::vector<float> > train_features;
+  std::vector<int> train_responses;
+
+  std::vector<std::vector<float> > train_time_features;
+  std::vector<float> train_time_responses;
+
+  if (Config::APOLLO_REGION_MODEL) {
+    std::cout << "TRAIN MODEL PER REGION " << name << std::endl;
+    // Prepare training data
+    for (auto &it2 : best_policies) {
+      train_features.push_back(it2.first);
+      train_responses.push_back(it2.second.first);
+
+      std::vector<float> feature_vector = it2.first;
+      feature_vector.push_back(it2.second.first);
+      if (Config::APOLLO_RETRAIN_ENABLE) {
+        train_time_features.push_back(feature_vector);
+        train_time_responses.push_back(it2.second.second);
+      }
+    }
+  } else {
+      assert(false && "Expected per-region model.");
+  }
+
+  if (Config::APOLLO_TRACE_BEST_POLICIES) {
+    std::stringstream trace_out;
+    trace_out << "=== Rank " << apollo->mpiRank << " BEST POLICIES Region "
+              << name << " ===" << std::endl;
+    for (auto &b : best_policies) {
+      trace_out << "[ ";
+      for (auto &f : b.first)
+        trace_out << (int)f << ", ";
+      trace_out << "] P:" << b.second.first << " T: " << b.second.second
+                << std::endl;
+    }
+    trace_out << ".-" << std::endl;
+    std::cout << trace_out.str();
+    std::ofstream fout("step-" + std::to_string(step) + "-rank-" +
+                       std::to_string(apollo->mpiRank) + "-" + name +
+                       "-best_policies.txt");
+    fout << trace_out.str();
+    fout.close();
+  }
+
+  model = ModelFactory::createDecisionTree(apollo->num_policies,
+                                           train_features,
+                                           train_responses);
+
+  if (Config::APOLLO_RETRAIN_ENABLE)
+    time_model = ModelFactory::createRegressionTree(train_time_features,
+                                                    train_time_responses);
+
+  if (Config::APOLLO_STORE_MODELS) {
+    model->store("dtree-step-" + std::to_string(step) + "-rank-" +
+                 std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+    model->store(
+        "dtree-latest"
+        "-rank-" +
+        std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+
+    if (Config::APOLLO_RETRAIN_ENABLE) {
+      time_model->store("regtree-step-" + std::to_string(step) + "-rank-" +
+                        std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+      time_model->store(
+          "regtree-latest"
+          "-rank-" +
+          std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+    }
+  }
+}
+
 int
 Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
 {
@@ -171,6 +252,15 @@ Apollo::Region::Region(
             model = ModelFactory::createRoundRobin(apollo->num_policies);
             //std::cout << "Model RoundRobin" << std::endl;
         }
+        else if ("Optimal" == model_str) {
+           std::string file = "opt-" + std::string(name) + "-rank-" + std::to_string(apollo->mpiRank) + ".txt";
+           if (!fileExists(file)) {
+               std::cerr << "Optimal policy file " << file << " does not exist" << std::endl;
+               abort();
+           }
+
+           model = ModelFactory::createOptimal(file);
+        }
         else
         {
             std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL << std::endl;
@@ -216,7 +306,7 @@ Apollo::Region::Region(
 Apollo::Region::~Region()
 {
     // Disable period based flushing.
-    Config::APOLLO_FLUSH_PERIOD = 0;
+    Config::APOLLO_GLOBAL_TRAIN_PERIOD = 0;
     while(pending_contexts.size() > 0)
        collectPendingContexts();
 
@@ -284,9 +374,12 @@ Apollo::Region::collectContext(Apollo::RegionContext *context, double metric)
 
     apollo->region_executions++;
 
-    if( Config::APOLLO_FLUSH_PERIOD && ( apollo->region_executions%Config::APOLLO_FLUSH_PERIOD ) == 0 ) {
+    if( Config::APOLLO_GLOBAL_TRAIN_PERIOD && ( apollo->region_executions%Config::APOLLO_GLOBAL_TRAIN_PERIOD) == 0 ) {
         //std::cout << "FLUSH PERIOD! region_executions " << apollo->region_executions<< std::endl; //ggout
         apollo->flushAllRegionMeasurements(apollo->region_executions);
+    }
+    else if( Config::APOLLO_PER_REGION_TRAIN_PERIOD && (idx%Config::APOLLO_PER_REGION_TRAIN_PERIOD) == 0 ) {
+        train(idx);
     }
 
     delete context;

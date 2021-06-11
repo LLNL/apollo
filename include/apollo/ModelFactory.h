@@ -18,6 +18,7 @@ class ModelFactory {
         static std::unique_ptr<PolicyModel> createDecisionTree(int num_policies,
                 std::vector< std::vector<float> > &features,
                 std::vector<int> &responses );
+        static std::unique_ptr<PolicyModel> createOptimal(std::string file);
 
         static std::unique_ptr<TimingModel> createRegressionTree(
                 std::vector< std::vector<float> > &features,

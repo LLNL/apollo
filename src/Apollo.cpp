@@ -152,7 +152,8 @@ Apollo::Apollo()
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
     Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
     Config::APOLLO_NUM_POLICIES        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
-    Config::APOLLO_FLUSH_PERIOD       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_FLUSH_PERIOD", "0" ) );
+    Config::APOLLO_GLOBAL_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_GLOBAL_TRAIN_PERIOD", "0" ) );
+    Config::APOLLO_PER_REGION_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_PER_REGION_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
     Config::APOLLO_STORE_MODELS        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_STORE_MODELS", "0" ) );
     Config::APOLLO_TRACE_RETRAIN       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
@@ -434,14 +435,6 @@ Apollo::flushAllRegionMeasurements(int step)
     int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     // Reduce local region measurements to best policies
-    // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
-    //             internally, and skip them if MPI is disabled.
-    //             We may want to allow this method to do other non-MPI
-    //             operations to regions, so we will call into it even if
-    //             MPI is disabled. Ideally the flushAllRegionMeasurements
-    //             method we are in now is only being called once per
-    //             simulation step, so this should have negligible performance
-    //             impact.
     for( auto &it: regions ) {
         Region *reg = it.second;
         reg->collectPendingContexts();

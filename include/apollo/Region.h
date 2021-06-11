@@ -69,6 +69,7 @@ class Apollo::Region {
         std::unique_ptr<PolicyModel> model;
 
         void collectPendingContexts();
+        void train(int step);
     private:
         //
         Apollo        *apollo;
@@ -87,7 +88,7 @@ struct Apollo::RegionContext
     double exec_time_end;
     std::vector<float> features;
     int policy;
-    int idx;
+    unsigned long long idx;
     // Arguments: void *data, bool *returnMetric, double *metric (valid if
     // returnsMetric == true).
     bool (*isDoneCallback)(void *, bool *, double *);
