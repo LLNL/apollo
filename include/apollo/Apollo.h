@@ -49,7 +49,9 @@ class Apollo
         std::string getCallpathOffset(int walk_distance=2);
         void *callpath_ptr;
 
+        // DEPRECATED, use train.
         void flushAllRegionMeasurements(int step);
+        void train(int step);
 
     private:
         Apollo();

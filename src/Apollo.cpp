@@ -159,7 +159,7 @@ Apollo::Apollo()
     Config::APOLLO_TRACE_RETRAIN       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
     Config::APOLLO_TRACE_ALLGATHER     = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
-    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "1" ) );
+    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "0" ) );
     Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
     Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
     Config::APOLLO_TRACE_CSV = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_CSV", "0" ) );
@@ -428,10 +428,14 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 #endif //ENABLE_MPI
 }
 
+// DEPRECATED, use train.
+void
+Apollo::flushAllRegionMeasurements(int step) {
+    train(step);
+}
 
 void
-Apollo::flushAllRegionMeasurements(int step)
-{
+Apollo::train(int step) {
     int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     // Reduce local region measurements to best policies
