@@ -68,6 +68,8 @@ class Apollo::Region {
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;
 
+        void collectPendingContexts();
+        void train(int step);
     private:
         //
         Apollo        *apollo;
@@ -77,17 +79,16 @@ class Apollo::Region {
         std::ofstream trace_file;
 
         std::vector<Apollo::RegionContext *> pending_contexts;
-        void collectPendingContexts();
         void collectContext(Apollo::RegionContext *, double);
 }; // end: Apollo::Region
 
 struct Apollo::RegionContext
 {
-    std::chrono::steady_clock::time_point exec_time_begin;
-    std::chrono::steady_clock::time_point exec_time_end;
+    double exec_time_begin;
+    double exec_time_end;
     std::vector<float> features;
     int policy;
-    int idx;
+    unsigned long long idx;
     // Arguments: void *data, bool *returnMetric, double *metric (valid if
     // returnsMetric == true).
     bool (*isDoneCallback)(void *, bool *, double *);

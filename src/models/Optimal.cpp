@@ -1,4 +1,3 @@
-
 // Copyright (c) 2019, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
 //
@@ -34,11 +33,30 @@
 
 #include <string>
 #include <cstring>
+#include <iostream>
+#include <fstream>
 
-#include "apollo/models/Static.h"
+#include "apollo/models/Optimal.h"
+
+Optimal::Optimal(std::string file) : PolicyModel(0, "Optimal", false) {
+    std::ifstream infile(file);
+    std::string policy_str;
+
+    while(std::getline(infile, policy_str, ','))
+        optimal_policy.push_back(std::stoi(policy_str));
+
+    infile.close();
+}
 
 int
-Static::getIndex(std::vector<float> &features)
+Optimal::getIndex(std::vector<float> &features)
 {
-    return policy_choice;
+    if (optimal_policy.empty()) {
+        std::cerr << "Optimal policy queue is empty!" << std::endl;
+        abort();
+    }
+
+    int policy = optimal_policy.front();
+    optimal_policy.pop_front();
+    return policy;
 }

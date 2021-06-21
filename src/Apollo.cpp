@@ -146,19 +146,20 @@ Apollo::Apollo()
 
     // Initialize config with defaults
     Config::APOLLO_INIT_MODEL          = apolloUtils::safeGetEnv( "APOLLO_INIT_MODEL", "Static,0" );
-    Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "1" ) );
-    Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "0" ) );
+    Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "0" ) );
+    Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "1" ) );
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
     Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
     Config::APOLLO_NUM_POLICIES        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
-    Config::APOLLO_FLUSH_PERIOD       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_FLUSH_PERIOD", "0" ) );
+    Config::APOLLO_GLOBAL_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_GLOBAL_TRAIN_PERIOD", "0" ) );
+    Config::APOLLO_PER_REGION_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_PER_REGION_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
     Config::APOLLO_STORE_MODELS        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_STORE_MODELS", "0" ) );
     Config::APOLLO_TRACE_RETRAIN       = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_RETRAIN", "0" ) );
     Config::APOLLO_TRACE_ALLGATHER     = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_ALLGATHER", "0" ) );
     Config::APOLLO_TRACE_BEST_POLICIES = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_BEST_POLICIES", "0" ) );
-    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "1" ) );
+    Config::APOLLO_RETRAIN_ENABLE      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_ENABLE", "0" ) );
     Config::APOLLO_RETRAIN_TIME_THRESHOLD   = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_TIME_THRESHOLD", "2.0" ) );
     Config::APOLLO_RETRAIN_REGION_THRESHOLD = std::stof( apolloUtils::safeGetEnv( "APOLLO_RETRAIN_REGION_THRESHOLD", "0.5" ) );
     Config::APOLLO_TRACE_CSV = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_CSV", "0" ) );
@@ -427,23 +428,20 @@ Apollo::gatherReduceCollectiveTrainingData(int step)
 #endif //ENABLE_MPI
 }
 
+// DEPRECATED, use train.
+void
+Apollo::flushAllRegionMeasurements(int step) {
+    train(step);
+}
 
 void
-Apollo::flushAllRegionMeasurements(int step)
-{
+Apollo::train(int step) {
     int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     // Reduce local region measurements to best policies
-    // NOTE[chad]: reg->reduceBestPolicies() will guard any MPI collectives
-    //             internally, and skip them if MPI is disabled.
-    //             We may want to allow this method to do other non-MPI
-    //             operations to regions, so we will call into it even if
-    //             MPI is disabled. Ideally the flushAllRegionMeasurements
-    //             method we are in now is only being called once per
-    //             simulation step, so this should have negligible performance
-    //             impact.
     for( auto &it: regions ) {
         Region *reg = it.second;
+        reg->collectPendingContexts();
         reg->reduceBestPolicies(step);
         reg->measures.clear();
     }
@@ -552,9 +550,10 @@ Apollo::flushAllRegionMeasurements(int step)
                     train_features,
                     train_responses );
 
-            reg->time_model = ModelFactory::createRegressionTree(
-                    train_time_features,
-                    train_time_responses );
+            if (Config::APOLLO_RETRAIN_ENABLE)
+              reg->time_model =
+                  ModelFactory::createRegressionTree(train_time_features,
+                                                     train_time_responses);
 
             if( Config::APOLLO_STORE_MODELS ) {
                 reg->model->store( "dtree-step-" + std::to_string( step ) \
@@ -564,12 +563,15 @@ Apollo::flushAllRegionMeasurements(int step)
                         "-rank-" + std::to_string( rank ) \
                         + "-" + reg->name + ".yaml" );
 
-                reg->time_model->store("regtree-step-" + std::to_string( step ) \
-                        + "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml");
-                reg->time_model->store("regtree-latest" \
-                        "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml");
+                if (Config::APOLLO_RETRAIN_ENABLE) {
+                  reg->time_model->store(
+                      "regtree-step-" + std::to_string(step) + "-rank-" +
+                      std::to_string(rank) + "-" + reg->name + ".yaml");
+                  reg->time_model->store(
+                      "regtree-latest"
+                      "-rank-" +
+                      std::to_string(rank) + "-" + reg->name + ".yaml");
+                }
             }
         }
         else {
@@ -649,10 +651,10 @@ Apollo::flushAllRegionMeasurements(int step)
 extern "C" {
  void *__apollo_region_create(int num_features, char *id, int num_policies) {
      static Apollo *apollo = Apollo::instance();
-     std::string callpathOffset = apollo->getCallpathOffset(3);
-     std::cout << "CREATE region " << callpathOffset << " " << id << " num_features " << num_features
+     //std::string callpathOffset = apollo->getCallpathOffset(3);
+     std::cout << "CREATE region " << id << " num_features " << num_features
                << " num policies " << num_policies << std::endl;
-     return new Apollo::Region(num_features, callpathOffset.c_str(), num_policies);
+     return new Apollo::Region(num_features, id, num_policies);
  }
 
  void __apollo_region_begin(Apollo::Region *r) {
