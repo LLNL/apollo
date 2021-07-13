@@ -36,7 +36,9 @@ include_directories(${CALIPER_INCLUDE_DIR})
 include_directories(
     ../include/external/cxxopts/
     )
-
+include_directories(
+  ./connectors/kokkos/include
+)
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
     ../include/apollo/Config.h
@@ -59,6 +61,7 @@ set(APOLLO_SOURCES
     models/DecisionTree.cpp
     models/RegressionTree.cpp
     models/Optimal.cpp
+    connectors/kokkos/kokkos-connector.cpp
     )
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
