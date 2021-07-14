@@ -1,3 +1,8 @@
+// Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+// Apollo Project Developers. See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
 #ifndef APOLLO_UTIL_COLOR
 #define APOLLO_UTIL_COLOR
 
@@ -27,8 +32,8 @@
 #define sRST    std::string(RST)
 #define sBOLD   std::string(KBOLD)
 #define sUNDL   std::string(KUNDL)
-#define sRED    std::string(KRED) 
-#define sGRN    std::string(KGRN) 
+#define sRED    std::string(KRED)
+#define sGRN    std::string(KGRN)
 #define sYEL    std::string(KYEL)
 #define sBLU    std::string(KBLU)
 #define sMAG    std::string(KMAG)

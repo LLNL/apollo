@@ -1,3 +1,9 @@
+
+// Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+// Apollo Project Developers. See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
 #ifndef APOLLO_UTIL_HASHABLETUPLE_H
 #define APOLLO_UTIL_HASHABLETUPLE_H
 //
@@ -5,7 +11,7 @@
 //  https://stackoverflow.com/questions/20834838/using-tuple-in-unordered-map
 //
 #include <tuple>
-// function has to live in the std namespace 
+// function has to live in the std namespace
 // so that it is picked up by argument-dependent name lookup (ADL).
 namespace std{
     namespace
@@ -45,15 +51,15 @@ namespace std{
     }
 
     template <typename ... TT>
-    struct hash<std::tuple<TT...>> 
+    struct hash<std::tuple<TT...>>
     {
         size_t
         operator()(std::tuple<TT...> const& tt) const
-        {                                              
-            size_t seed = 0;                             
-            HashValueImpl<std::tuple<TT...> >::apply(seed, tt);    
-            return seed;                                 
-        }                                              
+        {
+            size_t seed = 0;
+            HashValueImpl<std::tuple<TT...> >::apply(seed, tt);
+            return seed;
+        }
 
     };
 }

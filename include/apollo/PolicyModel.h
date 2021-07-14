@@ -1,3 +1,8 @@
+// Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
+// Apollo Project Developers. See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
 #ifndef APOLLO_POLICY_MODEL_H
 #define APOLLO_POLICY_MODEL_H
 
@@ -7,7 +12,7 @@
 // Abstract
 class PolicyModel {
     public:
-        PolicyModel(int num_policies, std::string name, bool training) : 
+        PolicyModel(int num_policies, std::string name, bool training) :
             policy_count(num_policies),
             name(name),
             training(training)

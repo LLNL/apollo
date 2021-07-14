@@ -27,12 +27,18 @@ the following paper:
 
 ## License
 
-Apollo is distributed under the terms of both the MIT license.  All new
-contributions must be made under the MIT license.
+Apollo is distributed under the terms of both the MIT license and the
+Apache License (Version 2.0). Users may choose either license, at their
+option.
 
-See [LICENSE](https://github.com/LLNL/apollo/blob/master/LICENSE) and
-[NOTICE](https://github.com/LLNL/apollo/blob/master/NOTICE) for details.
+All new contributions must be made under both the MIT and Apache-2.0
+licenses.
 
-SPDX-License-Identifier: MIT
+See [LICENSE-MIT](https://github.com/LLNL/apollo/blob/develop/LICENSE-MIT),
+[LICENSE-APACHE](https://github.com/LLNL/apollo/blob/develop/LICENSE-APACHE),
+[COPYRIGHT](https://github.com/LLNL/apollo/blob/develop/COPYRIGHT), and
+[NOTICE](https://github.com/LLNL/apollo/blob/develop/NOTICE) for details.
+
+SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 LLNL-CODE-733798
