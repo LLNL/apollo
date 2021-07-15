@@ -1,7 +1,7 @@
 // Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
-// Apollo Project Developers. See the top-level COPYRIGHT file for details.
+// Apollo Project Developers. See the top-level LICENSE file for details.
 //
-// SPDX-License-Identifier: (Apache-2.0 OR MIT)
+// SPDX-License-Identifier: (MIT)
 
 #include <string>
 #include <vector>

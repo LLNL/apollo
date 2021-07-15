@@ -34,11 +34,9 @@ option.
 All new contributions must be made under both the MIT and Apache-2.0
 licenses.
 
-See [LICENSE-MIT](https://github.com/LLNL/apollo/blob/develop/LICENSE-MIT),
-[LICENSE-APACHE](https://github.com/LLNL/apollo/blob/develop/LICENSE-APACHE),
-[COPYRIGHT](https://github.com/LLNL/apollo/blob/develop/COPYRIGHT), and
+See [LICENSE](https://github.com/LLNL/apollo/blob/develop/LICENSE) and
 [NOTICE](https://github.com/LLNL/apollo/blob/develop/NOTICE) for details.
 
-SPDX-License-Identifier: (Apache-2.0 OR MIT)
+SPDX-License-Identifier: (MIT)
 
 LLNL-CODE-733798

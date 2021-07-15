@@ -1,15 +1,15 @@
 # Copyright 2017-2021 Lawrence Livermore National Security, LLC and other
-# Apollo Project Developers. See the top-level COPYRIGHT file for details.
+# Apollo Project Developers. See the top-level LICENSE file for details.
 #
-# SPDX-License-Identifier: (Apache-2.0 OR MIT)
+# SPDX-License-Identifier: (MIT)
 
-#
-# Apollo
-#
+
+###
+###  Apollo
+###
 
 project(APOLLO LANGUAGES CXX C)
 cmake_minimum_required(VERSION 3.9)
-
 set(CMAKE_CXX_STANDARD 14)
 
 
@@ -24,6 +24,7 @@ set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
 set(APOLLO_REQUIRES_PYTHON OFF CACHE STRING "")
 #
 #####
+
 
 # Version information
 set(APOLLO_MAJOR_VERSION 2)
@@ -60,7 +61,6 @@ if (APOLLO_RPATH_OVERRIDES)
    		set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 	endif("${isSystemDir}" STREQUAL "-1")
 endif(APOLLO_RPATH_OVERRIDES)
-
 
 
 #
