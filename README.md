@@ -27,12 +27,10 @@ the following paper:
 
 ## License
 
-Apollo is distributed under the terms of both the MIT license and the
-Apache License (Version 2.0). Users may choose either license, at their
-option.
+Apollo is distributed under the terms of the MIT license.
 
-All new contributions must be made under both the MIT and Apache-2.0
-licenses.
+Copyrights and patents in the Apollo project are retained by contributors.
+No copyright assignment is required to contribute to Apollo.
 
 See [LICENSE](https://github.com/LLNL/apollo/blob/develop/LICENSE) and
 [NOTICE](https://github.com/LLNL/apollo/blob/develop/NOTICE) for details.
