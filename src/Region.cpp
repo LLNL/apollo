@@ -1,49 +1,22 @@
+// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
+// and other Apollo project developers.
+// Produced at the Lawrence Livermore National Laboratory.
+// See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
 
-// Copyright (c) 2020, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory
-//
-// This file is part of Apollo.
-// OCEC-17-092
-// All rights reserved.
-//
-// Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
-// of many collaborators.
-//
-// Apollo was originally created by David Beckingsale, david@llnl.gov
-//
-// For details, see https://github.com/LLNL/apollo.
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-// DEALINGS IN THE SOFTWARE.
-
-#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
-#include <ctime>
+#include <iostream>
 #include <memory>
-#include <utility>
-#include <algorithm>
+#include <regex>
 #include <sstream>
-
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <utility>
 
-#include "assert.h"
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
@@ -85,8 +58,12 @@ void Apollo::Region::train(int step)
       std::vector<float> feature_vector = it2.first;
       feature_vector.push_back(it2.second.first);
       if (Config::APOLLO_RETRAIN_ENABLE) {
+#ifdef ENABLE_OPENCV
         train_time_features.push_back(feature_vector);
         train_time_responses.push_back(it2.second.second);
+#else
+        assert(false && "Retraining requires OpenCV");
+#endif
       }
     }
   } else {
@@ -113,29 +90,39 @@ void Apollo::Region::train(int step)
     fout.close();
   }
 
-  model = ModelFactory::createDecisionTree(apollo->num_policies,
+  model = ModelFactory::createTuningModel(model_name,
+                                           apollo->num_policies,
                                            train_features,
-                                           train_responses);
+                                           train_responses,
+                                           model_params);
 
   if (Config::APOLLO_RETRAIN_ENABLE)
+#ifdef ENABLE_OPENCV
     time_model = ModelFactory::createRegressionTree(train_time_features,
                                                     train_time_responses);
+#else
+    assert(false && "Retraining requires OpenCV");
+#endif
 
   if (Config::APOLLO_STORE_MODELS) {
-    model->store("dtree-step-" + std::to_string(step) + "-rank-" +
+    model->store(model->name + "-step-" + std::to_string(step) + "-rank-" +
                  std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
-    model->store(
-        "dtree-latest"
-        "-rank-" +
-        std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+    model->store(model->name +
+                 "-latest"
+                 "-rank-" +
+                 std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
 
     if (Config::APOLLO_RETRAIN_ENABLE) {
+#ifdef ENABLE_OPENCV
       time_model->store("regtree-step-" + std::to_string(step) + "-rank-" +
                         std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
       time_model->store(
           "regtree-latest"
           "-rank-" +
           std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+#else
+      assert(false && "Retraining requires OpenCV");
+#endif
     }
   }
 }
@@ -180,6 +167,34 @@ Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
     return choice;
 }
 
+void Apollo::Region::parseTuningModel(std::string &model_info)
+{
+  size_t pos = model_info.find(",");
+  model_name = model_info.substr(0, pos);
+
+  // Parse any parameters, return if there are not any.
+  if (std::string::npos == pos) return;
+
+  std::string model_params_str = model_info.substr(pos + 1);
+  // TODO: better error checking and reporting for invalid keys. For now they
+  // are discarded/ignored.
+  std::regex regex("(num_trees|max_depth)=([0-9]+)");
+  std::sregex_token_iterator key =
+      std::sregex_token_iterator(model_params_str.begin(),
+                                 model_params_str.end(),
+                                 regex,
+                                 /* first sub-match */ 1);
+  std::sregex_token_iterator value =
+      std::sregex_token_iterator(model_params_str.begin(),
+                                 model_params_str.end(),
+                                 regex,
+                                 /* second sub-match */ 2);
+  std::sregex_token_iterator end = std::sregex_token_iterator();
+
+  for (; key != end; ++key, ++value)
+    model_params[*key] = *value;
+}
+
 Apollo::Region::Region(
         const int num_features,
         const char  *regionName,
@@ -200,9 +215,12 @@ Apollo::Region::Region(
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
 
-    if (!modelYamlFile.empty()) {
-        model = ModelFactory::loadDecisionTree(apollo->num_policies, modelYamlFile);
-    }
+    parseTuningModel(Config::APOLLO_TUNING_MODEL);
+
+    if (!modelYamlFile.empty())
+      model = ModelFactory::createTuningModel(model_name,
+                                               apollo->num_policies,
+                                               modelYamlFile);
     else {
         // TODO use best_policies to train a model for new region for which there's training data
         size_t pos = Config::APOLLO_INIT_MODEL.find(",");
@@ -224,7 +242,9 @@ Apollo::Region::Region(
             if (pos == std::string::npos)
             {
                 // Load per region model using the region name for the model file.
-                model_file = "dtree-latest-rank-" + std::to_string(apollo->mpiRank) + "-" + std::string(name) + ".yaml";
+                model_file = model_name + "-latest-rank-" +
+                             std::to_string(apollo->mpiRank) + "-" +
+                             std::string(name) + ".yaml";
             }
             else
             {
@@ -234,7 +254,9 @@ Apollo::Region::Region(
 
             if (fileExists(model_file))
                 //std::cout << "Model Load " << model_file << std::endl;
-                model = ModelFactory::loadDecisionTree(apollo->num_policies, model_file);
+                model = ModelFactory::createTuningModel(model_name,
+                                                         apollo->num_policies,
+                                                         model_file);
             else {
                 // Fallback to default model.
                 std::cout << "WARNING: could not load file " << model_file
