@@ -276,6 +276,7 @@ extern "C" void kokkosp_parse_args(int argc, char **argv) {
       std::string((parsed_options.distributed_training ? "0" : "1"));
   settings["APOLLO_TRACE_BEST_POLICIES="] =
       std::string((parsed_options.trace ? "1" : "0"));
+  settings["APOLLO_TUNING_MODEL"] = "RandomForest";
   settings["APOLLO_STORE_MODELS"] = "1";
   settings["APOLLO_INIT_MODEL"] = "RoundRobin";
   settings["APOLLO_REGION_MODEL"] = "1";
@@ -308,13 +309,13 @@ extern "C" void kokkosp_init_library(const int loadSeq,
   for (int x = 0; x < max_choices; ++x) {
     choices[x] = x;
   }
-  putenv("APOLLO_STORE_MODELS=1");
-  putenv("APOLLO_RETRAIN_ENABLE=0");
-  putenv("APOLLO_REGION_MODEL=1");
-  putenv("APOLLO_LOCAL_TRAINING=1");
-  putenv("APOLLO_INIT_MODEL=RoundRobin");
-  putenv("APOLLO_COLLECTIVE_TRAINING=0");
-  putenv("APOLLO_TRACE_BEST_POLICIES=1");
+  putenv(const_cast<char *>("APOLLO_STORE_MODELS=1"));
+  putenv(const_cast<char *>("APOLLO_RETRAIN_ENABLE=0"));
+  putenv(const_cast<char *>("APOLLO_REGION_MODEL=1"));
+  putenv(const_cast<char *>("APOLLO_LOCAL_TRAINING=1"));
+  putenv(const_cast<char *>("APOLLO_INIT_MODEL=RoundRobin"));
+  putenv(const_cast<char *>("APOLLO_COLLECTIVE_TRAINING=0"));
+  putenv(const_cast<char *>("APOLLO_TRACE_BEST_POLICIES=1"));
   apollo = Apollo::instance();
 }
 
@@ -491,7 +492,7 @@ extern "C" void kokkosp_request_values(
   auto iter =
       tuning_regions.emplace(tuningProblem, std::make_pair("", nullptr));
   if (iter.second) {
-    std::string prefix = "dtree-step-0-rank-0-";
+    std::string prefix = "RandomForest-step-0-rank-0-";
     std::string suffix = ".yaml";
     std::string name = get_region_name(tuningProblem);
     constexpr const int apollo_user_file_length = 63;

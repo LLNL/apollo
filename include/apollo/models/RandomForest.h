@@ -1,5 +1,5 @@
-#ifndef APOLLO_MODELS_DECISIONTREE_H
-#define APOLLO_MODELS_DECISIONTREE_H
+#ifndef APOLLO_MODELS_RANDOMFOREST_H
+#define APOLLO_MODELS_RANDOMFOREST_H
 
 #include <string>
 #include <vector>
@@ -11,19 +11,20 @@
 using namespace cv;
 using namespace cv::ml;
 #endif
-class DecisionTreeImpl;
 
-class DecisionTree : public PolicyModel
+class RandomForestImpl;
+
+class RandomForest : public PolicyModel
 {
-
 public:
-  DecisionTree(int num_policies,
+  RandomForest(int num_policies,
                std::vector<std::vector<float> > &features,
                std::vector<int> &responses,
+               unsigned num_trees,
                unsigned max_depth);
-  DecisionTree(int num_policies, std::string path);
+  RandomForest(int num_policies, std::string path);
 
-  ~DecisionTree();
+  ~RandomForest();
 
   int getIndex(void);
   int getIndex(std::vector<float> &features);
@@ -32,9 +33,9 @@ public:
 
 private:
 #ifdef ENABLE_OPENCV
-  Ptr<DTrees> dtree;
+  Ptr<RTrees> rfc;
 #else
-  std::unique_ptr<DecisionTreeImpl> dtree;
+  std::unique_ptr<RandomForestImpl> rfc;
 #endif
 };
 

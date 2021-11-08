@@ -1,12 +1,12 @@
-
 #ifndef APOLLO_REGION_H
 #define APOLLO_REGION_H
 
-#include <vector>
 #include <chrono>
-#include <memory>
-#include <map>
 #include <fstream>
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "apollo/Apollo.h"
 #include "apollo/PolicyModel.h"
@@ -70,6 +70,11 @@ class Apollo::Region {
 
         void collectPendingContexts();
         void train(int step);
+
+        void parseTuningModel(std::string &model_info);
+        // Model information, name and params.
+        std::string model_name;
+        std::unordered_map<std::string, std::string> model_params;
     private:
         //
         Apollo        *apollo;

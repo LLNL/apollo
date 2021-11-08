@@ -1,57 +1,29 @@
+// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
+// and other Apollo project developers.
+// Produced at the Lawrence Livermore National Laboratory.
+// See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
 
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory
-//
-// This file is part of Apollo.
-// OCEC-17-092
-// All rights reserved.
-//
-// Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
-// of many collaborators.
-//
-// Apollo was originally created by David Beckingsale, david@llnl.gov
-//
-// For details, see https://github.com/LLNL/apollo.
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-// DEALINGS IN THE SOFTWARE.
-
-
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-#include <sstream>
-#include <fstream>
+#include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
-#include <typeinfo>
-#include <algorithm>
-#include <iomanip>
-
 #include <execinfo.h>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <vector>
+#include <unordered_map>
 
 #include "apollo/Apollo.h"
 #include "apollo/Logging.h"
-#include "apollo/Region.h"
 #include "apollo/ModelFactory.h"
+#include "apollo/Region.h"
 
-//
 #include "util/Debug.h"
 
 #ifdef ENABLE_MPI
@@ -146,6 +118,7 @@ Apollo::Apollo()
 
     // Initialize config with defaults
     Config::APOLLO_INIT_MODEL          = apolloUtils::safeGetEnv( "APOLLO_INIT_MODEL", "Static,0" );
+    Config::APOLLO_TUNING_MODEL         = apolloUtils::safeGetEnv( "APOLLO_TUNING_MODEL", "RandomForest" );
     Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "0" ) );
     Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "1" ) );
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
@@ -544,26 +517,36 @@ Apollo::train(int step) {
                     fout.close();
             }
 
-            // TODO(cdw): Load prior decisiontree...
-            reg->model = ModelFactory::createDecisionTree(
-                    num_policies,
-                    train_features,
-                    train_responses );
+            reg->model =
+                ModelFactory::createTuningModel(reg->model_name,
+                                                 num_policies,
+                                                 train_features,
+                                                 train_responses,
+                                                 reg->model_params);
+
 
             if (Config::APOLLO_RETRAIN_ENABLE)
+#ifdef ENABLE_OPENCV
               reg->time_model =
                   ModelFactory::createRegressionTree(train_time_features,
                                                      train_time_responses);
+#else
+              throw std::runtime_error("Retraining requires OpenCV");
+#endif
 
-            if( Config::APOLLO_STORE_MODELS ) {
-                reg->model->store( "dtree-step-" + std::to_string( step ) \
-                        + "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml" );
-                reg->model->store( "dtree-latest" \
-                        "-rank-" + std::to_string( rank ) \
-                        + "-" + reg->name + ".yaml" );
+            if (Config::APOLLO_STORE_MODELS) {
+              reg->model->store(
+                  reg->model->name + "-step-" + std::to_string(step) +
+                  "-rank-" + std::to_string(rank) + "-" + reg->name + ".yaml");
 
-                if (Config::APOLLO_RETRAIN_ENABLE) {
+              reg->model->store(reg->model->name +
+                                "-latest"
+                                "-rank-" +
+                                std::to_string(rank) + "-" + reg->name +
+                                ".yaml");
+
+              if (Config::APOLLO_RETRAIN_ENABLE) {
+#ifdef ENABLE_OPENCV
                   reg->time_model->store(
                       "regtree-step-" + std::to_string(step) + "-rank-" +
                       std::to_string(rank) + "-" + reg->name + ".yaml");
@@ -571,75 +554,78 @@ Apollo::train(int step) {
                       "regtree-latest"
                       "-rank-" +
                       std::to_string(rank) + "-" + reg->name + ".yaml");
+#else
+                  throw std::runtime_error("Retraining requires OpenCV");
+#endif
                 }
             }
         }
         else {
-            if( Config::APOLLO_RETRAIN_ENABLE && reg->time_model ) {
-                //std::cout << "=== BEST POLICIES TRAINED REGION " << reg->name << " ===" << std::endl;
-                //for( auto &b : reg->best_policies ) {
-                //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
-                //        << b.second.first << " T: " << b.second.second << std::endl;
-                //}
-                //std::cout << ".-" << std::endl;
+          if (Config::APOLLO_RETRAIN_ENABLE && reg->time_model) {
+#ifdef ENABLE_OPENCV
+            // std::cout << "=== BEST POLICIES TRAINED REGION " << reg->name <<
+            // " ===" << std::endl; for( auto &b : reg->best_policies ) {
+            //    std::cout << "[ " << (int)b.first[0] << " ]: P:" \
+                //        << b.second.first << " T: " << b.second.second <<
+            //        std::endl;
+            //}
+            // std::cout << ".-" << std::endl;
 
-                std::stringstream trace_out;
-                // Check drifing regions for re-training
-                int drifting = 0;
-                for(auto &it2 : reg->best_policies) {
-                    double time_avg = it2.second.second;
+            std::stringstream trace_out;
+            // Check drifing regions for re-training
+            int drifting = 0;
+            for (auto &it2 : reg->best_policies) {
+              double time_avg = it2.second.second;
 
-                    std::vector< float > feature_vector = it2.first;
-                    feature_vector.push_back( it2.second.first );
-                    double time_pred = reg->time_model->getTimePrediction( feature_vector );
+              std::vector<float> feature_vector = it2.first;
+              feature_vector.push_back(it2.second.first);
+              double time_pred =
+                  reg->time_model->getTimePrediction(feature_vector);
 
-                    if( time_avg > ( Config::APOLLO_RETRAIN_TIME_THRESHOLD * time_pred ) ) {
-                        drifting++;
-                        if( Config::APOLLO_TRACE_RETRAIN ) {
-                            std::ios_base::fmtflags f( trace_out.flags() );
-                            trace_out << std::setprecision(3) << std::scientific \
-                                << "step " << step \
-                                << " rank " << rank \
-                                << " drift " << reg->name \
-                                << "[ "; \
-                                for(auto &f : it2.first ) { \
-                                    trace_out << (int)f << ", "; \
-                                } \
-                            trace_out.flags( f ); \
-                                trace_out << "] P " << it2.second.first \
-                                << " time_avg " << time_avg \
-                                << " time_pred " << time_pred \
-                                << " time ratio " << ( time_avg / time_pred ) \
-                                << std::endl;
-                        }
-                    }
-                }
-
-                if( drifting > 0 &&
-                        ( static_cast<float>(drifting) / reg->best_policies.size() )
-                        >=
-                        Config::APOLLO_RETRAIN_REGION_THRESHOLD ) {
-                    if( Config::APOLLO_TRACE_RETRAIN ) {
-                        trace_out << "step " << step \
-                            << " rank " << rank \
-                            << " retrain " << reg->name \
-                            << " drift ratio " \
-                            << drifting << " / " << reg->best_policies.size() \
+              if (time_avg >
+                  (Config::APOLLO_RETRAIN_TIME_THRESHOLD * time_pred)) {
+                drifting++;
+                if (Config::APOLLO_TRACE_RETRAIN) {
+                  std::ios_base::fmtflags f(trace_out.flags());
+                  trace_out << std::setprecision(3) << std::scientific
+                            << "step " << step << " rank " << rank << " drift "
+                            << reg->name << "[ ";
+                  for (auto &f : it2.first) {
+                    trace_out << (int)f << ", ";
+                  }
+                  trace_out.flags(f);
+                  trace_out << "] P " << it2.second.first << " time_avg "
+                            << time_avg << " time_pred " << time_pred
+                            << " time ratio " << (time_avg / time_pred)
                             << std::endl;
-                    }
-                    //reg->model = ModelFactory::createRandom( num_policies );
-                    reg->model = ModelFactory::createRoundRobin( num_policies );
                 }
-
-                if( Config::APOLLO_TRACE_RETRAIN ) {
-                    std::cout << trace_out.str();
-                    std::ofstream fout("step-" + std::to_string(step) \
-                            + "-rank-" + std::to_string(rank) \
-                            + "-retrain.txt");
-                    fout << trace_out.str();
-                    fout.close();
-                }
+              }
             }
+
+            if (drifting > 0 &&
+                (static_cast<float>(drifting) / reg->best_policies.size()) >=
+                    Config::APOLLO_RETRAIN_REGION_THRESHOLD) {
+              if (Config::APOLLO_TRACE_RETRAIN) {
+                trace_out << "step " << step << " rank " << rank << " retrain "
+                          << reg->name << " drift ratio " << drifting << " / "
+                          << reg->best_policies.size() << std::endl;
+              }
+              // reg->model = ModelFactory::createRandom( num_policies );
+              reg->model = ModelFactory::createRoundRobin(num_policies);
+            }
+
+            if (Config::APOLLO_TRACE_RETRAIN) {
+              std::cout << trace_out.str();
+              std::ofstream fout("step-" + std::to_string(step) + "-rank-" +
+                                 std::to_string(rank) + "-retrain.txt");
+              fout << trace_out.str();
+              fout.close();
+            }
+
+#else
+            throw std::runtime_error("Retraining requires OpenCV");
+#endif
+          }
         }
 
         reg->best_policies.clear();
