@@ -21,6 +21,7 @@ class Config {
         static int APOLLO_PER_REGION_TRAIN_PERIOD;
         static int APOLLO_TRACE_CSV;
         static std::string APOLLO_INIT_MODEL;
+        static std::string APOLLO_TUNING_MODEL;
         static std::string APOLLO_TRACE_CSV_FOLDER_SUFFIX;
 
     private:

@@ -45,7 +45,10 @@ set(CMAKE_CXX_STANDARD 14)
 #
 # Options
 #
-option(ENABLE_MPI "Require and enabled MPI for collective training?" ON)
+option(ENABLE_MPI "Require and enable MPI for collective training" OFF)
+option(ENABLE_OpenCV "Require and enable OpenCV for ML models" OFF)
+option(ENABLE_JIT_DTREE
+"Enable JIT generated DecisionTree eval functions (supported only by Apollo implementation)" OFF)
 #
 set(APOLLO_ENABLE_TESTS    OFF  CACHE STRING "")
 set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
@@ -173,8 +176,15 @@ if (ENABLE_MPI)
     endif()
 endif()
 
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+if (ENABLE_OPENCV)
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    add_definitions(-DENABLE_OPENCV)
+endif()
+
+if (ENABLE_JIT_DTREE)
+  add_definitions(-DENABLE_JIT_DTREE)
+endif()
 
 if(APOLLO_REQUIRES_PYTHON)
     find_package(PythonInterp 2.7 REQUIRED)
@@ -198,7 +208,6 @@ endif(APOLLO_REQUIRES_PYTHON)
 #
 
 include_directories(./src ./include ${PROJECT_BINARY_DIR}/include)
-include_directories("${RAJA_DIR}/include ")
 
 add_subdirectory(src)
 
