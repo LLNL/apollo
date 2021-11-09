@@ -241,8 +241,8 @@ struct options {
   bool distributed_training;
   bool trace;
 };
-
-extern "C" void kokkosp_parse_args(int argc, char **argv) {
+namespace apollo {
+void kokkosp_parse_args(int argc, char **argv) {
   options parsed_options;
   for (int x = 0; x < argc; ++x) {
     std::string arg(argv[x]);
@@ -285,7 +285,7 @@ extern "C" void kokkosp_parse_args(int argc, char **argv) {
   }
 }
 
-extern "C" void kokkosp_print_help(char *) {
+void kokkosp_print_help(char *) {
   std::string OPTIONS_BLOCK =
       R"(
 Apollo Connector for Kokkos, supported options
@@ -301,10 +301,10 @@ Apollo Connector for Kokkos, supported options
 }
 
 Apollo *apollo;
-extern "C" void kokkosp_init_library(const int loadSeq,
+void kokkosp_init_library(const int loadSeq,
                                      const uint64_t interfaceVer,
                                      const uint32_t devInfoCount,
-                                     void *deviceInfo) {
+                                     Kokkos::Profiling::KokkosPDeviceInfo *deviceInfo) {
   printf("Initializing Apollo Tuning adapter\n");
   for (int x = 0; x < max_choices; ++x) {
     choices[x] = x;
@@ -324,7 +324,7 @@ using RegionData = std::pair<std::string, Apollo::Region *>;
 static std::map<size_t, std::pair<Apollo::Region *, Apollo::RegionContext *>>
     tuned_contexts;
 static std::map<variableSet, RegionData> tuning_regions;
-extern "C" void kokkosp_finalize_library() {
+void kokkosp_finalize_library() {
   printf("Finalizing Apollo Tuning adapter\n");
   for (auto kv : tuning_regions) {
     RegionData data = kv.second;
@@ -338,55 +338,55 @@ void invoke_fence(uint32_t devID) {
     helper_functions.fence(devID);
   }
 }
-extern "C" void kokkosp_provide_tool_programming_interface(
+void kokkosp_provide_tool_programming_interface(
     uint32_t num_actions,
     Kokkos::Tools::Experimental::ToolProgrammingInterface action) {
   helper_functions = action;
 }
 
-extern "C" void kokkosp_request_tool_settings(
+void kokkosp_request_tool_settings(
     uint32_t num_responses,
     Kokkos::Tools::Experimental::ToolSettings *response) {
   response->requires_global_fencing = false;
 }
 
-extern "C" void kokkosp_begin_parallel_for(const char *name,
+void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
                                            uint64_t *kID) {
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
+void kokkosp_end_parallel_for(const uint64_t kID) {
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
-extern "C" void kokkosp_begin_parallel_scan(const char *name,
+void kokkosp_begin_parallel_scan(const char *name,
                                             const uint32_t devID,
                                             uint64_t *kID) {
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
+void kokkosp_end_parallel_scan(const uint64_t kID) {
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
-extern "C" void kokkosp_begin_parallel_reduce(const char *name,
+void kokkosp_begin_parallel_reduce(const char *name,
                                               const uint32_t devID,
                                               uint64_t *kID) {
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
+void kokkosp_end_parallel_reduce(const uint64_t kID) {
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
-extern "C" void
+void
 kokkosp_declare_output_type(const char *name, const size_t id,
                             Kokkos::Tools::Experimental::VariableInfo *info) {
   auto *metadata = new VariableDatabaseData();
@@ -396,7 +396,7 @@ kokkosp_declare_output_type(const char *name, const size_t id,
   associate_candidates(id, info);
 }
 
-extern "C" void
+void
 kokkosp_declare_input_type(const char *name, const size_t id,
                            Kokkos::Tools::Experimental::VariableInfo *info) {
   auto *metadata = new VariableDatabaseData();
@@ -459,9 +459,9 @@ bool file_exists(std::string path) {
   struct stat buffer;
   return (stat(path.c_str(), &buffer) == 0);
 }
-extern "C" void kokkosp_request_values(
+void kokkosp_request_values(
     size_t contextId, size_t numContextVariables,
-    Kokkos::Tools::Experimental::VariableValue *contextValues,
+    const Kokkos::Tools::Experimental::VariableValue *contextValues,
     size_t numTuningVariables,
     Kokkos::Tools::Experimental::VariableValue *tuningValues) {
   if (numTuningVariables == 0) {
@@ -532,7 +532,7 @@ extern "C" void kokkosp_request_values(
   }
 }
 
-extern "C" void kokkosp_end_context(size_t contextId) {
+void kokkosp_end_context(size_t contextId, Kokkos::Tools::Experimental::VariableValue) {
   auto search = tuned_contexts.find(contextId);
   if (search == tuned_contexts.end()) {
     return;
@@ -548,3 +548,113 @@ extern "C" void kokkosp_end_context(size_t contextId) {
     num_unconverged_regions = 0; // TODO: better
   }
 }
+} // end namespace apollo
+
+__attribute__((weak)) extern "C" void kokkosp_parse_args(int argc, char **argv) {
+  apollo::kokkosp_parse_args(argc, argv);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_print_help(char * name) {
+  apollo::kokkosp_print_help(name);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_init_library(const int loadSeq,
+                                     const uint64_t interfaceVer,
+                                     const uint32_t devInfoCount,
+                                     Kokkos::Profiling::KokkosPDeviceInfo *deviceInfo) {
+  apollo::kokkosp_init_library(loadSeq, interfaceVer, devInfoCount, deviceInfo);
+}
+
+
+__attribute__((weak)) extern "C" void kokkosp_finalize_library() {
+  apollo::kokkosp_finalize_library();
+}
+__attribute__((weak)) extern "C" void kokkosp_provide_tool_programming_interface(
+    uint32_t num_actions,
+    Kokkos::Tools::Experimental::ToolProgrammingInterface action) {
+  apollo::kokkosp_provide_tool_programming_interface(num_actions, action);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_request_tool_settings(
+    uint32_t num_responses,
+    Kokkos::Tools::Experimental::ToolSettings *response) {
+  apollo::kokkosp_request_tool_settings(num_responses, response);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_begin_parallel_for(const char *name,
+                                           const uint32_t devID,
+                                           uint64_t *kID) {
+  apollo::kokkosp_begin_parallel_for(name, devID, kID);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
+  apollo::kokkosp_end_parallel_for(kID);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_begin_parallel_scan(const char *name,
+                                            const uint32_t devID,
+                                            uint64_t *kID) {
+  apollo::kokkosp_begin_parallel_scan(name, devID, kID);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
+  apollo::kokkosp_end_parallel_scan(kID);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_begin_parallel_reduce(const char *name,
+                                              const uint32_t devID,
+                                              uint64_t *kID) {
+  apollo::kokkosp_begin_parallel_reduce(name, devID, kID);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
+  apollo::kokkosp_end_parallel_reduce(kID);
+}
+
+__attribute__((weak)) extern "C" void
+kokkosp_declare_output_type(const char *name, const size_t id,
+                            Kokkos::Tools::Experimental::VariableInfo *info) {
+ apollo::kokkosp_declare_output_type(name, id, info);
+}
+
+__attribute__((weak)) extern "C" void
+kokkosp_declare_input_type(const char *name, const size_t id,
+                           Kokkos::Tools::Experimental::VariableInfo *info) {
+ apollo::kokkosp_declare_input_type(name, id, info);
+}
+
+
+__attribute__((weak)) extern "C" void kokkosp_request_values(
+    size_t contextId, size_t numContextVariables,
+    const Kokkos::Tools::Experimental::VariableValue *contextValues,
+    size_t numTuningVariables,
+    Kokkos::Tools::Experimental::VariableValue *tuningValues) {
+  apollo::kokkosp_request_values(contextId, numContextVariables, contextValues, numTuningVariables, tuningValues);
+}
+
+__attribute__((weak)) extern "C" void kokkosp_end_context(size_t contextId, Kokkos::Tools::Experimental::VariableValue v) {
+  apollo::kokkosp_end_context(contextId, v);
+}
+
+namespace apollo {
+  extern Kokkos::Tools::Experimental::EventSet get_event_set() {
+    Kokkos::Tools::Experimental::EventSet event_set;
+    event_set.begin_parallel_for = apollo::kokkosp_begin_parallel_for;
+    event_set.begin_parallel_reduce = apollo::kokkosp_begin_parallel_reduce;
+    event_set.begin_parallel_scan = apollo::kokkosp_begin_parallel_scan;
+    event_set.end_parallel_for = apollo::kokkosp_end_parallel_for;
+    event_set.end_parallel_reduce = apollo::kokkosp_end_parallel_reduce;
+    event_set.end_parallel_scan = apollo::kokkosp_end_parallel_scan;
+    event_set.init = apollo::kokkosp_init_library;
+    event_set.finalize = apollo::kokkosp_finalize_library;
+    event_set.parse_args = apollo::kokkosp_parse_args;
+    event_set.print_help = apollo::kokkosp_print_help;
+    event_set.declare_input_type = apollo::kokkosp_declare_input_type;
+    event_set.declare_output_type = apollo::kokkosp_declare_output_type;
+    event_set.request_output_values = apollo::kokkosp_request_values;
+    event_set.end_tuning_context = apollo::kokkosp_end_context; 
+    event_set.request_tool_settings = apollo::kokkosp_request_tool_settings; 
+    event_set.provide_tool_programming_interface = apollo::kokkosp_provide_tool_programming_interface; 
+    return event_set;
+  }
+} // end namespace apollo
