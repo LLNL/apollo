@@ -94,7 +94,7 @@ std::unique_ptr<TimingModel> ModelFactory::createRegressionTree(
 #ifdef ENABLE_OPENCV
   return std::make_unique<RegressionTree>(features, responses);
 #else
-  assert(false && "Regression trees require OpenCV");
+  throw std::runtime_error("Regression trees require OpenCV");
   return nullptr;
 #endif
 }
