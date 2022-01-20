@@ -38,8 +38,6 @@ class Apollo
         //
         int mpiSize;   // 1 if no MPI
         int mpiRank;   // 0 if no MPI
-        //
-        int numThreads;  // <-- how many to use / are in use
 
         // NOTE(chad): We default to walk_distance of 2 so we can
         //             step out of this method, then step out of
