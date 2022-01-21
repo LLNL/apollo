@@ -20,7 +20,6 @@
 #include <unordered_map>
 
 #include "apollo/Apollo.h"
-#include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 #include "apollo/Region.h"
 
@@ -180,8 +179,6 @@ Apollo::Apollo()
     mpiSize = 1;
     mpiRank = 0;
 #endif //ENABLE_MPI
-
-    log("Initialized.");
 
     return;
 }

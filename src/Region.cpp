@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "apollo/Apollo.h"
-#include "apollo/Logging.h"
 #include "apollo/ModelFactory.h"
 #include "apollo/Region.h"
 
