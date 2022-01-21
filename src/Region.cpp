@@ -90,7 +90,7 @@ void Apollo::Region::train(int step)
   }
 
   model = ModelFactory::createTuningModel(model_name,
-                                           apollo->num_policies,
+                                           num_policies,
                                            train_features,
                                            train_responses,
                                            model_params);
@@ -194,22 +194,18 @@ void Apollo::Region::parseTuningModel(std::string &model_info)
     model_params[*key] = *value;
 }
 
-Apollo::Region::Region(
-        const int num_features,
-        const char  *regionName,
-        int          numAvailablePolicies,
-        Apollo::CallbackDataPool *callbackPool,
-        const std::string &modelYamlFile)
-    :
-        num_features(num_features), current_context(nullptr), idx(0), callback_pool(callbackPool)
+Apollo::Region::Region(const int num_features,
+                       const char *regionName,
+                       int num_policies,
+                       Apollo::CallbackDataPool *callbackPool,
+                       const std::string &modelYamlFile)
+    : num_features(num_features),
+      num_policies(num_policies),
+      current_context(nullptr),
+      idx(0),
+      callback_pool(callbackPool)
 {
     apollo = Apollo::instance();
-    if( Config::APOLLO_NUM_POLICIES ) {
-        apollo->num_policies = Config::APOLLO_NUM_POLICIES;
-    }
-    else {
-        apollo->num_policies = numAvailablePolicies;
-    }
 
     strncpy(name, regionName, sizeof(name)-1 );
     name[ sizeof(name)-1 ] = '\0';
@@ -218,7 +214,7 @@ Apollo::Region::Region(
 
     if (!modelYamlFile.empty())
       model = ModelFactory::createTuningModel(model_name,
-                                               apollo->num_policies,
+                                               num_policies,
                                                modelYamlFile);
     else {
         // TODO use best_policies to train a model for new region for which there's training data
@@ -227,12 +223,12 @@ Apollo::Region::Region(
         if ("Static" == model_str)
         {
             int policy_choice = std::stoi(Config::APOLLO_INIT_MODEL.substr(pos + 1));
-            if (policy_choice < 0 || policy_choice >= numAvailablePolicies)
+            if (policy_choice < 0 || policy_choice >= num_policies)
             {
                 std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
                 abort();
             }
-            model = ModelFactory::createStatic(apollo->num_policies, policy_choice);
+            model = ModelFactory::createStatic(num_policies, policy_choice);
             //std::cout << "Model Static policy " << policy_choice << std::endl;
         }
         else if ("Load" == model_str)
@@ -254,23 +250,23 @@ Apollo::Region::Region(
             if (fileExists(model_file))
                 //std::cout << "Model Load " << model_file << std::endl;
                 model = ModelFactory::createTuningModel(model_name,
-                                                         apollo->num_policies,
+                                                         num_policies,
                                                          model_file);
             else {
                 // Fallback to default model.
                 std::cout << "WARNING: could not load file " << model_file
                           << ", falling back to default Static, 0" << std::endl;
-                model = ModelFactory::createStatic(apollo->num_policies, 0);
+                model = ModelFactory::createStatic(num_policies, 0);
             }
         }
         else if ("Random" == model_str)
         {
-            model = ModelFactory::createRandom(apollo->num_policies);
+            model = ModelFactory::createRandom(num_policies);
             //std::cout << "Model Random" << std::endl;
         }
         else if ("RoundRobin" == model_str)
         {
-            model = ModelFactory::createRoundRobin(apollo->num_policies);
+            model = ModelFactory::createRoundRobin(num_policies);
             //std::cout << "Model RoundRobin" << std::endl;
         }
         else if ("Optimal" == model_str) {

@@ -27,14 +27,6 @@ class Apollo
         struct RegionContext;
         struct CallbackDataPool;
 
-        //TODO(cdw): This is serving as an override that is defined by an
-        //           environment variable.  Apollo::Region's are able to
-        //           have different policy counts, so a global setting here
-        //           should indicate that it is an override, or find
-        //           a better place to live.  Leaving it for now, as a low-
-        //           priority task.
-        int  num_policies;
-
         //
         int mpiSize;   // 1 if no MPI
         int mpiRank;   // 0 if no MPI

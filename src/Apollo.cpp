@@ -123,7 +123,6 @@ Apollo::Apollo()
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
     Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
-    Config::APOLLO_NUM_POLICIES        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_NUM_POLICIES", "0" ) );
     Config::APOLLO_GLOBAL_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_GLOBAL_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_PER_REGION_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_PER_REGION_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
@@ -516,7 +515,7 @@ Apollo::train(int step) {
 
             reg->model =
                 ModelFactory::createTuningModel(reg->model_name,
-                                                 num_policies,
+                                                 reg->num_policies,
                                                  train_features,
                                                  train_responses,
                                                  reg->model_params);

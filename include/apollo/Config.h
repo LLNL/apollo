@@ -8,7 +8,6 @@ class Config {
         static int APOLLO_SINGLE_MODEL;
         static int APOLLO_REGION_MODEL;
         static int APOLLO_TRACE_MEASURES;
-        static int APOLLO_NUM_POLICIES;
         static int APOLLO_TRACE_POLICY;
         static int APOLLO_RETRAIN_ENABLE;
         static float APOLLO_RETRAIN_TIME_THRESHOLD;

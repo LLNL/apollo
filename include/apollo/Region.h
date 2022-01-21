@@ -51,6 +51,8 @@ class Apollo::Region {
 
         int idx;
         int      num_features;
+        int num_policies;
+
         int      reduceBestPolicies(int step);
         //
         // Application specific callback data pool associated with the region, deleted by apollo.
