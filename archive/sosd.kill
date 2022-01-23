@@ -1,4 +1,0 @@
-#!/bin/bash
-# The stop command will propagate to the aggregator...
-${SOS_BUILD_DIR}/bin/sosd_stop
-#killall sosd
