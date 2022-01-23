@@ -17,10 +17,10 @@ class DecisionTree : public PolicyModel
 {
 
 public:
-  DecisionTree(int num_policies,
-               std::vector<std::vector<float> > &features,
-               std::vector<int> &responses,
-               unsigned max_depth);
+  DecisionTree(
+      int num_policies,
+      std::vector<std::tuple<std::vector<float>, int, double> > &measures,
+      unsigned max_depth);
   DecisionTree(int num_policies, std::string path);
 
   ~DecisionTree();

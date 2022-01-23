@@ -1,6 +1,7 @@
-// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
-// Apollo project developers. Produced at the Lawrence Livermore National
-// Laboratory. See the top-level LICENSE file for details.
+// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
+// and other Apollo project developers.
+// Produced at the Lawrence Livermore National Laboratory.
+// See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include <iostream>
@@ -8,6 +9,8 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
+#include "apollo-test.h"
+#include <mpi.h>
 
 #define NUM_FEATURES 1
 #define NUM_POLICIES 4
@@ -31,12 +34,18 @@ int main()
 {
   fprintf(stdout, "testing Apollo.\n");
 
+  MPI_Init(NULL, NULL);
+
   int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  printf("rank %d REPORTING\n", rank);
 
   Apollo *apollo = Apollo::instance();
 
   Apollo::Region *r =
       new Apollo::Region(NUM_FEATURES, "test-region1", NUM_POLICIES);
+  Apollo::Region *r2 =
+      new Apollo::Region(NUM_FEATURES, "test-region2", NUM_POLICIES);
 
   int match;
   // Outer loop to simulate iterative execution of inner region, install tuned
@@ -82,6 +91,8 @@ int main()
     printf("PASSED\n");
   else
     printf("FAILED\n");
+
+  MPI_Finalize();
 
   return 0;
 }

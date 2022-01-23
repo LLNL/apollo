@@ -46,11 +46,9 @@ class Apollo
     private:
         Apollo();
         //
-        void gatherReduceCollectiveTrainingData(int step);
+        void gatherCollectiveTrainingData(int step);
         // Key: region name, value: region raw pointer
         std::map<std::string, Apollo::Region *> regions;
-        // Key: region name, value: map key: num_elements, value: policy_index, time_avg
-        std::map< std::vector< float >, std::pair< int, double > > best_policies_global;
         // Count total number of region invocations
         unsigned long long region_executions;
 }; //end: Apollo

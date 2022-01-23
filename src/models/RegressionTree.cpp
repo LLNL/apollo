@@ -1,35 +1,7 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
+// Copyright (c) 2021, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory
-//
-// This file is part of Apollo.
-// OCEC-17-092
-// All rights reserved.
-//
-// Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
-// of many collaborators.
-//
-// Apollo was originally created by David Beckingsale, david@llnl.gov
-//
-// For details, see https://github.com/LLNL/apollo.
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-// DEALINGS IN THE SOFTWARE.
-
+// See the top-level LICENSE file for details
+// SPDX-License-Identifier: MIT
 
 #include <map>
 #include <string>
@@ -39,37 +11,47 @@
 #include <algorithm>
 
 #include "apollo/models/RegressionTree.h"
+#include "models/preprocessing/Preprocessing.h"
 
 using namespace std;
 
 
-RegressionTree::RegressionTree(std::vector< std::vector<float> > &features, std::vector<float > &responses)
-    : TimingModel( "RegressionTree" )
+RegressionTree::RegressionTree(
+    std::vector<std::tuple<std::vector<float>, int, double> > &measures)
+    : TimingModel("RegressionTree")
 {
-    //std::chrono::steady_clock::time_point t1, t2;
-    //t1 = std::chrono::steady_clock::now();
+  std::vector<std::vector<float>> features;
+  std::vector<int> responses;
+  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
+  Preprocessing::findMinMetricPolicyByFeatures(measures,
+                                               features,
+                                               responses,
+                                               min_metric_policies);
+  // std::chrono::steady_clock::time_point t1, t2;
+  // t1 = std::chrono::steady_clock::now();
 
-    //
-    //dtree = KNearest::create();
-    //
+  //
+  // dtree = KNearest::create();
+  //
 
-    ////dtree = DTrees::create();
-    dtree = RTrees::create();
-    dtree->setMinSampleCount(1);
-    dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 0.001 ) );
-    //dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER, 50, 0.01 ) );
-    //dtree->setMaxDepth(8);
-    dtree->setRegressionAccuracy(1e-6);
-    dtree->setUseSurrogates(false);
-    dtree->setCVFolds(0);
-    dtree->setUse1SERule(false);
-    dtree->setTruncatePrunedTree(false);
-    dtree->setPriors(Mat());
+  ////dtree = DTrees::create();
+  dtree = RTrees::create();
+  dtree->setMinSampleCount(1);
+  dtree->setTermCriteria(
+      TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 50, 0.001));
+  // dtree->setTermCriteria( TermCriteria(  TermCriteria::MAX_ITER, 50, 0.01 )
+  // ); dtree->setMaxDepth(8);
+  dtree->setRegressionAccuracy(1e-6);
+  dtree->setUseSurrogates(false);
+  dtree->setCVFolds(0);
+  dtree->setUse1SERule(false);
+  dtree->setTruncatePrunedTree(false);
+  dtree->setPriors(Mat());
 
-    Mat fmat;
-    for(auto &i : features) {
-        Mat tmp(1, i.size(), CV_32FC1, &i[0]);
-        fmat.push_back(tmp);
+  Mat fmat;
+  for (auto &i : features) {
+    Mat tmp(1, i.size(), CV_32FC1, &i[0]);
+    fmat.push_back(tmp);
     }
 
     Mat rmat;
@@ -137,7 +119,7 @@ RegressionTree::getTimePrediction(std::vector<float> &features)
     //double duration = std::chrono::duration<double>(t2 - t1).count();
     //std::cout << "predict duration: " <<  duration << " choice: " << choice << endl; //ggout
     //std::cout << "Features: [ ";
-    //for(auto &i: features) 
+    //for(auto &i: features)
     //    std::cout << i;
     //std::cout << " ] ->  " << choice << std::endl;
 

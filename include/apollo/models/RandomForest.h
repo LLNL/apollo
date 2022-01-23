@@ -17,11 +17,11 @@ class RandomForestImpl;
 class RandomForest : public PolicyModel
 {
 public:
-  RandomForest(int num_policies,
-               std::vector<std::vector<float> > &features,
-               std::vector<int> &responses,
-               unsigned num_trees,
-               unsigned max_depth);
+  RandomForest(
+      int num_policies,
+      std::vector<std::tuple<std::vector<float>, int, double> > &measures,
+      unsigned num_trees,
+      unsigned max_depth);
   RandomForest(int num_policies, std::string path);
 
   ~RandomForest();

@@ -1,20 +1,23 @@
-// Copyright (c) 2021, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory
-// See the top-level LICENSE file for details
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
-#include <map>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <iomanip>
-#include <vector>
-#include <algorithm>
+#include "apollo/models/RandomForest.h"
 
 #include <sys/stat.h>
 
-#include "apollo/models/RandomForest.h"
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "models/impl/RandomForestImpl.h"
+#include "models/preprocessing/Preprocessing.h"
 
 #ifdef ENABLE_OPENCV
 #include <opencv2/core/types.hpp>
@@ -22,9 +25,10 @@
 
 using namespace std;
 
-static inline bool fileExists(std::string path) {
-    struct stat stbuf;
-    return (stat(path.c_str(), &stbuf) == 0);
+static inline bool fileExists(std::string path)
+{
+  struct stat stbuf;
+  return (stat(path.c_str(), &stbuf) == 0);
 }
 
 RandomForest::RandomForest(int num_policies, std::string path)
@@ -47,17 +51,25 @@ RandomForest::RandomForest(int num_policies, std::string path)
   return;
 }
 
-RandomForest::RandomForest(int num_policies,
-                           std::vector<std::vector<float> > &features,
-                           std::vector<int> &responses,
-                           unsigned num_trees,
-                           unsigned max_depth)
+RandomForest::RandomForest(
+    int num_policies,
+    std::vector<std::tuple<std::vector<float>, int, double>> &measures,
+    unsigned num_trees,
+    unsigned max_depth)
     : PolicyModel(num_policies, "RandomForest", false)
 {
+  std::vector<std::vector<float>> features;
+  std::vector<int> responses;
+  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
+  Preprocessing::findMinMetricPolicyByFeatures(measures,
+                                               features,
+                                               responses,
+                                               min_metric_policies);
 #ifdef ENABLE_OPENCV
   rfc = RTrees::create();
-  rfc->setTermCriteria(
-      TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, num_trees, 0.01));
+  rfc->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS,
+                                    num_trees,
+                                    0.01));
 
   rfc->setMaxDepth(max_depth);
 
@@ -95,7 +107,4 @@ int RandomForest::getIndex(std::vector<float> &features)
   return rfc->predict(features);
 }
 
-void RandomForest::store(const std::string &filename)
-{
-  rfc->save(filename);
-}
+void RandomForest::store(const std::string &filename) { rfc->save(filename); }

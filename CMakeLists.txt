@@ -1,35 +1,7 @@
-
-# Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-# Produced at the Lawrence Livermore National Laboratory
-#
-# This file is part of Apollo.
-# OCEC-17-092
-# All rights reserved.
-#
-# Apollo is currently developed by Chad Wood, wood67@llnl.gov, with the help
-# of many collaborators.
-#
-# Apollo was originally created by David Beckingsale, david@llnl.gov
-#
-# For details, see https://github.com/LLNL/apollo.
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
+# Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+# Apollo project developers. Produced at the Lawrence Livermore National
+# Laboratory. See the top-level LICENSE file for details.
+# SPDX-License-Identifier: MIT
 
 #
 # Apollo
@@ -52,7 +24,6 @@ option(ENABLE_JIT_DTREE
 #
 set(APOLLO_ENABLE_TESTS    OFF  CACHE STRING "")
 set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
-set(APOLLO_REQUIRES_PYTHON OFF CACHE STRING "")
 #
 #####
 
@@ -167,40 +138,19 @@ install(FILES ${PROJECT_BINARY_DIR}/apollo.pc
 #
 
 if (ENABLE_MPI)
-    find_package(MPI REQUIRED)
-    if (MPI_FOUND)
-        message(STATUS "---- MPI:  Found!")
-        add_definitions(-DENABLE_MPI)
-    else()
-        message(STATUS "---- MPI:  ** ERROR ** Could not locate MPI installation.")
-    endif()
+  find_package(MPI REQUIRED)
+  add_definitions(-DENABLE_MPI)
 endif()
 
 if (ENABLE_OPENCV)
-    find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    add_definitions(-DENABLE_OPENCV)
+  find_package(OpenCV REQUIRED)
+  include_directories(${OpenCV_INCLUDE_DIRS})
+  add_definitions(-DENABLE_OPENCV)
 endif()
 
 if (ENABLE_JIT_DTREE)
   add_definitions(-DENABLE_JIT_DTREE)
 endif()
-
-if(APOLLO_REQUIRES_PYTHON)
-    find_package(PythonInterp 2.7 REQUIRED)
-    find_packagE(PythonLibs 2.7 REQUIRED)
-    if(PYTHONLIBS_FOUND)
-        message(STATUS "---- PYTHON:  Found!")
-        message(STATUS "---- PYTHON:    PYTHON_INCLUDE_DIRS       = ${PYTHON_INCLUDE_DIRS}")
-        message(STATUS "---- PYTHON:    PYTHON_LIBRARIES          = ${PYTHON_LIBRARIES}")
-        message(STATUs "---- PYTHON:    PYTHONLIBS_VERSION_STRING = ${PYTHONLIBS_VERSION_STRING}")
-        include_directories(${PYTHON_INCLUDE_DIRS})
-        list(APPEND APOLLO_EXTERNAL_LIBS ${PYTHON_LIBRARIES})
-    else()
-        message(STATUS "---- PYTHON:  ** ERROR ** Could not locate Python installation.")
-    endif(PYTHONLIBS_FOUND)
-
-endif(APOLLO_REQUIRES_PYTHON)
 
 #####
 #

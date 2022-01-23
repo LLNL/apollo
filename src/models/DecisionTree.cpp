@@ -1,28 +1,33 @@
-// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
+
+#include "apollo/models/DecisionTree.h"
+
+#include <sys/stat.h>
 
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <map>
-#include <string>
+#include <numeric>
 #include <sstream>
-#include <sys/stat.h>
+#include <string>
+#include <tuple>
 #include <vector>
 
-#include "apollo/models/DecisionTree.h"
 #include "models/impl/DecisionTreeImpl.h"
+#include "models/preprocessing/Preprocessing.h"
 
 #ifdef ENABLE_OPENCV
 #include <opencv2/core/types.hpp>
 #endif
 
-static inline bool fileExists(std::string path) {
-    struct stat stbuf;
-    return (stat(path.c_str(), &stbuf) == 0);
+static inline bool fileExists(std::string path)
+{
+  struct stat stbuf;
+  return (stat(path.c_str(), &stbuf) == 0);
 }
 
 DecisionTree::DecisionTree(int num_policies, std::string path)
@@ -46,12 +51,19 @@ DecisionTree::DecisionTree(int num_policies, std::string path)
   return;
 }
 
-DecisionTree::DecisionTree(int num_policies,
-                           std::vector<std::vector<float> > &features,
-                           std::vector<int> &responses,
-                           unsigned max_depth)
+DecisionTree::DecisionTree(
+    int num_policies,
+    std::vector<std::tuple<std::vector<float>, int, double>> &measures,
+    unsigned max_depth)
     : PolicyModel(num_policies, "DecisionTree", false)
 {
+  std::vector<std::vector<float>> features;
+  std::vector<int> responses;
+  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
+  Preprocessing::findMinMetricPolicyByFeatures(measures,
+                                               features,
+                                               responses,
+                                               min_metric_policies);
 #ifdef ENABLE_OPENCV
   dtree = DTrees::create();
 
@@ -77,7 +89,10 @@ DecisionTree::DecisionTree(int num_policies,
 
   dtree->train(fmat, ROW_SAMPLE, rmat);
 #else
-  dtree = std::make_unique<DecisionTreeImpl>(num_policies, features, responses, max_depth);
+  dtree = std::make_unique<DecisionTreeImpl>(num_policies,
+                                             features,
+                                             responses,
+                                             max_depth);
 #endif
 
   return;
@@ -90,7 +105,4 @@ int DecisionTree::getIndex(std::vector<float> &features)
   return dtree->predict(features);
 }
 
-void DecisionTree::store(const std::string &filename)
-{
-  dtree->save(filename);
-}
+void DecisionTree::store(const std::string &filename) { dtree->save(filename); }

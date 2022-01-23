@@ -26,12 +26,6 @@ class Apollo::Region {
                 const std::string &modelYamlFile="");
         ~Region();
 
-        typedef struct Measure {
-            int       exec_count;
-            double    time_total;
-            Measure(int e, double t) : exec_count(e), time_total(t) {}
-        } Measure;
-
         char     name[64];
 
         // DEPRECATED interface assuming synchronous execution, will be removed
@@ -53,19 +47,11 @@ class Apollo::Region {
         int      num_features;
         int num_policies;
 
-        int      reduceBestPolicies(int step);
-        //
         // Application specific callback data pool associated with the region, deleted by apollo.
         Apollo::CallbackDataPool *callback_pool;
 
-        std::map<
-            std::vector< float >,
-            std::pair< int, double > > best_policies;
-
-        std::map<
-            std::pair< std::vector<float>, int >,
-            std::unique_ptr<Apollo::Region::Measure> > measures;
-        //^--Explanation: < features, policy >, value: < time measurement >
+        // Stores raw measurements as <features, policy, metric>
+        std::vector<std::tuple<std::vector<float>, int, double>> measures;
 
         std::unique_ptr<TimingModel> time_model;
         std::unique_ptr<PolicyModel> model;
