@@ -20,10 +20,13 @@ Chad Wood, wood67@llnl.gov, and other
 Apollo was originally created by David Beckingsale, david@llnl.gov
 
 If you are referencing Apollo in a publication, please cite this repo and
-the following paper:
+the following papers:
 
 * David Beckingsale and Olga Pearce and Ignacio Laguna and Todd Gamblin.
-  [**Apollo: Fast, Dynamic Tuning for Data-Dependent Code**](https://computing.llnl.gov/projects/apollo/apollo-fast-lightweight-dynamic-tuning-data-dependent-code-llnl-paper_0.pdf). In *IEEE International Parallel & Distributed Processing Symposium (IPDPS'17)*, Orlando, FL, May 29-June 2 2017. LLNL-CONF-723337.
+  [**Apollo: Reusable Models for Fast, Dynamic Tuning of Input-Dependent Code**](https://www.osti.gov/biblio/1367962). In *IEEE International Parallel & Distributed Processing Symposium (IPDPS'17)*, Orlando, FL, May 29-June 2 2017. LLNL-CONF-723337.
+* Chad Wood and Giorgis Georgakoudis and David Beckingsale and David Poliakoff and Alfredo Giménez and Kevin A. Huck and Allen D. Mallony and Todd Gamblin.
+[**Artemis: Automatic Runtime Tuning of Parallel Execution Parameters Using Machine Learning**](https://www.osti.gov/servlets/purl/1778645).
+In *In International Conference on High Performance Computing, pp. 453-472. Springer, Cham, 2021*. LLNL-CONF-809192.
 
 ## License
 
