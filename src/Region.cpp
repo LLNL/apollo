@@ -1,7 +1,6 @@
-// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include "apollo/Region.h"
@@ -37,7 +36,7 @@ static inline bool fileExists(std::string path)
 
 void Apollo::Region::train(int step)
 {
-  if (!model->training) return;
+  if (!model->isTrainable()) return;
 
   collectPendingContexts();
 
@@ -101,10 +100,7 @@ void Apollo::Region::train(int step)
     fout.close();
   }
 
-  model = ModelFactory::createTuningModel(model_name,
-                                          num_policies,
-                                          measures,
-                                          model_params);
+  model->train(measures);
 
   if (Config::APOLLO_RETRAIN_ENABLE)
 #ifdef ENABLE_OPENCV
@@ -172,11 +168,10 @@ int Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
     }
 #endif
   context->policy = choice;
-  // log("getPolicyIndex took ", evaluation_time_total, " seconds.\n");
   return choice;
 }
 
-void Apollo::Region::parseTuningModel(std::string &model_info)
+void Apollo::Region::parsePolicyModel(std::string &model_info)
 {
   size_t pos = model_info.find(",");
   model_name = model_info.substr(0, pos);
@@ -184,24 +179,53 @@ void Apollo::Region::parseTuningModel(std::string &model_info)
   // Parse any parameters, return if there are not any.
   if (std::string::npos == pos) return;
 
-  std::string model_params_str = model_info.substr(pos + 1);
-  // TODO: better error checking and reporting for invalid keys. For now they
-  // are discarded/ignored.
-  std::regex regex("(num_trees|max_depth)=([0-9]+)");
-  std::sregex_token_iterator key =
-      std::sregex_token_iterator(model_params_str.begin(),
-                                 model_params_str.end(),
-                                 regex,
-                                 /* first sub-match */ 1);
-  std::sregex_token_iterator value =
-      std::sregex_token_iterator(model_params_str.begin(),
-                                 model_params_str.end(),
-                                 regex,
-                                 /* second sub-match */ 2);
-  std::sregex_token_iterator end = std::sregex_token_iterator();
+  std::vector<std::string> params_regex;
+  if (model_name == "Static")
+    params_regex.push_back("(policy)=([0-9]+)");
+  else if (model_name == "DecisionTree") {
+    params_regex.push_back("(max_depth)=([0-9]+)");
+    params_regex.push_back("(explore)=(RoundRobin|Random)");
+    params_regex.push_back("(load)");
+    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
+  } else if (model_name == "RandomForest") {
+    params_regex.push_back("(num_trees|max_depth)=([0-9]+)");
+    params_regex.push_back("(explore)=(RoundRobin|Random)");
+    params_regex.push_back("(load)");
+    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
+  } else if (model_name == "PolicyNet") {
+    params_regex.push_back(
+        "(lr|beta|beta1|beta2|threshold)=(([+-]?([[:d:]]*\\.?([[:d:]]*)?))([Ee]"
+        "[+-]?[[:d:]]+)?)");
+    params_regex.push_back("(load)");
+    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
+  }
 
-  for (; key != end; ++key, ++value)
-    model_params[*key] = *value;
+  std::string model_params_str = model_info.substr(pos + 1);
+  do {
+    pos = model_params_str.find(",");
+    std::string keyval_str = model_params_str.substr(0, pos);
+    model_params_str = model_params_str.substr(pos + 1);
+
+    bool matched = false;
+    std::smatch m;
+    for (auto &regex_str : params_regex) {
+      std::regex regex(regex_str);
+      if (std::regex_match(keyval_str, m, regex)) {
+        auto key = m[1];
+        auto value = m[2];
+        model_params[key] = value;
+        matched = true;
+        std::cout << "Found key " << key << " value " << value << "\n";
+        getchar();
+      }
+    }
+
+    if (!matched) {
+      std::cerr << "ERROR: Parameter " << keyval_str
+                << " is not valid for model " << model_name << std::endl;
+      abort();
+    }
+  } while (std::string::npos != pos);
 }
 
 Apollo::Region::Region(const int num_features,
@@ -220,69 +244,44 @@ Apollo::Region::Region(const int num_features,
   strncpy(name, regionName, sizeof(name) - 1);
   name[sizeof(name) - 1] = '\0';
 
-  parseTuningModel(Config::APOLLO_TUNING_MODEL);
+  parsePolicyModel(Config::APOLLO_POLICY_MODEL);
+  model = ModelFactory::createPolicyModel(model_name,
+                                          num_features,
+                                          num_policies,
+                                          model_params);
 
-  if (!modelYamlFile.empty())
-    model = ModelFactory::createTuningModel(model_name,
-                                            num_policies,
-                                            modelYamlFile);
-  else {
-    // TODO use best_policies to train a model for new region for which there's
-    // training data
-    size_t pos = Config::APOLLO_INIT_MODEL.find(",");
-    std::string model_str = Config::APOLLO_INIT_MODEL.substr(0, pos);
-    if ("Static" == model_str) {
-      int policy_choice = std::stoi(Config::APOLLO_INIT_MODEL.substr(pos + 1));
-      if (policy_choice < 0 || policy_choice >= num_policies) {
-        std::cerr << "Invalid policy_choice " << policy_choice << std::endl;
-        abort();
-      }
-      model = ModelFactory::createStatic(num_policies, policy_choice);
-      // std::cout << "Model Static policy " << policy_choice << std::endl;
-    } else if ("Load" == model_str) {
-      std::string model_file;
-      if (pos == std::string::npos) {
-        // Load per region model using the region name for the model file.
-        model_file = model_name + "-latest-rank-" +
-                     std::to_string(apollo->mpiRank) + "-" + std::string(name) +
-                     ".yaml";
-      } else {
-        // Load the same model for all regions.
-        model_file = Config::APOLLO_INIT_MODEL.substr(pos + 1);
-      }
+  if (!modelYamlFile.empty()) model->load(modelYamlFile);
 
-      if (fileExists(model_file))
-        // std::cout << "Model Load " << model_file << std::endl;
-        model = ModelFactory::createTuningModel(model_name,
-                                                num_policies,
-                                                model_file);
-      else {
-        // Fallback to default model.
-        std::cout << "WARNING: could not load file " << model_file
-                  << ", falling back to default Static, 0" << std::endl;
-        model = ModelFactory::createStatic(num_policies, 0);
-      }
-    } else if ("Random" == model_str) {
-      model = ModelFactory::createRandom(num_policies);
-      // std::cout << "Model Random" << std::endl;
-    } else if ("RoundRobin" == model_str) {
-      model = ModelFactory::createRoundRobin(num_policies);
-      // std::cout << "Model RoundRobin" << std::endl;
-    } else if ("Optimal" == model_str) {
-      std::string file = "opt-" + std::string(name) + "-rank-" +
-                         std::to_string(apollo->mpiRank) + ".txt";
-      if (!fileExists(file)) {
-        std::cerr << "Optimal policy file " << file << " does not exist"
-                  << std::endl;
-        abort();
-      }
+  if (model_params.count("load")) {
+    std::string model_file;
+    if (model_params["load"].empty())
+      model_file = model_name + "-latest-rank-" +
+                   std::to_string(apollo->mpiRank) + "-" + std::string(name) +
+                   ".yaml";
+    else
+      model_file = model_params["load"];
 
-      model = ModelFactory::createOptimal(file);
+    if (fileExists(model_file)) {
+      std::cout << "Model Load " << model_file << std::endl;
+      model->load(model_file);
+      getchar();
     } else {
-      std::cerr << "Invalid model env var: " + Config::APOLLO_INIT_MODEL
+      std::cerr << "ERROR: could not load model file " << model_file
+                << ", abort" << std::endl;
+      abort();
+    }
+  }
+
+  if (model_name == "Optimal") {
+    std::string model_file = "opt-" + std::string(name) + "-rank-" +
+                       std::to_string(apollo->mpiRank) + ".txt";
+    if (!fileExists(model_file)) {
+      std::cerr << "Optimal policy file " << model_file << " does not exist"
                 << std::endl;
       abort();
     }
+
+    model->load(model_file);
   }
 
   if (Config::APOLLO_TRACE_CSV) {
@@ -298,7 +297,7 @@ Apollo::Region::Region(const int num_features,
       abort();
     }
     std::string fname("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX +
-                      "/trace-" + Config::APOLLO_INIT_MODEL + "-region-" +
+                      "/trace-" + Config::APOLLO_POLICY_MODEL + "-region-" +
                       name + "-rank-" + std::to_string(apollo->mpiRank) +
                       ".csv");
     std::cout << "TRACE_CSV fname " << fname << std::endl;
@@ -377,9 +376,7 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
 
   if (Config::APOLLO_GLOBAL_TRAIN_PERIOD &&
       (apollo->region_executions % Config::APOLLO_GLOBAL_TRAIN_PERIOD) == 0) {
-    // std::cout << "FLUSH PERIOD! region_executions " <<
-    // apollo->region_executions<< std::endl; //ggout
-    apollo->flushAllRegionMeasurements(apollo->region_executions);
+    apollo->train(apollo->region_executions);
   } else if (Config::APOLLO_PER_REGION_TRAIN_PERIOD &&
              (idx % Config::APOLLO_PER_REGION_TRAIN_PERIOD) == 0) {
     train(idx);

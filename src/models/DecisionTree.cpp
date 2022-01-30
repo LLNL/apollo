@@ -31,7 +31,7 @@ static inline bool fileExists(std::string path)
 }
 
 DecisionTree::DecisionTree(int num_policies, std::string path)
-    : PolicyModel(num_policies, "DecisionTree", false)
+    : PolicyModel(num_policies, "DecisionTree"), trainable(false)
 {
   if (not fileExists(path)) {
     std::cerr << "== APOLLO: Cannot access the DecisionTree model requested:\n"
@@ -51,19 +51,13 @@ DecisionTree::DecisionTree(int num_policies, std::string path)
   return;
 }
 
-DecisionTree::DecisionTree(
-    int num_policies,
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures,
-    unsigned max_depth)
-    : PolicyModel(num_policies, "DecisionTree", false)
+DecisionTree::DecisionTree(int num_policies,
+                           unsigned max_depth,
+                           std::unique_ptr<PolicyModel> &explorer)
+    : PolicyModel(num_policies, "DecisionTree"),
+      trainable(true),
+      explorer(std::move(explorer))
 {
-  std::vector<std::vector<float>> features;
-  std::vector<int> responses;
-  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-  Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                               features,
-                                               responses,
-                                               min_metric_policies);
 #ifdef ENABLE_OPENCV
   dtree = DTrees::create();
 
@@ -78,6 +72,29 @@ DecisionTree::DecisionTree(
   dtree->setTruncatePrunedTree(false);
   dtree->setPriors(Mat());
 
+#else
+  dtree = std::make_unique<DecisionTreeImpl>(num_policies, max_depth);
+#endif
+
+  return;
+}
+
+DecisionTree::~DecisionTree() { return; }
+
+bool DecisionTree::isTrainable() { return trainable; }
+
+void DecisionTree::train(
+    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+{
+  std::vector<std::vector<float>> features;
+  std::vector<int> responses;
+  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
+  Preprocessing::findMinMetricPolicyByFeatures(measures,
+                                               features,
+                                               responses,
+                                               min_metric_policies);
+
+#ifdef ENABLE_OPENCV
   Mat fmat;
   for (auto &i : features) {
     Mat tmp(1, i.size(), CV_32F, &i[0]);
@@ -89,20 +106,22 @@ DecisionTree::DecisionTree(
 
   dtree->train(fmat, ROW_SAMPLE, rmat);
 #else
-  dtree = std::make_unique<DecisionTreeImpl>(num_policies,
-                                             features,
-                                             responses,
-                                             max_depth);
+  dtree->train(features, responses);
 #endif
 
-  return;
+  trainable = false;
 }
-
-DecisionTree::~DecisionTree() { return; }
 
 int DecisionTree::getIndex(std::vector<float> &features)
 {
-  return dtree->predict(features);
+  if (!trainable) return dtree->predict(features);
+
+  return explorer->getIndex(features);
 }
 
+void DecisionTree::load(const std::string &filename)
+{
+  trainable = false;
+  dtree->load(filename);
+}
 void DecisionTree::store(const std::string &filename) { dtree->save(filename); }

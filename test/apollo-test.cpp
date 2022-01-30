@@ -12,7 +12,8 @@
 #define NUM_FEATURES 1
 #define NUM_POLICIES 4
 #define REPS         4
-#define DELAY        0.1
+#define DELAY        0.01
+#define FREQ 1
 
 
 static void delay_loop(const double delay)
@@ -41,7 +42,7 @@ int main()
   int match;
   // Outer loop to simulate iterative execution of inner region, install tuned
   // model after first iteration.
-  for (int j = 0; j < 2; j++) {
+  for (int j = 1; j <= 5; j++) {
     match = 0;
     // Features match policies, iterate over all possible pairs when RoundRobin.
     // Do so REPS times to gather multiple measurements per pair.
@@ -71,7 +72,8 @@ int main()
 
     // Second outer loop iteration should have perfect matching.
     printf("matched region j %d %d / %d\n", j, match, REPS*NUM_POLICIES*NUM_POLICIES);
-    if (j == 0) {
+    getchar();
+    if (j%FREQ == 0) {
       printf("Install model\n");
       apollo->train(0);
     }

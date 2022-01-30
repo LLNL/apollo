@@ -18,12 +18,12 @@ def main():
     subenv['APOLLO_TRACE_CSV'] = '1'
     subenv['APOLLO_RETRAIN_ENABLE'] = '0'
     for i in range(0, args.npolicies):
-        subenv['APOLLO_INIT_MODEL'] = 'Static,%d'%(i)
+        subenv['APOLLO_POLICY_MODEL'] = 'Static,policy=%d'%(i)
         subprocess.run(args.exe, shell=True, check=True, env=subenv)
 
     #subenv['APOLLO_COLLECTIVE_TRAINING'] = '0'
     #subenv['APOLLO_LOCAL_TRAINING'] = '1'
-    subenv['APOLLO_INIT_MODEL'] = 'RoundRobin'
+    subenv['APOLLO_POLICY_MODEL'] = 'RoundRobin'
     subprocess.run(args.exe, shell=True, check=True, env=subenv)
 
 if __name__ == "__main__":

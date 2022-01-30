@@ -276,9 +276,8 @@ extern "C" void kokkosp_parse_args(int argc, char **argv) {
       std::string((parsed_options.distributed_training ? "0" : "1"));
   settings["APOLLO_TRACE_BEST_POLICIES="] =
       std::string((parsed_options.trace ? "1" : "0"));
-  settings["APOLLO_TUNING_MODEL"] = "RandomForest";
+  settings["APOLLO_POLICY_MODEL"] = "RandomForest,explore=RoundRobin";
   settings["APOLLO_STORE_MODELS"] = "1";
-  settings["APOLLO_INIT_MODEL"] = "RoundRobin";
   settings["APOLLO_REGION_MODEL"] = "1";
   for (const auto &kv : settings) {
     setenv(kv.first.c_str(), kv.second.c_str(), true);
@@ -313,7 +312,6 @@ extern "C" void kokkosp_init_library(const int loadSeq,
   putenv(const_cast<char *>("APOLLO_RETRAIN_ENABLE=0"));
   putenv(const_cast<char *>("APOLLO_REGION_MODEL=1"));
   putenv(const_cast<char *>("APOLLO_LOCAL_TRAINING=1"));
-  putenv(const_cast<char *>("APOLLO_INIT_MODEL=RoundRobin"));
   putenv(const_cast<char *>("APOLLO_COLLECTIVE_TRAINING=0"));
   putenv(const_cast<char *>("APOLLO_TRACE_BEST_POLICIES=1"));
   apollo = Apollo::instance();

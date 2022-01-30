@@ -1,7 +1,6 @@
-// Copyright (c) 2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include "DecisionTreeImpl.h"
@@ -21,6 +20,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+int DecisionTreeImpl::unique_counter = 0;
 
 DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::istream &is) : num_classes(num_classes)
 {
@@ -43,6 +44,59 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::string filename)
   compile_and_link_jit_evaluate_function();
 #endif
 }
+
+DecisionTreeImpl::DecisionTreeImpl(int num_classes,
+                                   unsigned max_depth)
+    : num_classes(num_classes), max_depth(max_depth)
+{
+  //TimeTrace("build_tree");
+  ++unique_counter;
+  unique_id = unique_counter;
+}
+void DecisionTreeImpl::train(std::vector<std::vector<float>> &features,
+                             std::vector<int> &responses)
+{
+  // Assumes all feature vectors are of equal size.
+  num_features = features.begin()->size();
+  classes.insert(responses.begin(), responses.end());
+  for (size_t i = 0, end = features.size(); i < end; ++i)
+    data.push_back({features[i], responses[i]});
+
+  root = build_tree(data.begin(),
+                    data.end(),
+                    /* max_depth */ max_depth,
+                    /* depth */ 0);
+
+#ifdef ENABLE_JIT_DTREE
+  compile_and_link_jit_evaluate_function();
+#endif
+}
+
+DecisionTreeImpl::DecisionTreeImpl(int num_classes,
+                                   std::vector<std::vector<float>> &features,
+                                   std::vector<int> &responses,
+                                   unsigned max_depth)
+    : num_classes(num_classes), max_depth(max_depth)
+{
+  //TimeTrace("build_tree");
+  ++unique_counter;
+  unique_id = unique_counter;
+  // Assumes all feature vectors are equal.
+  num_features = features.begin()->size();
+  classes.insert(responses.begin(), responses.end());
+  for (size_t i = 0, end = features.size(); i < end; ++i)
+    data.push_back({features[i], responses[i]});
+
+  root = build_tree(data.begin(),
+                    data.end(),
+                    /* max_depth */ max_depth,
+                    /* depth */ 0);
+
+#ifdef ENABLE_JIT_DTREE
+  compile_and_link_jit_evaluate_function();
+#endif
+}
+
 
 void DecisionTreeImpl::generate_source(Node &node, OutputFormatter &source_fmt) {
   if (!node.left && !node.right) {
@@ -107,33 +161,6 @@ void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
     std::cerr << "dlsym: " << dlerror() << std::endl;
     abort();
   }
-}
-
-int DecisionTreeImpl::unique_counter = 0;
-
-DecisionTreeImpl::DecisionTreeImpl(int num_classes,
-                                   std::vector<std::vector<float>> &features,
-                                   std::vector<int> &responses,
-                                   unsigned max_depth)
-    : num_classes(num_classes), max_depth(max_depth)
-{
-  //TimeTrace("build_tree");
-  ++unique_counter;
-  unique_id = unique_counter;
-  // Assumes all feature vectors are equal.
-  num_features = features.begin()->size();
-  classes.insert(responses.begin(), responses.end());
-  for (size_t i = 0, end = features.size(); i < end; ++i)
-    data.push_back({features[i], responses[i]});
-
-  root = build_tree(data.begin(),
-                    data.end(),
-                    /* max_depth */ max_depth,
-                    /* depth */ 0);
-
-#ifdef ENABLE_JIT_DTREE
-  compile_and_link_jit_evaluate_function();
-#endif
 }
 
 DecisionTreeImpl::~DecisionTreeImpl() {

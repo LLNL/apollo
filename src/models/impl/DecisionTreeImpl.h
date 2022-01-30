@@ -1,3 +1,8 @@
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
+
 #ifndef APOLLO_MODELS_DECISIONTREEIMPL_H
 #define APOLLO_MODELS_DECISIONTREEIMPL_H
 
@@ -22,11 +27,16 @@ public:
   DecisionTreeImpl(int num_classes, std::istream &is);
   DecisionTreeImpl(int num_classes, std::string filename);
   DecisionTreeImpl(int num_classes,
+                   unsigned max_depth);
+  DecisionTreeImpl(int num_classes,
                    std::vector<std::vector<float>> &features,
                    std::vector<int> &responses,
                    unsigned max_depth);
   ~DecisionTreeImpl();
 
+  void train(std::vector<std::vector<float>> &features,
+             std::vector<int> &responses);
+  void load(const std::string &filename);
   void save(const std::string &filename);
   int predict(const std::vector<float> &features);
   void output_tree(OutputFormatter &outfmt,
@@ -59,8 +69,6 @@ private:
          float gini,
          size_t num_samples);
   };
-
-  void load(const std::string &filename);
 
   // Returns pair(counts per class, gini value)
   template <typename Iterator>

@@ -32,7 +32,7 @@ static inline bool fileExists(std::string path)
 }
 
 RandomForest::RandomForest(int num_policies, std::string path)
-    : PolicyModel(num_policies, "RandomForest", false)
+    : PolicyModel(num_policies, "RandomForest"), trainable(false)
 {
   if (not fileExists(path)) {
     std::cerr << "== APOLLO: Cannot access the RandomForest model requested:\n"
@@ -51,20 +51,14 @@ RandomForest::RandomForest(int num_policies, std::string path)
   return;
 }
 
-RandomForest::RandomForest(
-    int num_policies,
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures,
-    unsigned num_trees,
-    unsigned max_depth)
-    : PolicyModel(num_policies, "RandomForest", false)
+RandomForest::RandomForest(int num_policies,
+                           unsigned num_trees,
+                           unsigned max_depth,
+                           std::unique_ptr<PolicyModel> &explorer)
+    : PolicyModel(num_policies, "RandomForest"),
+      trainable(true),
+      explorer(std::move(explorer))
 {
-  std::vector<std::vector<float>> features;
-  std::vector<int> responses;
-  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-  Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                               features,
-                                               responses,
-                                               min_metric_policies);
 #ifdef ENABLE_OPENCV
   rfc = RTrees::create();
   rfc->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS,
@@ -82,6 +76,27 @@ RandomForest::RandomForest(
   rfc->setTruncatePrunedTree(false);
   rfc->setPriors(Mat());
 
+#else
+  rfc = std::make_unique<RandomForestImpl>(num_policies, num_trees, max_depth);
+#endif
+
+  return;
+}
+
+bool RandomForest::isTrainable() { return trainable; }
+
+void RandomForest::train(
+    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+{
+  std::vector<std::vector<float>> features;
+  std::vector<int> responses;
+  std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
+  Preprocessing::findMinMetricPolicyByFeatures(measures,
+                                               features,
+                                               responses,
+                                               min_metric_policies);
+
+#ifdef ENABLE_OPENCV
   Mat fmat;
   for (auto &i : features) {
     Mat tmp(1, i.size(), CV_32F, &i[0]);
@@ -93,18 +108,25 @@ RandomForest::RandomForest(
 
   rfc->train(fmat, ROW_SAMPLE, rmat);
 #else
-  rfc = std::make_unique<RandomForestImpl>(
-      num_policies, features, responses, num_trees, max_depth);
+  rfc->train(features, responses);
 #endif
 
-  return;
+  trainable = false;
 }
 
 RandomForest::~RandomForest() { return; }
 
 int RandomForest::getIndex(std::vector<float> &features)
 {
-  return rfc->predict(features);
+  if (!trainable)
+    return rfc->predict(features);
+
+  return explorer->getIndex(features);
 }
 
+void RandomForest::load(const std::string &filename)
+{
+  trainable = false;
+  rfc->load(filename);
+}
 void RandomForest::store(const std::string &filename) { rfc->save(filename); }

@@ -27,11 +27,11 @@ set(APOLLO_SOURCES
     Config.cpp
     helpers/OutputFormatter.cpp
     models/Random.cpp
-    models/Sequential.cpp
     models/Static.cpp
     models/RoundRobin.cpp
     models/DecisionTree.cpp
     models/RandomForest.cpp
+    models/PolicyNet.cpp
     models/impl/DecisionTreeImpl.cpp
     models/impl/RandomForestImpl.cpp
     models/preprocessing/Preprocessing.cpp

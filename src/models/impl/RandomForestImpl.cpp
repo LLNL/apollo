@@ -1,7 +1,6 @@
-// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include "RandomForestImpl.h"
@@ -21,6 +20,35 @@ RandomForestImpl::RandomForestImpl(int num_classes, std::string filename)
     : num_classes(num_classes)
 {
   load(filename);
+}
+
+RandomForestImpl::RandomForestImpl(int num_classes,
+                                   unsigned num_trees,
+                                   unsigned max_depth)
+    : num_classes(num_classes), num_trees(num_trees), max_depth(max_depth)
+{
+}
+
+void RandomForestImpl::train(std::vector<std::vector<float>> &features,
+                             std::vector<int> &responses)
+{
+  // Uniform random generator using Mersenne-Twister for randomness.
+  std::mt19937 generator;
+  std::uniform_int_distribution<size_t> uniform_dist(0, features.size() - 1);
+
+  for (unsigned i = 0; i < num_trees; i++) {
+    std::vector<std::vector<float>> sample_features;
+    std::vector<int> sample_responses;
+    // Random pick with replacement of features, responses
+    for (size_t i = 0, end = features.size(); i < end; ++i) {
+      int sample_idx = uniform_dist(generator);
+      sample_features.push_back(features[sample_idx]);
+      sample_responses.push_back(responses[sample_idx]);
+    }
+
+    rfc.push_back(std::make_unique<DecisionTreeImpl>(
+        num_classes, sample_features, sample_responses, max_depth));
+  }
 }
 
 RandomForestImpl::RandomForestImpl(int num_classes,

@@ -1,3 +1,8 @@
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
+
 #ifndef APOLLO_MODELS_RANDOMFOREST_H
 #define APOLLO_MODELS_RANDOMFOREST_H
 
@@ -19,9 +24,9 @@ class RandomForest : public PolicyModel
 public:
   RandomForest(
       int num_policies,
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures,
       unsigned num_trees,
-      unsigned max_depth);
+      unsigned max_depth,
+      std::unique_ptr<PolicyModel> &explorer);
   RandomForest(int num_policies, std::string path);
 
   ~RandomForest();
@@ -30,6 +35,9 @@ public:
   int getIndex(std::vector<float> &features);
   void store(const std::string &filename);
   void load(const std::string &filename);
+  bool isTrainable();
+  void train(
+      std::vector<std::tuple<std::vector<float>, int, double> > &measures);
 
 private:
 #ifdef ENABLE_OPENCV
@@ -37,6 +45,8 @@ private:
 #else
   std::unique_ptr<RandomForestImpl> rfc;
 #endif
+  bool trainable;
+  std::unique_ptr<PolicyModel> explorer;
 };
 
 

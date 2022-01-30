@@ -1,7 +1,6 @@
-// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include <string>
@@ -24,6 +23,5 @@ int Config::APOLLO_TRACE_BEST_POLICIES;
 int Config::APOLLO_GLOBAL_TRAIN_PERIOD;
 int Config::APOLLO_PER_REGION_TRAIN_PERIOD;
 int Config::APOLLO_TRACE_CSV;
-std::string Config::APOLLO_INIT_MODEL;
-std::string Config::APOLLO_TUNING_MODEL;
+std::string Config::APOLLO_POLICY_MODEL;
 std::string Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX;

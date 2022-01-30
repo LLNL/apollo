@@ -1,3 +1,8 @@
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
+
 #ifndef APOLLO_MODELS_REGRESSIONTREE_H
 #define APOLLO_MODELS_REGRESSIONTREE_H
 

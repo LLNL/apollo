@@ -1,3 +1,8 @@
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
+// SPDX-License-Identifier: MIT
+
 #ifndef APOLLO_REGION_H
 #define APOLLO_REGION_H
 
@@ -14,84 +19,85 @@
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
-#endif //ENABLE_MPI
+#endif  // ENABLE_MPI
 
-class Apollo::Region {
-    public:
-        Region(
-                const int    num_features,
-                const char   *regionName,
-                int           numAvailablePolicies,
-                Apollo::CallbackDataPool *callbackPool = nullptr,
-                const std::string &modelYamlFile="");
-        ~Region();
-
-        char     name[64];
-
-        // DEPRECATED interface assuming synchronous execution, will be removed
-        void     end();
-        // lower == better, 0.0 == perfect
-        void     end(double synthetic_duration_or_weight);
-        int      getPolicyIndex(void);
-        void     setFeature(float value);
-        // END of DEPRECATED
-
-        Apollo::RegionContext *begin();
-        Apollo::RegionContext *begin(std::vector<float>);
-        void end(Apollo::RegionContext *);
-        void end(Apollo::RegionContext *, double);
-        int  getPolicyIndex(Apollo::RegionContext *);
-        void setFeature(Apollo::RegionContext *, float value);
-
-        int idx;
-        int      num_features;
-        int num_policies;
-
-        // Application specific callback data pool associated with the region, deleted by apollo.
-        Apollo::CallbackDataPool *callback_pool;
-
-        // Stores raw measurements as <features, policy, metric>
-        std::vector<std::tuple<std::vector<float>, int, double>> measures;
-
-        std::unique_ptr<TimingModel> time_model;
-        std::unique_ptr<PolicyModel> model;
-
-        void collectPendingContexts();
-        void train(int step);
-
-        void parseTuningModel(std::string &model_info);
-        // Model information, name and params.
-        std::string model_name;
-        std::unordered_map<std::string, std::string> model_params;
-    private:
-        //
-        Apollo        *apollo;
-        // DEPRECATED wil be removed
-        Apollo::RegionContext *current_context;
-        //
-        std::ofstream trace_file;
-
-        std::vector<Apollo::RegionContext *> pending_contexts;
-        void collectContext(Apollo::RegionContext *, double);
-}; // end: Apollo::Region
-
-struct Apollo::RegionContext
+class Apollo::Region
 {
-    double exec_time_begin;
-    double exec_time_end;
-    std::vector<float> features;
-    int policy;
-    unsigned long long idx;
-    // Arguments: void *data, bool *returnMetric, double *metric (valid if
-    // returnsMetric == true).
-    bool (*isDoneCallback)(void *, bool *, double *);
-    void *callback_arg;
-}; //end: Apollo::RegionContext
+public:
+  Region(const int num_features,
+         const char *regionName,
+         int numAvailablePolicies,
+         Apollo::CallbackDataPool *callbackPool = nullptr,
+         const std::string &modelYamlFile = "");
+  ~Region();
+
+  char name[64];
+
+  // DEPRECATED interface assuming synchronous execution, will be removed
+  void end();
+  // lower == better, 0.0 == perfect
+  void end(double synthetic_duration_or_weight);
+  int getPolicyIndex(void);
+  void setFeature(float value);
+  // END of DEPRECATED
+
+  Apollo::RegionContext *begin();
+  Apollo::RegionContext *begin(std::vector<float>);
+  void end(Apollo::RegionContext *);
+  void end(Apollo::RegionContext *, double);
+  int getPolicyIndex(Apollo::RegionContext *);
+  void setFeature(Apollo::RegionContext *, float value);
+
+  int idx;
+  int num_features;
+  int num_policies;
+
+  // Application specific callback data pool associated with the region, deleted
+  // by apollo.
+  Apollo::CallbackDataPool *callback_pool;
+
+  // Stores raw measurements as <features, policy, metric>
+  std::vector<std::tuple<std::vector<float>, int, double>> measures;
+
+  std::unique_ptr<TimingModel> time_model;
+  std::unique_ptr<PolicyModel> model;
+
+  void collectPendingContexts();
+  void train(int step);
+
+  void parsePolicyModel(std::string &model_info);
+  // Model information, name and params.
+  std::string model_name;
+  std::unordered_map<std::string, std::string> model_params;
+
+private:
+  //
+  Apollo *apollo;
+  // DEPRECATED wil be removed
+  Apollo::RegionContext *current_context;
+  //
+  std::ofstream trace_file;
+
+  std::vector<Apollo::RegionContext *> pending_contexts;
+  void collectContext(Apollo::RegionContext *, double);
+};  // end: Apollo::Region
+
+struct Apollo::RegionContext {
+  double exec_time_begin;
+  double exec_time_end;
+  std::vector<float> features;
+  int policy;
+  unsigned long long idx;
+  // Arguments: void *data, bool *returnMetric, double *metric (valid if
+  // returnsMetric == true).
+  bool (*isDoneCallback)(void *, bool *, double *);
+  void *callback_arg;
+};  // end: Apollo::RegionContext
 
 struct Apollo::CallbackDataPool {
-    virtual ~CallbackDataPool() = default;
-    virtual void put(void *) = 0;
-    virtual void *get() = 0;
+  virtual ~CallbackDataPool() = default;
+  virtual void put(void *) = 0;
+  virtual void *get() = 0;
 };
 
 #endif

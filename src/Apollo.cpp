@@ -1,7 +1,6 @@
-// Copyright (c) 2019-2021, Lawrence Livermore National Security, LLC
-// and other Apollo project developers.
-// Produced at the Lawrence Livermore National Laboratory.
-// See the top-level LICENSE file for details.
+// Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+// Apollo project developers. Produced at the Lawrence Livermore National
+// Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
 #include <algorithm>
@@ -22,8 +21,6 @@
 #include "apollo/Apollo.h"
 #include "apollo/ModelFactory.h"
 #include "apollo/Region.h"
-
-#include "util/Debug.h"
 
 #ifdef ENABLE_MPI
     MPI_Comm apollo_mpi_comm;
@@ -116,8 +113,7 @@ Apollo::Apollo()
     region_executions = 0;
 
     // Initialize config with defaults
-    Config::APOLLO_INIT_MODEL          = apolloUtils::safeGetEnv( "APOLLO_INIT_MODEL", "Static,0" );
-    Config::APOLLO_TUNING_MODEL         = apolloUtils::safeGetEnv( "APOLLO_TUNING_MODEL", "RandomForest" );
+    Config::APOLLO_POLICY_MODEL         = apolloUtils::safeGetEnv( "APOLLO_POLICY_MODEL", "Static,policy=0" );
     Config::APOLLO_COLLECTIVE_TRAINING = std::stoi( apolloUtils::safeGetEnv( "APOLLO_COLLECTIVE_TRAINING", "0" ) );
     Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "1" ) );
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
@@ -402,11 +398,6 @@ Apollo::train(int step) {
     // Create a single model using all per-region measurements
     if(Config::APOLLO_SINGLE_MODEL) {
         std::vector<std::tuple<std::vector<float>, int, double>> all_measures;
-        // XXX: assumes all regions have the same number of policies, model_params
-        // TODO: runtime check that the assumption above holds
-        int num_policies = regions.begin()->second->num_policies;
-        auto model_name = regions.begin()->second->model_name;
-        auto model_params = regions.begin()->second->model_params;
         for( auto &it: regions ) {
           Region *reg = it.second;
           // append per-region measures to single measures vector
@@ -420,10 +411,9 @@ Apollo::train(int step) {
         // shared_ptr.
         for (auto &it : regions) {
           Region *reg = it.second;
-          reg->model = ModelFactory::createTuningModel(model_name,
-                                                       num_policies,
-                                                       all_measures,
-                                                       model_params);
+          // XXX: assumes all regions have the same model name, number of
+          // features, number of policies, model_params
+          reg->model->train(all_measures);
         }
     }
     else {
