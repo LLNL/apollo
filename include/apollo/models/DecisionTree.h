@@ -6,6 +6,7 @@
 #ifndef APOLLO_MODELS_DECISIONTREE_H
 #define APOLLO_MODELS_DECISIONTREE_H
 
+#include <memory>
 #include <string>
 #include <vector>
 

@@ -6,6 +6,7 @@
 #ifndef APOLLO_MODELS_POLICYNET_H
 #define APOLLO_MODELS_POLICYNET_H
 
+#include <memory>
 #include <unordered_map>
 #include <random>
 #include <tuple>

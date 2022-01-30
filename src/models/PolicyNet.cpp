@@ -6,6 +6,7 @@
 #include "apollo/models/PolicyNet.h"
 
 #include <bitset>
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <numeric>

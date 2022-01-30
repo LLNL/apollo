@@ -6,6 +6,7 @@
 #ifndef APOLLO_MODELS_RANDOMFOREST_H
 #define APOLLO_MODELS_RANDOMFOREST_H
 
+#include <memory>
 #include <string>
 #include <vector>
 
