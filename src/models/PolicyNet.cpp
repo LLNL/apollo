@@ -502,15 +502,15 @@ void PolicyNet::trainNet(std::vector<std::vector<float>> &states,
     trainRewards[i] =
         rewards[i] -
         baseline;  // Subtract the moving average baseline to reduce variance.
-    std::cout << "=====\n;";
-    std::cout << "TRAINING DATA i " << i << "\n";
-    std::cout << "trainState [ ";
-    for (int j = 0; j < inputSize; ++j)
-      std::cout << trainStates[i * inputSize + j] << ", ";
-    std::cout << " ]\n";
-    std::cout << "trainActions " << trainActions[i] << "\n";
-    std::cout << "trainRewards " << trainRewards[i] << "\n";
-    std::cout << "=====\n";
+    //std::cout << "=====\n;";
+    //std::cout << "TRAINING DATA i " << i << "\n";
+    //std::cout << "trainState [ ";
+    //for (int j = 0; j < inputSize; ++j)
+    //  std::cout << trainStates[i * inputSize + j] << ", ";
+    //std::cout << " ]\n";
+    //std::cout << "trainActions " << trainActions[i] << "\n";
+    //std::cout << "trainRewards " << trainRewards[i] << "\n";
+    //std::cout << "=====\n";
   }
 
   // Train the network.
@@ -575,11 +575,11 @@ int PolicyNet::getIndex(std::vector<float> &features)
     // Add the action probabilities to the cache to be reused later.
     actionProbabilityMap.insert(std::make_pair(key, actionProbs));
   }
-  std::cout << " probs: ";
-  for (auto &p : actionProbs) {
-    std::cout << p << " ";
-  }
-  std::cout << std::endl;
+  //std::cout << " probs: ";
+  //for (auto &p : actionProbs) {
+  //  std::cout << p << " ";
+  //}
+  //std::cout << std::endl;
 
   // Sample a policy from the action probabilities.
   std::discrete_distribution<> d(actionProbs.begin(), actionProbs.end());
@@ -624,7 +624,7 @@ void PolicyNet::store(const std::string &filename)
 
   // Check if the file was opened successfully.
   if (!f) {
-    std::cout << "Could not save model to " << filename << std::endl;
+    std::cerr << "Could not save model to " << filename << std::endl;
     return;
   }
 
@@ -654,7 +654,7 @@ void PolicyNet::load(const std::string &filename)
 
   // Check if the file was opened successfully.
   if (!f) {
-    std::cout << "Could not load model from " << filename << std::endl;
+    std::cerr << "Could not load model from " << filename << std::endl;
     return;
   }
 

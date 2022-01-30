@@ -215,8 +215,7 @@ void Apollo::Region::parsePolicyModel(std::string &model_info)
         auto value = m[2];
         model_params[key] = value;
         matched = true;
-        std::cout << "Found key " << key << " value " << value << "\n";
-        getchar();
+        //std::cout << "Found key " << key << " value " << value << "\n";
       }
     }
 
@@ -262,9 +261,8 @@ Apollo::Region::Region(const int num_features,
       model_file = model_params["load"];
 
     if (fileExists(model_file)) {
-      std::cout << "Model Load " << model_file << std::endl;
+      //std::cout << "Model Load " << model_file << std::endl;
       model->load(model_file);
-      getchar();
     } else {
       std::cerr << "ERROR: could not load model file " << model_file
                 << ", abort" << std::endl;
