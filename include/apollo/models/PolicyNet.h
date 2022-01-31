@@ -33,7 +33,7 @@ public:
   void trainNet(std::vector<std::vector<float>> &states,
                 std::vector<int> &actions,
                 std::vector<double> &rewards);
-  bool isTrainable() { return true; }
+  bool isTrainable();
   void train(
       std::vector<std::tuple<std::vector<float>, int, double>> &measures);
 
@@ -50,6 +50,7 @@ private:
   double beta;
   double threshold;
   int trainCount = 0;
+  bool trainable;
 };  // end: PolicyNet (class)
 
 

@@ -419,7 +419,8 @@ PolicyNet::PolicyNet(int numPolicies,
     : PolicyModel(numPolicies, "PolicyNet"),
       numPolicies(numPolicies),
       beta(beta),
-      threshold(threshold)
+      threshold(threshold),
+      trainable(true)
 {
   // Encode features by bit-representation, assumes 64 bits are enough.
   net = std::make_unique<Net>(64 * numFeatures,
@@ -447,11 +448,13 @@ void PolicyNet::train(
     auto policy = std::get<1>(measure);
     auto metric = std::get<2>(measure);
 
-    // XXX: assumes features can be casted to 64-bit unsigned integers.
-    std::bitset<sizeof(uint64_t) * CHAR_BIT> bits((uint64_t)features[0]);
     std::vector<float> features_bits;
-    for (int i = 0; i < bits.size(); i++)
-      features_bits.push_back(bits[i]);
+    for (auto &f : features) {
+      // XXX: assumes features can be casted to 64-bit unsigned integers.
+      std::bitset<sizeof(uint64_t) * CHAR_BIT> bits((uint64_t)f);
+      for (int i = 0; i < bits.size(); i++)
+        features_bits.push_back(bits[i]);
+    }
     states.push_back(std::move(features_bits));
     actions.push_back(policy);
     // XXX: metric is assumed to be execution time, hence reward should maximize
@@ -514,9 +517,6 @@ void PolicyNet::trainNet(std::vector<std::vector<float>> &states,
   }
 
   // Train the network.
-  // for(int i = 0; i < batchSize; i+=64)
-  //  net->trainStep(&trainStates[i*inputSize], &trainActions[i],
-  //  &trainRewards[i], 64);
   net->trainStep(trainStates, trainActions, trainRewards, batchSize);
 
   // Delete the arrays used for training.
@@ -556,9 +556,10 @@ int PolicyNet::getIndex(std::vector<float> &features)
     // Create the state array to be evaluated by the network.
     double *evalState = new double[inputSize];
     for (int i = 0; i < features.size(); i++) {
-      size_t index = i * inputSize;
+      // Each feature is encoded in 64-bits.
+      size_t index = i * 64;
       std::bitset<sizeof(uint64_t) * CHAR_BIT> bits((uint64_t)features[i]);
-      for (int j = 0; j < inputSize; ++j) {
+      for (int j = 0; j < 64; ++j) {
         evalState[index + j] = bits[j];
       }
     }
@@ -586,6 +587,11 @@ int PolicyNet::getIndex(std::vector<float> &features)
   int policyIndex = d(gen);
 
   return policyIndex;
+}
+
+bool PolicyNet::isTrainable()
+{
+  return trainable;
 }
 
 void PolicyNet::store(const std::string &filename)
