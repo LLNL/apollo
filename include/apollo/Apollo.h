@@ -28,7 +28,6 @@ public:
 
   class Region;
   struct RegionContext;
-  struct CallbackDataPool;
 
   //
   int mpiSize;  // 1 if no MPI

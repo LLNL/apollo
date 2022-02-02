@@ -1,6 +1,6 @@
-# Copyright (c) 2021, Lawrence Livermore National Security, LLC.
-# Produced at the Lawrence Livermore National Laboratory
-# See the top-level LICENSE file for details
+# Copyright (c) 2015-2022, Lawrence Livermore National Security, LLC and other
+# Apollo project developers. Produced at the Lawrence Livermore National
+# Laboratory. See the top-level LICENSE file for details.
 # SPDX-License-Identifier: MIT
 
 include_directories(${PROJECT_BINARY_DIR})
@@ -18,6 +18,7 @@ set(APOLLO_HEADERS
     ../include/apollo/PolicyModel.h
     ../include/apollo/TimingModel.h
     ../include/apollo/ModelFactory.h
+    ../include/apollo/Timer.h
     )
 
 set(APOLLO_SOURCES
@@ -37,11 +38,18 @@ set(APOLLO_SOURCES
     models/preprocessing/Preprocessing.cpp
     models/Optimal.cpp
     connectors/kokkos/kokkos-connector.cpp
+    timers/TimerSync.cpp
     )
 
 if (ENABLE_OPENCV)
     list(APPEND APOLLO_SOURCES
         models/RegressionTree.cpp
+        )
+endif()
+
+if (ENABLE_CUDA)
+    list(APPEND APOLLO_SOURCES
+        timers/TimerCudaAsync.cpp
         )
 endif()
 

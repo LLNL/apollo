@@ -499,7 +499,7 @@ extern "C" void kokkosp_request_values(
     Apollo::Region *region;
     if (file_exists(final_name)) {
       region = new Apollo::Region(numContextVariables, name.c_str(),
-                                  choiceSpaceSize, nullptr, final_name);
+                                  choiceSpaceSize, final_name);
     } else {
       region = new Apollo::Region(numContextVariables, name.c_str(),
                                   choiceSpaceSize);

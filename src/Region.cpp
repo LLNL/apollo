@@ -24,6 +24,8 @@
 #include "apollo/ModelFactory.h"
 #include "models/preprocessing/Preprocessing.h"
 
+#include "timers/TimerSync.h"
+
 #ifdef ENABLE_MPI
 #include <mpi.h>
 #endif  // ENABLE_MPI
@@ -230,13 +232,11 @@ void Apollo::Region::parsePolicyModel(std::string &model_info)
 Apollo::Region::Region(const int num_features,
                        const char *regionName,
                        int num_policies,
-                       Apollo::CallbackDataPool *callbackPool,
                        const std::string &modelYamlFile)
     : num_features(num_features),
       num_policies(num_policies),
       current_context(nullptr),
-      idx(0),
-      callback_pool(callbackPool)
+      idx(0)
 {
   apollo = Apollo::instance();
 
@@ -324,8 +324,6 @@ Apollo::Region::~Region()
   while (pending_contexts.size() > 0)
     collectPendingContexts();
 
-  if (callback_pool) delete callback_pool;
-
   if (Config::APOLLO_TRACE_CSV) trace_file.close();
 
   return;
@@ -337,12 +335,10 @@ Apollo::RegionContext *Apollo::Region::begin()
   current_context = context;
   context->idx = this->idx;
   this->idx++;
+  // Use the sync timer by default.
+  context->timer = Timer::create<Timer::Sync>();
+  context->timer->start();
 
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  context->exec_time_begin = ts.tv_sec + ts.tv_nsec / 1e9;
-  context->isDoneCallback = nullptr;
-  context->callback_arg = nullptr;
   return context;
 }
 
@@ -398,20 +394,11 @@ void Apollo::Region::end(Apollo::RegionContext *context, double metric)
 void Apollo::Region::collectPendingContexts()
 {
   auto isDone = [this](Apollo::RegionContext *context) {
-    bool returnsMetric;
+    if (!context->timer)
+      throw std::runtime_error("No timer has been set for the context");
     double metric;
-    if (context->isDoneCallback(context->callback_arg,
-                                &returnsMetric,
-                                &metric)) {
-      if (returnsMetric)
-        collectContext(context, metric);
-      else {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        context->exec_time_end = ts.tv_sec + ts.tv_nsec / 1e9;
-        double duration = context->exec_time_end - context->exec_time_begin;
-        collectContext(context, duration);
-      }
+    if (context->timer->isDone(metric)) {
+      collectContext(context, metric);
       return true;
     }
 
@@ -426,16 +413,8 @@ void Apollo::Region::collectPendingContexts()
 
 void Apollo::Region::end(Apollo::RegionContext *context)
 {
-  if (context->isDoneCallback)
-    pending_contexts.push_back(context);
-  else {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    context->exec_time_end = ts.tv_sec + ts.tv_nsec / 1e9;
-    double duration = context->exec_time_end - context->exec_time_begin;
-    collectContext(context, duration);
-  }
-
+  context->timer->stop();
+  pending_contexts.push_back(context);
   collectPendingContexts();
 }
 

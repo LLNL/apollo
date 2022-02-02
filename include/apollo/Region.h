@@ -16,6 +16,7 @@
 #include "apollo/Apollo.h"
 #include "apollo/PolicyModel.h"
 #include "apollo/TimingModel.h"
+#include "apollo/Timer.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
@@ -27,7 +28,6 @@ public:
   Region(const int num_features,
          const char *regionName,
          int numAvailablePolicies,
-         Apollo::CallbackDataPool *callbackPool = nullptr,
          const std::string &modelYamlFile = "");
   ~Region();
 
@@ -51,10 +51,6 @@ public:
   int idx;
   int num_features;
   int num_policies;
-
-  // Application specific callback data pool associated with the region, deleted
-  // by apollo.
-  Apollo::CallbackDataPool *callback_pool;
 
   // Stores raw measurements as <features, policy, metric>
   std::vector<std::tuple<std::vector<float>, int, double>> measures;
@@ -83,21 +79,11 @@ private:
 };  // end: Apollo::Region
 
 struct Apollo::RegionContext {
-  double exec_time_begin;
-  double exec_time_end;
   std::vector<float> features;
   int policy;
   unsigned long long idx;
-  // Arguments: void *data, bool *returnMetric, double *metric (valid if
-  // returnsMetric == true).
-  bool (*isDoneCallback)(void *, bool *, double *);
-  void *callback_arg;
-};  // end: Apollo::RegionContext
 
-struct Apollo::CallbackDataPool {
-  virtual ~CallbackDataPool() = default;
-  virtual void put(void *) = 0;
-  virtual void *get() = 0;
-};
+  std::unique_ptr<Timer> timer;
+};  // end: Apollo::RegionContext
 
 #endif

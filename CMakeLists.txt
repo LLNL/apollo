@@ -19,8 +19,8 @@ set(CMAKE_CXX_STANDARD 14)
 #
 option(ENABLE_MPI "Require and enable MPI for collective training" OFF)
 option(ENABLE_OpenCV "Require and enable OpenCV for ML models" OFF)
-option(ENABLE_JIT_DTREE
-"Enable JIT generated DecisionTree eval functions (supported only by Apollo implementation)" OFF)
+option(ENABLE_JIT_DTREE "Enable JIT generated DecisionTree eval functions (supported only by Apollo implementation)" OFF)
+option(ENABLE_CUDA "Enable CUDA for asynchronous timing of CUDA regions" OFF)
 #
 set(APOLLO_ENABLE_TESTS    OFF  CACHE STRING "")
 set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
@@ -147,6 +147,11 @@ if (ENABLE_OPENCV)
   include_directories(${OpenCV_INCLUDE_DIRS})
   add_definitions(-DENABLE_OPENCV)
 endif()
+
+if (ENABLE_CUDA)
+  find_package(CUDA REQUIRED)
+  include_directories(${CUDA_INCLUDE_DIRS})
+endif ()
 
 if (ENABLE_JIT_DTREE)
   add_definitions(-DENABLE_JIT_DTREE)
