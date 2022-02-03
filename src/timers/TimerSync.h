@@ -8,7 +8,7 @@
 
 #include "apollo/Timer.h"
 
-class TimerSync : public Timer
+class TimerSync : public Apollo::Timer
 {
 public:
   TimerSync(){};

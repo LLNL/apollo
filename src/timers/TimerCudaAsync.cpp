@@ -22,7 +22,7 @@ static inline void cudaAssert(cudaError_t code, const char *file, int line)
 }
 
 template <>
-std::unique_ptr<Timer> Timer::create<Timer::CudaAsync>()
+std::unique_ptr<Apollo::Timer> Apollo::Timer::create<Apollo::Timer::CudaAsync>()
 {
   return std::make_unique<TimerCudaAsync>();
 }

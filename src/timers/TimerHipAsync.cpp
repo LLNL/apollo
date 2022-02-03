@@ -22,7 +22,7 @@ static inline void hipAssert(hipError_t code, const char *file, int line)
 }
 
 template <>
-std::unique_ptr<Timer> Timer::create<Timer::HipAsync>()
+std::unique_ptr<Apollo::Timer> Apollo::Timer::create<Apollo::Timer::HipAsync>()
 {
   return std::make_unique<TimerHipAsync>();
 }

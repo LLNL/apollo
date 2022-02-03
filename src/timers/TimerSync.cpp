@@ -3,8 +3,8 @@
 #include <chrono>
 #include <iostream>
 
-template<>
-std::unique_ptr<Timer> Timer::create<Timer::Sync>()
+template <>
+std::unique_ptr<Apollo::Timer> Apollo::Timer::create<Apollo::Timer::Sync>()
 {
   return std::make_unique<TimerSync>();
 }

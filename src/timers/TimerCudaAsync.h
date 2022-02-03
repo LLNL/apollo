@@ -10,7 +10,7 @@
 
 #include "apollo/Timer.h"
 
-class TimerCudaAsync : public Timer
+class TimerCudaAsync : public Apollo::Timer
 {
 public:
   TimerCudaAsync();

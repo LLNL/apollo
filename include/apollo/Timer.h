@@ -8,7 +8,9 @@
 
 #include <memory>
 
-class Timer
+#include "apollo/Apollo.h"
+
+class Apollo::Timer
 {
 public:
   Timer() {}

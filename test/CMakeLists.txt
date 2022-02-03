@@ -5,8 +5,6 @@
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(MPI REQUIRED)
-
 add_executable(apollo-test apollo-test.cpp)
 
 target_link_libraries(apollo-test apollo)

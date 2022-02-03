@@ -28,6 +28,7 @@ public:
 
   class Region;
   struct RegionContext;
+  class Timer;
 
   //
   int mpiSize;  // 1 if no MPI

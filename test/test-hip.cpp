@@ -95,7 +95,7 @@ int main()
     // Create and install a HipAsync Timer for this context to override the
     // default Sync Timer. The new timer must be started by the user. Apollo
     // will stop the timer at region->end() as before.
-    ctx->timer = Timer::create<Timer::HipAsync>();
+    ctx->timer = Apollo::Timer::create<Apollo::Timer::HipAsync>();
     // Start the timer.
     ctx->timer->start();
 
