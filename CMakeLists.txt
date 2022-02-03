@@ -21,9 +21,9 @@ option(ENABLE_MPI "Require and enable MPI for collective training" OFF)
 option(ENABLE_OpenCV "Require and enable OpenCV for ML models" OFF)
 option(ENABLE_JIT_DTREE "Enable JIT generated DecisionTree eval functions (supported only by Apollo implementation)" OFF)
 option(ENABLE_CUDA "Enable CUDA for asynchronous timing of CUDA regions" OFF)
+option(ENABLE_HIP "Enable HIP for asynchronous timing of HIP regions" OFF)
 #
 set(APOLLO_ENABLE_TESTS    OFF  CACHE STRING "")
-set(APOLLO_RPATH_OVERRIDES ON  CACHE STRING "")
 #
 #####
 
@@ -40,30 +40,6 @@ set(APOLLO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 include(PreventInSourceBuilds)
-
-if (APOLLO_RPATH_OVERRIDES)
-	# use, i.e. don't skip the full RPATH for the build tree
-	set(CMAKE_SKIP_BUILD_RPATH  FALSE)
-
-    # when building, don't use the install RPATH already
-    # (but later on when installing)
-    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-
-    # add the automatically determined parts of the RPATH
-    # which point to directories outside the build tree to the install RPATH
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-
-	# the RPATH to be used when installing, but only if it's not a system directory
-	list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-	if("${isSystemDir}" STREQUAL "-1")
-   		set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-	endif("${isSystemDir}" STREQUAL "-1")
-endif(APOLLO_RPATH_OVERRIDES)
-
-
 
 #
 # Setup variables to pass to ApolloConfig.h
@@ -151,6 +127,12 @@ endif()
 if (ENABLE_CUDA)
   find_package(CUDA REQUIRED)
   include_directories(${CUDA_INCLUDE_DIRS})
+endif ()
+
+if (ENABLE_HIP)
+  find_package(hip REQUIRED)
+  include_directories(${HSA_HEADER})
+  add_definitions(-D__HIP_PLATFORM_AMD__)
 endif ()
 
 if (ENABLE_JIT_DTREE)

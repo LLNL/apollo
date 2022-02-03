@@ -4,10 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 include_directories(${PROJECT_BINARY_DIR})
-include_directories(${CALIPER_INCLUDE_DIR})
-include_directories(
-    ../include/external/cxxopts/
-    )
 include_directories(
   ./connectors/kokkos/include
 )
@@ -52,6 +48,13 @@ if (ENABLE_CUDA)
         timers/TimerCudaAsync.cpp
         )
 endif()
+
+if (ENABLE_HIP)
+    list(APPEND APOLLO_SOURCES
+        timers/TimerHipAsync.cpp
+        )
+endif()
+
 
 add_library(apollo SHARED ${APOLLO_SOURCES})
 

@@ -23,6 +23,7 @@ public:
 
   struct Sync;
   struct CudaAsync;
+  struct HipAsync;
 };  // end: Timer (abstract class)
 
 
