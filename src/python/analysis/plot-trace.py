@@ -35,7 +35,7 @@ def plot_bars(ax, df):
     for i, container in enumerate(ax.containers):
         #print('container', i)
         #print('bar_labels', bar_labels[i::3])
-        text_list = ax.bar_label(container, labels=bar_labels[i::3])
+        text_list = ax.bar_label(container, labels=bar_labels[i::len(features)])
         for t in text_list:
             t.set_rotation(0)
 
