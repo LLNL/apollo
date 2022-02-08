@@ -28,7 +28,7 @@ int main()
   //
   // Define vector length
   //
-  const int N = 100000;
+  const int N = 1000000;
   // const int N = 1000;
 
   //
@@ -79,7 +79,7 @@ int main()
   Apollo* apollo = Apollo::instance();
   Apollo::Region* r = new Apollo::Region(/*num_features*/ 1,
                                          "hip-region",
-                                         /*num_policies*/ 2);
+                                         /*num_policies*/ 3);
 
 
   for (int j = 0; j < 20; j++) {
@@ -102,8 +102,10 @@ int main()
     int block_size;
     switch(policy) {
       case 0:
-        block_size = 1; break;
+        block_size = 64; break;
       case 1:
+        block_size = 256; break;
+      case 2:
         block_size = 1024; break;
       default:
         abort();
@@ -111,10 +113,10 @@ int main()
 
     int grid_size = std::ceil((float)N / block_size);
     hipLaunchKernelGGL(kernel_add, grid_size, block_size, 0, 0, d_a, d_b, c, N);
+    r->end();
 
     hipMemcpy(a, d_a, sizeof(double) * N, hipMemcpyDeviceToHost);
 
-    r->end();
 
     checkResult(a, aref, N);
 

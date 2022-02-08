@@ -37,7 +37,7 @@ def plot_bars(ax, df):
         #print('bar_labels', bar_labels[i::3])
         text_list = ax.bar_label(container, labels=bar_labels[i::len(features)])
         for t in text_list:
-            t.set_rotation(0)
+            t.set_rotation(90)
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze exhaustive experiments for a program.')
@@ -69,8 +69,8 @@ def main():
     ax[1].spines['right'].set_visible(False)
     ax[1].get_legend().remove()
     ax[0].set_title('Training data for the first ' + str(args.ntraining-start) + \
-        ' iterations (drop-first ' + str(args.drop_first) + ')')
-    ax[1].set_title('Tuning data for the next ' + str(ntuned) + ' iterations')
+        ' iterations (drop-first ' + str(args.drop_first) + ')', pad=50)
+    ax[1].set_title('Tuning data for the next ' + str(ntuned) + ' iterations', pad=50)
 
     suptitle = model_name + '\n' + bytes(args.title, 'utf-8').decode('unicode_escape') + '\nBar labels are mean execution times in ms\n'
     plt.suptitle(suptitle)
