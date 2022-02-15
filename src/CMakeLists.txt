@@ -72,10 +72,6 @@ if (ENABLE_JIT_DTREE)
     target_link_libraries(apollo PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
-foreach(_extlib ${APOLLO_EXTERNAL_LIBS})
-    target_link_libraries(apollo PRIVATE ${_extlib})
-endforeach()
-
 install(FILES ${APOLLO_HEADERS} DESTINATION include/apollo)
 
 install(TARGETS apollo

@@ -122,7 +122,8 @@ void DecisionTreeImpl::generate_source(Node &node, OutputFormatter &source_fmt) 
 
 void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
 {
-  //TimeTrace("compile_and_link_jit_evaluation_function");
+#ifdef ENABLE_JIT_DTREE
+  // TimeTrace("compile_and_link_jit_evaluation_function");
   std::string function_name =
       std::string("_jit_eval_") + std::to_string(unique_id);
   std::string shared_library_name =
@@ -148,7 +149,7 @@ void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
                         shared_library_name + std::string(" - << EOF\n") +
                         sstream.str() + std::string("EOF\n");
   system(command.c_str());
-  //pclose(popen(command.c_str(), "r"));
+  // pclose(popen(command.c_str(), "r"));
   void *dynamic_linker = dlopen(shared_library_name.c_str(), RTLD_NOW);
   if (!dynamic_linker) {
     std::cerr << "dlopen: " << dlerror() << std::endl;
@@ -161,6 +162,9 @@ void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
     std::cerr << "dlsym: " << dlerror() << std::endl;
     abort();
   }
+#else
+  throw std::runtime_error("DTree JIT requires compilation with ENABLE_JIT_DTREE on");
+#endif
 }
 
 DecisionTreeImpl::~DecisionTreeImpl() {
@@ -331,7 +335,7 @@ std::tuple<float, Iterator, size_t, float> DecisionTreeImpl::split(
                                  const std::pair<std::vector<float>, int> &y) {
               return x.first[split_feature_idx] < y.first[split_feature_idx];
             });
-  return {min_gini, split_it, split_feature_idx, split_threshold};
+  return std::make_tuple(min_gini, split_it, split_feature_idx, split_threshold);
 }
 
 template <typename Iterator>
