@@ -55,10 +55,11 @@ if (ENABLE_HIP)
         )
 endif()
 
-
-add_library(apollo SHARED ${APOLLO_SOURCES})
-add_library(apollo_static STATIC ${APOLLO_SOURCES})
-set_target_properties(apollo_static PROPERTIES OUTPUT_NAME apollo)
+if (BUILD_SHARED_LIBS)
+    add_library(apollo SHARED ${APOLLO_SOURCES})
+else()
+    add_library(apollo STATIC ${APOLLO_SOURCES})
+endif()
 
 if (ENABLE_MPI)
     target_link_libraries(apollo PUBLIC MPI::MPI_CXX)
@@ -78,7 +79,3 @@ install(TARGETS apollo
     EXPORT apollo
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib)
-
-install(TARGETS apollo_static
-    ARCHIVE DESTINATION lib
-)

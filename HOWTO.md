@@ -1,7 +1,7 @@
 # Instructions
 
-This documentation provides brief instructions on how to build and run with Apollo, 
-and how to build RAJA with Apollo support. 
+This documentation provides brief instructions on how to build and run with Apollo,
+and how to build RAJA with Apollo support.
 
 
 ## Building Apollo
@@ -15,11 +15,13 @@ Apollo uses cmake and has only optional dependencies on other libraries. Availab
 
 `ENABLE_HIP` enables event-based timing of HIP kernels in Apollo (default OFF: used for timing async launched HIP kernels)
 
-`ENABLE_JIT_DTREE` enables JIT compilation of decision tree evaluation (default OFF: **experimental**, 
+`BUILD_SHARED_LIBS` builds Apollo as a shared library instead of static (default OFF)
+
+`ENABLE_JIT_DTREE` enables JIT compilation of decision tree evaluation (default OFF: **experimental**,
 available only with Apollo builtin ML Library, i.e., when `ENABLE_OPENCV=OFF`)
 
 By default all those flags are OFF and without setting them builds a fully working Apollo runtime library
-that can time synchronously executing code regions. When asynchronous CUDA/HIP kernels are used it is required 
+that can time synchronously executing code regions. When asynchronous CUDA/HIP kernels are used it is required
 to set `ENABLE_CUDA` or `ENABLE_HIP` to ON. It is recommended to use the builtin ML library instead of OpenCV
 (so ENABLE_OPENCV=OFF)
 
@@ -30,6 +32,7 @@ cd <apollo repo root>
 mkdir -p build
 pushd build
 cmake .. -DENABLE_HIP=on (enables HIP async timing) -DCMAKE_PREFIX_PATH=./install
+make -j install
 popd
 ```
 
@@ -38,7 +41,7 @@ popd
 
 The current version of Apollo-enabled RAJA is at:
 
-https://github.com/ggeorgakoudis/RAJA/tree/feature/apollo-david
+https://github.com/ggeorgakoudis/RAJA/tree/feature/apollo
 
 Buiding RAJA with Apollo support requires to provide the following cmake parameters:
 
@@ -52,11 +55,11 @@ Users must instrument tunable code regions using the Apollo API (TODO documentat
 
 Users of Apollo through RAJA avoid most of the instrumentation as it is is implemented internally to RAJA using Apollo multi-policy interfaces.
 For tuning, Apollo requires collecting of training data through exploration on available policies and instructing Apollo to _train_ a tuning model
-once training data are sufficient. What is sufficient training data is application-specific. There are two ways to instruct Apollo to 
+once training data are sufficient. What is sufficient training data is application-specific. There are two ways to instruct Apollo to
 train a model:
 
 1. Programmatically by calling the `Apollo::train(int epoch)` method in the application source code (encouraged), which will use collected training data
-up to that point and create a tuning model through Apollo. 
+up to that point and create a tuning model through Apollo.
 The parameter `epoch` is used for tracing in Apollo, hence it carries no special meaning for the application.
 If tracing is not desired setting it always to 0 is recommended.
 
@@ -67,7 +70,7 @@ using PolicyList = camp::list<
     RAJA::hip_exec<64>,
     RAJA::hip_exec<256>,
     RAJA::hip_exec<1024>>;
- 
+
 // Get the handle to the apollo runtime
 Apollo *apollo = Apollo::instance()
 for(int i=1; i<=ITERS; i++) {
@@ -77,19 +80,19 @@ for(int i=1; i<=ITERS; i++) {
     [=] RAJA_DEVICE (int i) {
     a[i] += b[i] * c;
   });
-  
+
   // Train every 100 iterations.
   if(i%100)
     apollo->train(0);
 ...
 }
-``` 
+```
 
 2. At runtime using the `APOLLO_GLOBAL_TRAIN_PERIOD=<#>` env var that instructs Apollo to train a tuning model every `<#>` tunable region executions.
 #### Example
 `$ APOLLO_GLOBAL_TRAIN_PERIOD=100 APOLLO_POLICY_MODEL=DecisionTree,explore=RoundRobin,max_depth=4 <executable>`
 
-This instructs Apollo train every 100 region executions using a DecisionTree model. The next section describes how 
+This instructs Apollo train every 100 region executions using a DecisionTree model. The next section describes how
 to set policy selection models using the `APOLLO_POLICY_MODEL` env var.
 
 ---
@@ -134,7 +137,7 @@ Select policies by training a decision tree classification tuning model
 
 `load` load a previously trained model (see later on Apollo model storing)
 #### Example
-`$ APOLLO_POLICY_MODEL=DecisionTree,explore=RoundRobin,max_depth=4 <executable>` 
+`$ APOLLO_POLICY_MODEL=DecisionTree,explore=RoundRobin,max_depth=4 <executable>`
 (runs using RoundRobin for exploration and trains a DecisionTree model of depth 4)
 
 ### RandomForest
@@ -150,7 +153,7 @@ Select policies using a random forest classification tuning model
 `load` load a previously trained model (see later on Apollo model storing)
 
 #### Example
-`$ APOLLO_POLICY_MODEL=RandomForest,explore=RoundRobin,num_trees=20,max_depth=4 <executable>` 
+`$ APOLLO_POLICY_MODEL=RandomForest,explore=RoundRobin,num_trees=20,max_depth=4 <executable>`
 (runs using RoundRobin for exploration and trains a RandomForest model of 20 decision trees each of maximum depth 4)
 
 ### PolicyNet
@@ -158,7 +161,7 @@ Select policies using a reinforced learning policy network model
 #### Parameters
 `lr=<#.#>` learning rate for the policy network (default: 0.01)
 
-`beta=<#.#>` reward moving average damping factor (default: 0.5) 
+`beta=<#.#>` reward moving average damping factor (default: 0.5)
 
 `beta1=<#.#>` Adam optimizer beta1 first moment damping factor (default: 0.5)
 
@@ -166,7 +169,7 @@ Select policies using a reinforced learning policy network model
 
 `load` loads a previously trained model (see later on Apollo model storing)
 
-By default Apollo executes an applications with a Static model always choosing policy 0 so no 
+By default Apollo executes an applications with a Static model always choosing policy 0 so no
 exploration or tuning is performed. The `APOLLO_POLICY_MODEL` env var must be set to enable tuning.
 An example of overriding that for a DecisionTree tuning model of depth 4 with RoundRobin exploration is:
 
@@ -179,8 +182,8 @@ Apollo can save trained models and load them to bootstrap tuned execution withou
 
 `APOLLO_STORE_MODELS=1`
 
-Apollo stores models in the current executing directory and will load those models when a tuning policy 
-(DecisionTree, RandomForest, PolicyNet) is given the parameter `load` through `APOLLO_POLICY_MODEL` and 
+Apollo stores models in the current executing directory and will load those models when a tuning policy
+(DecisionTree, RandomForest, PolicyNet) is given the parameter `load` through `APOLLO_POLICY_MODEL` and
 the application executable is ran from the directory containing the previously stored model files.
 
 ### Example
