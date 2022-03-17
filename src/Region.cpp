@@ -188,11 +188,13 @@ void Apollo::Region::parsePolicyModel(std::string &model_info)
     params_regex.push_back("(max_depth)=([0-9]+)");
     params_regex.push_back("(explore)=(RoundRobin|Random)");
     params_regex.push_back("(load)");
+    params_regex.push_back("(load-dataset)");
     params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
   } else if (model_name == "RandomForest") {
     params_regex.push_back("(num_trees|max_depth)=([0-9]+)");
     params_regex.push_back("(explore)=(RoundRobin|Random)");
     params_regex.push_back("(load)");
+    params_regex.push_back("(load-dataset)");
     params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
   } else if (model_name == "PolicyNet") {
     params_regex.push_back(
@@ -200,6 +202,7 @@ void Apollo::Region::parsePolicyModel(std::string &model_info)
         "[+-]?[[:d:]]+)?)");
     params_regex.push_back("(load)");
     params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
+    params_regex.push_back("(load-dataset)");
   }
 
   std::string model_params_str = model_info.substr(pos + 1);
@@ -227,6 +230,56 @@ void Apollo::Region::parsePolicyModel(std::string &model_info)
       abort();
     }
   } while (std::string::npos != pos);
+}
+
+static void parseDataset(
+    std::istream &is,
+    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+{
+  std::smatch m;
+
+  for (std::string line; std::getline(is, line);) {
+    //std::cout << "PARSE LINE: " << line << "\n";
+    if (std::regex_match(line, std::regex("#.*")))
+      continue;
+    else if (std::regex_match(line, std::regex("data: \\{")))
+      continue;
+    else if (std::regex_match(line,
+                              m,
+                              std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) "
+                                         "\\], "
+                                         "policy: ([0-9]+), xtime: (.*) "
+                                         "\\},"))) {
+
+      std::vector<float> features;
+      int policy;
+      double xtime;
+
+      std::string feature_list(m[1]);
+      std::regex regex("([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+),");
+      std::sregex_token_iterator i =
+          std::sregex_token_iterator(feature_list.begin(),
+                                     feature_list.end(),
+                                     regex,
+                                     /* first sub-match*/1);
+      std::sregex_token_iterator end = std::sregex_token_iterator();
+      for (; i != end; ++i)
+        features.push_back(std::stof(*i));
+      policy = std::stoi(m[2]);
+      xtime = std::stof(m[3]);
+
+      //std::cout << "features: [ ";
+      //for(auto &f : features)
+      //  std::cout << f << ", ";
+      //std::cout << "]\n";
+      //std::cout << "policy " << policy << "\n";
+      //std::cout << "xtime " << xtime << "\n";
+      measures.push_back({features, policy, xtime});
+    } else if (std::regex_match(line, std::regex("\\s*\\}")))
+      break;
+    else
+      assert(false && "Error in parsing during loading");
+  }
 }
 
 Apollo::Region::Region(const int num_features,
@@ -268,6 +321,19 @@ Apollo::Region::Region(const int num_features,
                 << ", abort" << std::endl;
       abort();
     }
+  }
+
+  if (model_params.count("load-dataset")) {
+    std::string dataset_file = "Dataset-" + std::string(name) + ".yaml";
+    std::ifstream ifs(dataset_file);
+    if (!ifs) {
+      std::cerr << "ERROR: could not load dataset file " << dataset_file
+                << std::endl;
+      abort();
+    }
+    parseDataset(ifs, measures);
+    train(0);
+    ifs.close();
   }
 
   if (model_name == "Optimal") {
