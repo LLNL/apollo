@@ -40,7 +40,11 @@ void Apollo::Region::train(int step)
 {
   if (!model->isTrainable()) return;
 
-  collectPendingContexts();
+  // Do not collect pending contexts if training is automatically triggered
+  // through user-defined periods.
+  if (!(Config::APOLLO_GLOBAL_TRAIN_PERIOD ||
+        Config::APOLLO_PER_REGION_TRAIN_PERIOD))
+    collectPendingContexts();
 
   if (measures.size() <= 0) return;
 
