@@ -62,15 +62,12 @@ void Apollo::Region::train(int step)
       const auto &policy = std::get<1>(measure);
       const auto &metric = std::get<2>(measure);
 
-      if (Config::APOLLO_TRACE_MEASURES) {
-        trace_out << "features: [ ";
-        for (auto &f : features) {
-          trace_out << f << ", ";
-        }
-        trace_out << " ]: "
-                  << "policy: " << policy << " , metric: " << metric
-                  << std::endl;
+      trace_out << "features: [ ";
+      for (auto &f : features) {
+        trace_out << f << ", ";
       }
+      trace_out << " ]: "
+                << "policy: " << policy << " , metric: " << metric << std::endl;
     }
     std::cout << trace_out.str();
     std::ofstream fout("step-" + std::to_string(step) + "-rank-" +
