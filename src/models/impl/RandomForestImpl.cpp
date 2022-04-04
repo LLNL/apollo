@@ -120,7 +120,8 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
     else if (std::regex_match(line, std::regex("rfc: \\{")))
       continue;
     else if (std::regex_match(line, std::regex("\\s+tree[_0-9]*: \\{"))) {
-      assert(num_trees > tree_idx && "Expected less trees");
+      if (num_trees <= tree_idx)
+        throw std::runtime_error("Expected less trees");
       rfc.push_back(std::make_unique<DecisionTreeImpl>(num_classes, ifs));
       ++tree_idx;
     }
@@ -137,13 +138,13 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
     else if (std::regex_match(line, std::regex("\\}")))
       break;
     else
-      assert(false && "Error in parsing during loading");
+      throw std::runtime_error("Error parsing during loading line: " + line);
   }
 }
 
 void RandomForestImpl::load(const std::string &filename) {
   std::ifstream ifs(filename);
-  assert(ifs && "Error loading file");
+  if (!ifs) throw std::runtime_error("Error loading file: " + filename);
   parse_rfc(ifs);
   ifs.close();
 }

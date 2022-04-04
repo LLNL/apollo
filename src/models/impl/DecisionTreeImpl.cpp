@@ -244,7 +244,7 @@ DecisionTreeImpl::Node::Node(std::unordered_map<int, size_t> &count_per_class,
 void DecisionTreeImpl::load(const std::string &filename)
 {
   std::ifstream ifs(filename);
-  assert(ifs && "Error loading file");
+  if (!ifs) throw std::runtime_error("Error loading file: " + filename);
   parse_tree(ifs);
   ifs.close();
 }
@@ -452,7 +452,7 @@ void DecisionTreeImpl::parse_count_per_class(
     } else if (std::regex_match(line, std::regex("\\s+\\},")))
       break;
     else
-      assert(false && "Error parsing during loading");
+      throw std::runtime_error("Error parsing during loading line: " + line);
   }
 }
 
@@ -499,7 +499,7 @@ DecisionTreeImpl::Node * DecisionTreeImpl::parse_node(std::istream &is)
     else if (std::regex_match(line, std::regex("\\s+\\},")))
       break;
     else
-      assert(false && "Error in parsing during loading");
+      throw std::runtime_error("Error parsing during loading line: " + line);
   }
 
   return new Node(gini,
@@ -537,7 +537,7 @@ void DecisionTreeImpl::parse_data(std::istream &is)
     } else if (std::regex_match(line, std::regex("\\s+\\},")))
       break;
     else
-      assert(false && "Error in parsing during loading");
+      throw std::runtime_error("Error parsing during loading line: " + line);
   }
 }
 
@@ -571,6 +571,6 @@ void DecisionTreeImpl::parse_tree(std::istream &is)
     else if (std::regex_match(line, std::regex("\\s*\\}")))
       break;
     else
-      assert(false && "Error in parsing during loading");
+      throw std::runtime_error("Error parsing during loading line: " + line);
   }
 }
