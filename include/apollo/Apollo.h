@@ -57,11 +57,15 @@ private:
 };  // end: Apollo
 
 extern "C" {
-void *__apollo_region_create(int num_features, char *id, int num_policies);
+void *__apollo_region_create(int num_features,
+                             const char *id,
+                             int num_policies,
+                             const char *model_info);
 void __apollo_region_begin(Apollo::Region *r);
 void __apollo_region_end(Apollo::Region *r);
 void __apollo_region_set_feature(Apollo::Region *r, float feature);
 int __apollo_region_get_policy(Apollo::Region *r);
+void __apollo_region_train(Apollo::Region *r, int step);
 }
 
 #endif

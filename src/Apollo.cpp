@@ -427,13 +427,17 @@ Apollo::train(int step) {
 }
 
 extern "C" {
- void *__apollo_region_create(int num_features, char *id, int num_policies) {
-     static Apollo *apollo = Apollo::instance();
-     //std::string callpathOffset = apollo->getCallpathOffset(3);
-     std::cout << "CREATE region " << id << " num_features " << num_features
-               << " num policies " << num_policies << std::endl;
-     return new Apollo::Region(num_features, id, num_policies);
- }
+void *__apollo_region_create(int num_features,
+                             const char *id,
+                             int num_policies,
+                             const char *model_info)
+{
+  static Apollo *apollo = Apollo::instance();
+  // std::string callpathOffset = apollo->getCallpathOffset(3);
+  std::cout << "CREATE region " << id << " num_features " << num_features
+            << " num policies " << num_policies << std::endl;
+  return new Apollo::Region(num_features, id, num_policies, model_info);
+}
 
  void __apollo_region_begin(Apollo::Region *r) {
      //std::cout << "BEGIN region " << r->name << std::endl;
@@ -454,5 +458,9 @@ extern "C" {
      int policy = r->getPolicyIndex();
      //std::cout << "GET POLICY " << policy << " region " << r->name << std::endl;
      return policy;
+ }
+
+ void __apollo_region_train(Apollo::Region *r, int step) {
+     r->train(step);
  }
 }

@@ -174,7 +174,7 @@ int Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
   return choice;
 }
 
-void Apollo::Region::parsePolicyModel(std::string &model_info)
+void Apollo::Region::parsePolicyModel(const std::string &model_info)
 {
   size_t pos = model_info.find(",");
   model_name = model_info.substr(0, pos);
@@ -287,6 +287,7 @@ static void parseDataset(
 Apollo::Region::Region(const int num_features,
                        const char *regionName,
                        int num_policies,
+                       const std::string &model_info,
                        const std::string &modelYamlFile)
     : num_features(num_features),
       num_policies(num_policies),
@@ -298,7 +299,13 @@ Apollo::Region::Region(const int num_features,
   strncpy(name, regionName, sizeof(name) - 1);
   name[sizeof(name) - 1] = '\0';
 
-  parsePolicyModel(Config::APOLLO_POLICY_MODEL);
+  // If there is no model_info, parse the policy model from the env
+  // variable, else parse it from the model_info argument.
+  if (model_info.empty())
+    parsePolicyModel(Config::APOLLO_POLICY_MODEL);
+  else
+    parsePolicyModel(model_info);
+
   model = ModelFactory::createPolicyModel(model_name,
                                           num_features,
                                           num_policies,

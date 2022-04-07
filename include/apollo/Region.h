@@ -28,6 +28,7 @@ public:
   Region(const int num_features,
          const char *regionName,
          int numAvailablePolicies,
+         const std::string &model_info = "",
          const std::string &modelYamlFile = "");
   ~Region();
 
@@ -61,7 +62,7 @@ public:
   void collectPendingContexts();
   void train(int step);
 
-  void parsePolicyModel(std::string &model_info);
+  void parsePolicyModel(const std::string &model_info);
   // Model information, name and params.
   std::string model_name;
   std::unordered_map<std::string, std::string> model_params;
