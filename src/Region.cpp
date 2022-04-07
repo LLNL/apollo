@@ -36,14 +36,14 @@ static inline bool fileExists(std::string path)
   return (stat(path.c_str(), &stbuf) == 0);
 }
 
-void Apollo::Region::train(int step)
+void Apollo::Region::train(int step, bool doCollectPendingContexts)
 {
   if (!model->isTrainable()) return;
 
-  // Do not collect pending contexts if training is automatically triggered
-  // through user-defined periods.
-  if (!(Config::APOLLO_GLOBAL_TRAIN_PERIOD ||
-        Config::APOLLO_PER_REGION_TRAIN_PERIOD))
+  // Conditionally collect pending contexts. Auto-training must not
+  // collect contexts to avoid infinite recursion since auto-training
+  // happens within collectContext().
+  if (doCollectPendingContexts)
     collectPendingContexts();
 
   if (measures.size() <= 0) return;
@@ -287,10 +287,12 @@ static void parseDataset(
 Apollo::Region::Region(const int num_features,
                        const char *regionName,
                        int num_policies,
+                       int min_training_data,
                        const std::string &model_info,
                        const std::string &modelYamlFile)
     : num_features(num_features),
       num_policies(num_policies),
+      min_training_data(min_training_data),
       current_context(nullptr),
       idx(0)
 {
@@ -424,6 +426,22 @@ Apollo::RegionContext *Apollo::Region::begin(std::vector<float> features)
   return context;
 }
 
+void Apollo::Region::autoTrain()
+{
+  if (!model->isTrainable())
+    return;
+
+  if (Config::APOLLO_GLOBAL_TRAIN_PERIOD &&
+      (apollo->region_executions % Config::APOLLO_GLOBAL_TRAIN_PERIOD) == 0) {
+    apollo->train(apollo->region_executions,
+                  /* doCollectPendingContexts */ false);
+  } else if (Config::APOLLO_PER_REGION_TRAIN_PERIOD &&
+             (idx % Config::APOLLO_PER_REGION_TRAIN_PERIOD) == 0) {
+    train(idx, /* doCollectPendingContexts */ false);
+  } else if (0 < min_training_data && min_training_data <= measures.size())
+    train(idx, /* doCollectPendingContexts */ false);
+}
+
 void Apollo::Region::collectContext(Apollo::RegionContext *context,
                                     double metric)
 {
@@ -443,13 +461,7 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
 
   apollo->region_executions++;
 
-  if (Config::APOLLO_GLOBAL_TRAIN_PERIOD &&
-      (apollo->region_executions % Config::APOLLO_GLOBAL_TRAIN_PERIOD) == 0) {
-    apollo->train(apollo->region_executions);
-  } else if (Config::APOLLO_PER_REGION_TRAIN_PERIOD &&
-             (idx % Config::APOLLO_PER_REGION_TRAIN_PERIOD) == 0) {
-    train(idx);
-  }
+  autoTrain();
 
   delete context;
   current_context = nullptr;

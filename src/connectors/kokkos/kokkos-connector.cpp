@@ -498,8 +498,11 @@ extern "C" void kokkosp_request_values(
     std::string final_name = prefix + name + suffix;
     Apollo::Region *region;
     if (file_exists(final_name)) {
-      region = new Apollo::Region(numContextVariables, name.c_str(),
-                                  choiceSpaceSize, final_name);
+      region = new Apollo::Region(numContextVariables,
+                                  name.c_str(),
+                                  choiceSpaceSize,
+                                  /* min_training_data */ 0,
+                                  final_name);
     } else {
       region = new Apollo::Region(numContextVariables, name.c_str(),
                                   choiceSpaceSize);

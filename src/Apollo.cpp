@@ -384,7 +384,7 @@ Apollo::flushAllRegionMeasurements(int step) {
 }
 
 void
-Apollo::train(int step) {
+Apollo::train(int step, bool doCollectPendingContexts) {
     int rank = mpiRank;  //Automatically 0 if not an MPI environment.
 
     if( Config::APOLLO_COLLECTIVE_TRAINING ) {
@@ -417,10 +417,10 @@ Apollo::train(int step) {
         }
     }
     else {
-        for(auto &it : regions) {
-            Region *reg = it.second;
-            reg->train(step);
-        }
+      for (auto &it : regions) {
+        Region *reg = it.second;
+        reg->train(step, doCollectPendingContexts);
+      }
     }
 
     return;
@@ -430,13 +430,15 @@ extern "C" {
 void *__apollo_region_create(int num_features,
                              const char *id,
                              int num_policies,
+                             int min_training_data,
                              const char *model_info)
 {
   static Apollo *apollo = Apollo::instance();
   // std::string callpathOffset = apollo->getCallpathOffset(3);
   std::cout << "CREATE region " << id << " num_features " << num_features
             << " num policies " << num_policies << std::endl;
-  return new Apollo::Region(num_features, id, num_policies, model_info);
+  return new Apollo::Region(
+      num_features, id, num_policies, min_training_data, model_info);
 }
 
  void __apollo_region_begin(Apollo::Region *r) {

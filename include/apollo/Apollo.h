@@ -44,7 +44,7 @@ public:
 
   // DEPRECATED, use train.
   void flushAllRegionMeasurements(int step);
-  void train(int step);
+  void train(int step, bool doCollectPendingContext = true);
 
 private:
   Apollo();
@@ -60,6 +60,7 @@ extern "C" {
 void *__apollo_region_create(int num_features,
                              const char *id,
                              int num_policies,
+                             int min_training_data,
                              const char *model_info);
 void __apollo_region_begin(Apollo::Region *r);
 void __apollo_region_end(Apollo::Region *r);
