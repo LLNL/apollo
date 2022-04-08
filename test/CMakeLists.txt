@@ -6,5 +6,7 @@
 set(CMAKE_CXX_STANDARD 14)
 
 add_executable(apollo-test apollo-test.cpp)
+add_executable(apollo-overhead apollo-overhead.cpp)
 
 target_link_libraries(apollo-test apollo)
+target_link_libraries(apollo-overhead apollo)

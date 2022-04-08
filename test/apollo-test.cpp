@@ -3,16 +3,17 @@
 // Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
-#include <iostream>
-#include <chrono>
-
 #include "apollo/Apollo.h"
+
+#include <chrono>
+#include <iostream>
+
 #include "apollo/Region.h"
 
 #define NUM_FEATURES 1
 #define NUM_POLICIES 4
-#define REPS         4
-#define DELAY        0.01
+#define REPS 4
+#define DELAY 0.01
 #define FREQ 1
 
 
@@ -30,18 +31,21 @@ static void delay_loop(const double delay)
 
 int main()
 {
-  fprintf(stdout, "testing Apollo.\n");
-
-  int rank;
+  std::cout << "=== Testing Apollo correctness\n";
 
   Apollo *apollo = Apollo::instance();
 
-  Apollo::Region *r =
-      new Apollo::Region(NUM_FEATURES, "test-region1", NUM_POLICIES);
+  // Create region, DecisionTree with max_depth 3 will always pick the optimal
+  // policy.
+  Apollo::Region *r = new Apollo::Region(NUM_FEATURES,
+                                         "test-region",
+                                         NUM_POLICIES,
+                                         /* min_training_data */ 0,
+                                         "DecisionTree,max_depth=3");
 
   int match;
   // Outer loop to simulate iterative execution of inner region, install tuned
-  // model after first iteration.
+  // model after first iteration that fully explores features and variants.
   for (int j = 1; j <= 20; j++) {
     match = 0;
     // Features match policies, iterate over all possible pairs when RoundRobin.
@@ -55,13 +59,13 @@ int main()
 
           int policy = r->getPolicyIndex();
 
-          printf("Feature %d Policy %d\n", feature, policy);
+          // printf("Feature %d Policy %d\n", feature, policy);
 
           if (policy != feature) {
             delay_loop(DELAY);
           } else {
             // No delay when feature matches the policy.
-            printf("Match!\n");
+            // printf("Match!\n");
             match++;
           }
 
@@ -71,18 +75,22 @@ int main()
     }
 
     // Second outer loop iteration should have perfect matching.
-    printf("matched region j %d %d / %d\n", j, match, REPS*NUM_POLICIES*NUM_POLICIES);
-    if (j%FREQ == 0) {
+    printf("matched region j %d %d / %d\n",
+           j,
+           match,
+           REPS * NUM_POLICIES * NUM_POLICIES);
+    if (j == 1) {
       printf("Install model\n");
       apollo->train(0);
     }
   }
 
-  fprintf(stdout, "testing complete.\n");
   if (match == REPS * NUM_POLICIES * NUM_POLICIES)
-    printf("PASSED\n");
+    std::cout << "PASSED\n";
   else
-    printf("FAILED\n");
+    std::cout << "FAILED\n";
+
+  std::cout << "=== Testing complete\n";
 
   return 0;
 }

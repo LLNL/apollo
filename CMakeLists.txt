@@ -24,7 +24,7 @@ option(ENABLE_CUDA "Enable CUDA for asynchronous timing of CUDA regions" OFF)
 option(ENABLE_HIP "Enable HIP for asynchronous timing of HIP regions" OFF)
 option(BUILD_SHARED_LIBS "Build Apollo as a shared library instead of static" OFF)
 #
-set(APOLLO_ENABLE_TESTS    OFF  CACHE STRING "")
+set(ENABLE_TESTS "Enabe building Apollo tests" OFF CACHE STRING "")
 #
 #####
 
@@ -150,9 +150,9 @@ include_directories(./src ./include ${PROJECT_BINARY_DIR}/include)
 
 add_subdirectory(src)
 
-if(APOLLO_ENABLE_TESTS)
+if(ENABLE_TESTS)
     add_subdirectory(test)
-endif(APOLLO_ENABLE_TESTS)
+endif(ENABLE_TESTS)
 
 #
 # EOF
