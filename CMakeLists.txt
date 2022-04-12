@@ -22,9 +22,8 @@ option(ENABLE_OpenCV "Require and enable OpenCV for ML models" OFF)
 option(ENABLE_JIT_DTREE "Enable JIT generated DecisionTree eval functions (supported only by Apollo implementation)" OFF)
 option(ENABLE_CUDA "Enable CUDA for asynchronous timing of CUDA regions" OFF)
 option(ENABLE_HIP "Enable HIP for asynchronous timing of HIP regions" OFF)
+option(ENABLE_TESTS "Enable building Apollo tests" OFF)
 option(BUILD_SHARED_LIBS "Build Apollo as a shared library instead of static" OFF)
-#
-set(ENABLE_TESTS "Enabe building Apollo tests" OFF CACHE STRING "")
 #
 #####
 
