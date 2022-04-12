@@ -28,7 +28,7 @@ public:
       std::unordered_map<std::string, std::string> &model_params);
 
   static std::unique_ptr<TimingModel> createRegressionTree(
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures);
+      Apollo::Dataset &dataset);
 };  // end: ModelFactory
 
 

@@ -22,7 +22,6 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelFactory.h"
-#include "models/preprocessing/Preprocessing.h"
 
 #include "timers/TimerSync.h"
 
@@ -46,35 +45,10 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
   if (doCollectPendingContexts)
     collectPendingContexts();
 
-  if (measures.size() <= 0) return;
+  if (dataset.size() <= 0) return;
 
   if (!Config::APOLLO_REGION_MODEL)
     throw std::runtime_error("Expected per-region model training");
-
-  if (Config::APOLLO_TRACE_MEASURES) {
-    std::stringstream trace_out;
-    int rank = apollo->mpiRank;
-    trace_out << "=================================" << std::endl
-              << "Rank " << rank << " Region " << name << " MEASURES "
-              << std::endl;
-    for (auto &measure : measures) {
-      const auto &features = std::get<0>(measure);
-      const auto &policy = std::get<1>(measure);
-      const auto &metric = std::get<2>(measure);
-
-      trace_out << "features: [ ";
-      for (auto &f : features) {
-        trace_out << f << ", ";
-      }
-      trace_out << " ]: "
-                << "policy: " << policy << " , metric: " << metric << std::endl;
-    }
-    std::cout << trace_out.str();
-    std::ofstream fout("step-" + std::to_string(step) + "-rank-" +
-                       std::to_string(rank) + "-" + name + "-measures.txt");
-    fout << trace_out.str();
-    fout.close();
-  }
 
   if (Config::APOLLO_TRACE_BEST_POLICIES) {
     std::stringstream trace_out;
@@ -84,10 +58,9 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
     std::vector<std::vector<float>> features;
     std::vector<int> responses;
     std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-    Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                                 features,
-                                                 responses,
-                                                 min_metric_policies);
+    dataset.findMinMetricPolicyByFeatures(features,
+                                           responses,
+                                           min_metric_policies);
     for (auto &b : min_metric_policies) {
       trace_out << "[ ";
       for (auto &f : b.first)
@@ -103,11 +76,11 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
     fout.close();
   }
 
-  model->train(measures);
+  model->train(dataset);
 
   if (Config::APOLLO_RETRAIN_ENABLE)
 #ifdef ENABLE_OPENCV
-    time_model = ModelFactory::createRegressionTree(measures);
+    time_model = ModelFactory::createRegressionTree(dataset);
 #else
     throw std::runtime_error("Retraining requires OpenCV");
 #endif
@@ -133,8 +106,6 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
 #endif
     }
   }
-
-  measures.clear();
 }
 
 int Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
@@ -233,9 +204,7 @@ void Apollo::Region::parsePolicyModel(const std::string &model_info)
   } while (std::string::npos != pos);
 }
 
-static void parseDataset(
-    std::istream &is,
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+void Apollo::Region::parseDataset(std::istream &is)
 {
   std::smatch m;
 
@@ -275,7 +244,7 @@ static void parseDataset(
       //std::cout << "]\n";
       //std::cout << "policy " << policy << "\n";
       //std::cout << "xtime " << xtime << "\n";
-      measures.push_back({features, policy, xtime});
+      dataset.insert(features, policy, xtime);
     } else if (std::regex_match(line, std::regex("\\s*\\}")))
       break;
     else
@@ -342,7 +311,7 @@ Apollo::Region::Region(const int num_features,
                 << std::endl;
       abort();
     }
-    parseDataset(ifs, measures);
+    parseDataset(ifs);
     train(0);
     ifs.close();
   }
@@ -408,7 +377,7 @@ Apollo::Region::~Region()
 
 Apollo::RegionContext *Apollo::Region::begin()
 {
-  Apollo::RegionContext *context = new Apollo::RegionContext();
+  Apollo::RegionContext *context = new Apollo::RegionContext(num_features);
   current_context = context;
   context->idx = this->idx;
   this->idx++;
@@ -438,15 +407,14 @@ void Apollo::Region::autoTrain()
   } else if (Config::APOLLO_PER_REGION_TRAIN_PERIOD &&
              (idx % Config::APOLLO_PER_REGION_TRAIN_PERIOD) == 0) {
     train(idx, /* doCollectPendingContexts */ false);
-  } else if (0 < min_training_data && min_training_data <= measures.size())
+  } else if (0 < min_training_data && min_training_data <= dataset.size())
     train(idx, /* doCollectPendingContexts */ false);
 }
 
 void Apollo::Region::collectContext(Apollo::RegionContext *context,
                                     double metric)
 {
-  measures.push_back(
-      std::make_tuple(context->features, context->policy, metric));
+  dataset.insert(context->features, context->policy, metric);
 
   if (Config::APOLLO_TRACE_CSV) {
     trace_file << apollo->mpiRank << " ";

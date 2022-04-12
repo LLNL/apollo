@@ -23,8 +23,7 @@ public:
   void load(const std::string &filename);
   void store(const std::string &filename){};
   bool isTrainable() { return false; }
-  void train(
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures)
+  void train(Apollo::Dataset &dataset)
   {
   }
 

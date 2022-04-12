@@ -144,10 +144,10 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
 }
 
 std::unique_ptr<TimingModel> ModelFactory::createRegressionTree(
-    std::vector<std::tuple<std::vector<float>, int, double> > &measures)
+    Apollo::Dataset &dataset)
 {
 #ifdef ENABLE_OPENCV
-  return std::make_unique<RegressionTree>(measures);
+  return std::make_unique<RegressionTree>(dataset);
 #else
   throw std::runtime_error("Regression trees require OpenCV");
 #endif

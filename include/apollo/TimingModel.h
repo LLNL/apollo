@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "apollo/Dataset.h"
+
 // Abstract
 class TimingModel {
     public:

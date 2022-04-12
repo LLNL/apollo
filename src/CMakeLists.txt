@@ -10,6 +10,7 @@ include_directories(
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
     ../include/apollo/Config.h
+    ../include/apollo/Dataset.h
     ../include/apollo/Region.h
     ../include/apollo/PolicyModel.h
     ../include/apollo/TimingModel.h
@@ -19,9 +20,10 @@ set(APOLLO_HEADERS
 
 set(APOLLO_SOURCES
     Apollo.cpp
-    Region.cpp
-    ModelFactory.cpp
     Config.cpp
+    Dataset.cpp
+    ModelFactory.cpp
+    Region.cpp
     helpers/OutputFormatter.cpp
     models/Random.cpp
     models/Static.cpp
@@ -31,7 +33,6 @@ set(APOLLO_SOURCES
     models/PolicyNet.cpp
     models/impl/DecisionTreeImpl.cpp
     models/impl/RandomForestImpl.cpp
-    models/preprocessing/Preprocessing.cpp
     models/Optimal.cpp
     connectors/kokkos/kokkos-connector.cpp
     timers/TimerSync.cpp

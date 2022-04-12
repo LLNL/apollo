@@ -436,12 +436,13 @@ PolicyNet::PolicyNet(int numPolicies,
 
 PolicyNet::~PolicyNet() {}
 
-void PolicyNet::train(
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+void PolicyNet::train(Apollo::Dataset &dataset)
 {
   std::vector<std::vector<float>> states;
   std::vector<int> actions;
   std::vector<double> rewards;
+
+  auto measures = dataset.toVectorOfTuples();
 
   for (auto &measure : measures) {
     auto &features = std::get<0>(measure);

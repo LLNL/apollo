@@ -37,8 +37,7 @@ public:
   void store(const std::string &filename);
   void load(const std::string &filename);
   bool isTrainable();
-  void train(
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures);
+  void train(Apollo::Dataset &dataset);
 
 private:
 #ifdef ENABLE_OPENCV

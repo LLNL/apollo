@@ -118,7 +118,6 @@ Apollo::Apollo()
     Config::APOLLO_LOCAL_TRAINING      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_LOCAL_TRAINING", "1" ) );
     Config::APOLLO_SINGLE_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_SINGLE_MODEL", "0" ) );
     Config::APOLLO_REGION_MODEL        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_REGION_MODEL", "1" ) );
-    Config::APOLLO_TRACE_MEASURES      = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_MEASURES", "0" ) );
     Config::APOLLO_GLOBAL_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_GLOBAL_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_PER_REGION_TRAIN_PERIOD = std::stoi( apolloUtils::safeGetEnv( "APOLLO_PER_REGION_TRAIN_PERIOD", "0" ) );
     Config::APOLLO_TRACE_POLICY        = std::stoi( apolloUtils::safeGetEnv( "APOLLO_TRACE_POLICY", "0" ) );
@@ -212,7 +211,8 @@ void
 packMeasurements(char *buf, int size, int mpiRank, Apollo::Region *reg) {
     int pos = 0;
 
-    for( auto &measure : reg->measures ) {
+    auto measures = reg->dataset.toVectorOfTuples();
+    for( auto &measure : measures ) {
         const auto &features = std::get<0>(measure);
         const int &policy = std::get<1>(measure);
         const double &metric = std::get<2>(measure);
@@ -257,7 +257,7 @@ Apollo::gatherCollectiveTrainingData(int step)
         Region *reg = it.second;
         send_size +=
             (get_mpi_pack_measure_size(reg->num_features, apollo_mpi_comm) *
-             reg->measures.size());
+             reg->dataset.size());
     }
 
     char *sendbuf = (char *)malloc(send_size);
@@ -265,9 +265,9 @@ Apollo::gatherCollectiveTrainingData(int step)
     int offset = 0;
     for(auto it = regions.begin(); it != regions.end(); ++it) {
         Region *reg = it->second;
-        int reg_measures_size = ( reg->measures.size() * get_mpi_pack_measure_size( reg->num_features, apollo_mpi_comm ) );
-        packMeasurements( sendbuf + offset, reg_measures_size, mpiRank, reg );
-        offset += reg_measures_size;
+        int reg_dataset_size = ( reg->dataset.size() * get_mpi_pack_measure_size( reg->num_features, apollo_mpi_comm ) );
+        packMeasurements( sendbuf + offset, reg_dataset_size, mpiRank, reg );
+        offset += reg_dataset_size;
     }
 
     int num_ranks = mpiSize;
@@ -355,9 +355,7 @@ Apollo::gatherCollectiveTrainingData(int step)
         auto reg_iter = regions.find( region_name );
         if( reg_iter != regions.end() ) {
             Region *reg = reg_iter->second;
-            reg->measures.push_back(
-                std::make_tuple(features, policy, metric)
-            );
+            reg->dataset.insert(features, policy, metric);
         }
     }
 
@@ -397,13 +395,11 @@ Apollo::train(int step, bool doCollectPendingContexts) {
 
     // Create a single model using all per-region measurements
     if(Config::APOLLO_SINGLE_MODEL) {
-        std::vector<std::tuple<std::vector<float>, int, double>> all_measures;
+        Apollo::Dataset merged_dataset;
         for( auto &it: regions ) {
           Region *reg = it.second;
-          // append per-region measures to single measures vector
-          all_measures.insert(all_measures.end(),
-                              reg->measures.begin(),
-                              reg->measures.end());
+          // append per-region dataset to merged.
+          merged_dataset.insert(reg->dataset);
         }
 
         // TODO: Each region trains its own identical, single model. Consider
@@ -413,7 +409,7 @@ Apollo::train(int step, bool doCollectPendingContexts) {
           Region *reg = it.second;
           // XXX: assumes all regions have the same model name, number of
           // features, number of policies, model_params
-          reg->model->train(all_measures);
+          reg->model->train(merged_dataset);
         }
     }
     else {

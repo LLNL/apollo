@@ -17,7 +17,6 @@
 #include <vector>
 
 #include "models/impl/RandomForestImpl.h"
-#include "models/preprocessing/Preprocessing.h"
 
 #ifdef ENABLE_OPENCV
 #include <opencv2/core/types.hpp>
@@ -85,17 +84,15 @@ RandomForest::RandomForest(int num_policies,
 
 bool RandomForest::isTrainable() { return trainable; }
 
-void RandomForest::train(
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+void RandomForest::train(Apollo::Dataset &dataset)
 {
+
   std::vector<std::vector<float>> features;
   std::vector<int> responses;
   std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-  Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                               features,
-                                               responses,
-                                               min_metric_policies);
-
+  dataset.findMinMetricPolicyByFeatures(features,
+                                         responses,
+                                         min_metric_policies);
 #ifdef ENABLE_OPENCV
   Mat fmat;
   for (auto &i : features) {

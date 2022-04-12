@@ -3,23 +3,46 @@
 // Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
-#include "Preprocessing.h"
+#include "apollo/Dataset.h"
 
-#include <iostream>
-#include <map>
-#include <numeric>
+size_t Apollo::Dataset::size() { return data.size(); }
 
-void Preprocessing::findMinMetricPolicyByFeatures(
-    const std::vector<std::tuple<std::vector<float>, int, double>> &measures,
+void Apollo::Dataset::clear() { data.clear(); }
+
+const std::vector<std::tuple<std::vector<float>, int, double>>
+    &Apollo::Dataset::toVectorOfTuples() const
+{
+  return data;
+}
+
+void Apollo::Dataset::insert(const std::vector<float> &features,
+                             int policy,
+                             double metric)
+{
+  return data.push_back(std::make_tuple(features, policy, metric));
+}
+
+void Apollo::Dataset::insert(Apollo::Dataset &ds)
+{
+  for (auto &d : ds.data) {
+    auto &features = std::get<0>(d);
+    auto &policy = std::get<1>(d);
+    auto &metric = std::get<2>(d);
+    insert(features, policy, metric);
+  }
+}
+
+void Apollo::Dataset::findMinMetricPolicyByFeatures(
     std::vector<std::vector<float>> &features,
-    std::vector<int> &responses,
+    std::vector<int> &policies,
     std::map<std::vector<float>, std::pair<int, double>> &min_metric_policies)
+    const
 {
   std::map<std::pair<std::vector<float>, int>, std::vector<double>> groups;
   std::map<std::vector<float>, std::pair<int, double>> best_policies;
 
   // Group measures by <features, policy> to gather metrics in a vector.
-  for (auto &measure : measures) {
+  for (auto &measure : data) {
     const auto &features = std::get<0>(measure);
     const auto &policy = std::get<1>(measure);
     const auto &metric = std::get<2>(measure);
@@ -78,7 +101,7 @@ void Preprocessing::findMinMetricPolicyByFeatures(
     const auto &policy = b.second.first;
 
     features.push_back(std::move(train_features));
-    responses.push_back(policy);
+    policies.push_back(policy);
   }
 
   min_metric_policies = std::move(best_policies);

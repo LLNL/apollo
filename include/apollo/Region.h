@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "apollo/Apollo.h"
+#include "apollo/Dataset.h"
 #include "apollo/PolicyModel.h"
 #include "apollo/TimingModel.h"
 #include "apollo/Timer.h"
@@ -54,8 +55,8 @@ public:
   int num_features;
   int num_policies;
 
-  // Stores raw measurements as <features, policy, metric>
-  std::vector<std::tuple<std::vector<float>, int, double>> measures;
+  // Stores measurements of features, policy, metric.
+  Apollo::Dataset dataset;
 
   std::unique_ptr<TimingModel> time_model;
   std::unique_ptr<PolicyModel> model;
@@ -79,6 +80,8 @@ private:
   std::vector<Apollo::RegionContext *> pending_contexts;
   void collectContext(Apollo::RegionContext *, double);
 
+  void parseDataset(std::istream &is);
+
   void autoTrain();
 
   int min_training_data;
@@ -88,6 +91,11 @@ struct Apollo::RegionContext {
   std::vector<float> features;
   int policy;
   unsigned long long idx;
+
+  RegionContext(int num_features) {
+    // Pre-allocate features vector to avoid re-allocations.
+    features.reserve(num_features);
+  }
 
   std::unique_ptr<Timer> timer;
 };  // end: Apollo::RegionContext

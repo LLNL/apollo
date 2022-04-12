@@ -18,8 +18,7 @@ class RegressionTree : public TimingModel
 {
 
 public:
-  RegressionTree(
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures);
+  RegressionTree(Apollo::Dataset &dataset);
 
 
   ~RegressionTree();

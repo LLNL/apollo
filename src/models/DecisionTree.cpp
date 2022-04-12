@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "models/impl/DecisionTreeImpl.h"
-#include "models/preprocessing/Preprocessing.h"
 
 #ifdef ENABLE_OPENCV
 #include <opencv2/core/types.hpp>
@@ -83,16 +82,14 @@ DecisionTree::~DecisionTree() { return; }
 
 bool DecisionTree::isTrainable() { return trainable; }
 
-void DecisionTree::train(
-    std::vector<std::tuple<std::vector<float>, int, double>> &measures)
+void DecisionTree::train(Apollo::Dataset &dataset)
 {
   std::vector<std::vector<float>> features;
   std::vector<int> responses;
   std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-  Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                               features,
-                                               responses,
-                                               min_metric_policies);
+  dataset.findMinMetricPolicyByFeatures(features,
+                                         responses,
+                                         min_metric_policies);
 
 #ifdef ENABLE_OPENCV
   Mat fmat;

@@ -28,6 +28,7 @@ public:
 
   class Region;
   struct RegionContext;
+  class Dataset;
   class Timer;
 
   //

@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "apollo/Dataset.h"
+
 // Abstract
 class PolicyModel
 {
@@ -23,8 +25,7 @@ public:
   virtual void load(const std::string &filename) = 0;
 
   virtual bool isTrainable() = 0;
-  virtual void train(
-      std::vector<std::tuple<std::vector<float>, int, double> > &measures) = 0;
+  virtual void train(Apollo::Dataset &dataset) = 0;
 
 
   int policy_count;

@@ -11,22 +11,19 @@
 #include <algorithm>
 
 #include "apollo/models/RegressionTree.h"
-#include "models/preprocessing/Preprocessing.h"
 
 using namespace std;
 
 
-RegressionTree::RegressionTree(
-    std::vector<std::tuple<std::vector<float>, int, double> > &measures)
+RegressionTree::RegressionTree(Apollo::Dataset &dataset)
     : TimingModel("RegressionTree")
 {
   std::vector<std::vector<float>> features;
   std::vector<int> responses;
   std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
-  Preprocessing::findMinMetricPolicyByFeatures(measures,
-                                               features,
-                                               responses,
-                                               min_metric_policies);
+  dataset.findMinMetricPolicyByFeatures(features,
+                                         responses,
+                                         min_metric_policies);
   // std::chrono::steady_clock::time_point t1, t2;
   // t1 = std::chrono::steady_clock::now();
 
