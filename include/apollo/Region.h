@@ -66,6 +66,7 @@ public:
 
   void parsePolicyModel(const std::string &model_info);
   // Model information, name and params.
+  std::string model_info;
   std::string model_name;
   std::unordered_map<std::string, std::string> model_params;
 

@@ -260,6 +260,7 @@ Apollo::Region::Region(const int num_features,
     : num_features(num_features),
       num_policies(num_policies),
       min_training_data(min_training_data),
+      model_info(model_info),
       current_context(nullptr),
       idx(0)
 {
@@ -338,10 +339,10 @@ Apollo::Region::Region(const int num_features,
       perror("TRACE_CSV mkdir");
       abort();
     }
+
     std::string fname("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX +
-                      "/trace-" + Config::APOLLO_POLICY_MODEL + "-region-" +
-                      name + "-rank-" + std::to_string(apollo->mpiRank) +
-                      ".csv");
+                      "/trace-" + model_info + "-region-" + name + "-rank-" +
+                      std::to_string(apollo->mpiRank) + ".csv");
     std::cout << "TRACE_CSV fname " << fname << std::endl;
     trace_file.open(fname);
     if (trace_file.fail()) {
