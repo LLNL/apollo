@@ -22,7 +22,6 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelFactory.h"
-
 #include "timers/TimerSync.h"
 
 #ifdef ENABLE_MPI
@@ -42,8 +41,7 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
   // Conditionally collect pending contexts. Auto-training must not
   // collect contexts to avoid infinite recursion since auto-training
   // happens within collectContext().
-  if (doCollectPendingContexts)
-    collectPendingContexts();
+  if (doCollectPendingContexts) collectPendingContexts();
 
   if (dataset.size() <= 0) return;
 
@@ -59,8 +57,8 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
     std::vector<int> responses;
     std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
     dataset.findMinMetricPolicyByFeatures(features,
-                                           responses,
-                                           min_metric_policies);
+                                          responses,
+                                          min_metric_policies);
     for (auto &b : min_metric_policies) {
       trace_out << "[ ";
       for (auto &f : b.first)
@@ -192,7 +190,7 @@ void Apollo::Region::parsePolicyModel(const std::string &model_info)
         auto value = m[2];
         model_params[key] = value;
         matched = true;
-        //std::cout << "Found key " << key << " value " << value << "\n";
+        // std::cout << "Found key " << key << " value " << value << "\n";
       }
     }
 
@@ -209,7 +207,7 @@ void Apollo::Region::parseDataset(std::istream &is)
   std::smatch m;
 
   for (std::string line; std::getline(is, line);) {
-    //std::cout << "PARSE LINE: " << line << "\n";
+    // std::cout << "PARSE LINE: " << line << "\n";
     if (std::regex_match(line, std::regex("#.*")))
       continue;
     else if (std::regex_match(line, std::regex("data: \\{")))
@@ -231,19 +229,19 @@ void Apollo::Region::parseDataset(std::istream &is)
           std::sregex_token_iterator(feature_list.begin(),
                                      feature_list.end(),
                                      regex,
-                                     /* first sub-match*/1);
+                                     /* first sub-match*/ 1);
       std::sregex_token_iterator end = std::sregex_token_iterator();
       for (; i != end; ++i)
         features.push_back(std::stof(*i));
       policy = std::stoi(m[2]);
       xtime = std::stof(m[3]);
 
-      //std::cout << "features: [ ";
-      //for(auto &f : features)
-      //  std::cout << f << ", ";
-      //std::cout << "]\n";
-      //std::cout << "policy " << policy << "\n";
-      //std::cout << "xtime " << xtime << "\n";
+      // std::cout << "features: [ ";
+      // for(auto &f : features)
+      //   std::cout << f << ", ";
+      // std::cout << "]\n";
+      // std::cout << "policy " << policy << "\n";
+      // std::cout << "xtime " << xtime << "\n";
       dataset.insert(features, policy, xtime);
     } else if (std::regex_match(line, std::regex("\\s*\\}")))
       break;
@@ -294,7 +292,7 @@ Apollo::Region::Region(const int num_features,
       model_file = model_params["load"];
 
     if (fileExists(model_file)) {
-      //std::cout << "Model Load " << model_file << std::endl;
+      // std::cout << "Model Load " << model_file << std::endl;
       model->load(model_file);
     } else {
       std::cerr << "ERROR: could not load model file " << model_file
@@ -318,7 +316,7 @@ Apollo::Region::Region(const int num_features,
 
   if (model_name == "Optimal") {
     std::string model_file = "opt-" + std::string(name) + "-rank-" +
-                       std::to_string(apollo->mpiRank) + ".txt";
+                             std::to_string(apollo->mpiRank) + ".txt";
     if (!fileExists(model_file)) {
       std::cerr << "Optimal policy file " << model_file << " does not exist"
                 << std::endl;
@@ -397,8 +395,7 @@ Apollo::RegionContext *Apollo::Region::begin(std::vector<float> features)
 
 void Apollo::Region::autoTrain()
 {
-  if (!model->isTrainable())
-    return;
+  if (!model->isTrainable()) return;
 
   if (Config::APOLLO_GLOBAL_TRAIN_PERIOD &&
       (apollo->region_executions % Config::APOLLO_GLOBAL_TRAIN_PERIOD) == 0) {

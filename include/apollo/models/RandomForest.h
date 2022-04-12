@@ -23,11 +23,10 @@ class RandomForestImpl;
 class RandomForest : public PolicyModel
 {
 public:
-  RandomForest(
-      int num_policies,
-      unsigned num_trees,
-      unsigned max_depth,
-      std::unique_ptr<PolicyModel> &explorer);
+  RandomForest(int num_policies,
+               unsigned num_trees,
+               unsigned max_depth,
+               std::unique_ptr<PolicyModel> &explorer);
   RandomForest(int num_policies, std::string path);
 
   ~RandomForest();

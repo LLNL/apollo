@@ -4,13 +4,13 @@
 // SPDX-License-Identifier: MIT
 
 #include "DecisionTreeImpl.h"
-#include "helpers/TimeTrace.h"
+
+#include <dlfcn.h>
 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstdio>
-#include <dlfcn.h>
 #include <iostream>
 #include <regex>
 #include <set>
@@ -21,9 +21,12 @@
 #include <utility>
 #include <vector>
 
+#include "helpers/TimeTrace.h"
+
 int DecisionTreeImpl::unique_counter = 0;
 
-DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::istream &is) : num_classes(num_classes)
+DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::istream &is)
+    : num_classes(num_classes)
 {
   ++unique_counter;
   unique_id = unique_counter;
@@ -38,18 +41,17 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::string filename)
 {
   ++unique_counter;
   unique_id = unique_counter;
-  //TimeTrace("loading");
+  // TimeTrace("loading");
   load(filename);
 #ifdef ENABLE_JIT_DTREE
   compile_and_link_jit_evaluate_function();
 #endif
 }
 
-DecisionTreeImpl::DecisionTreeImpl(int num_classes,
-                                   unsigned max_depth)
+DecisionTreeImpl::DecisionTreeImpl(int num_classes, unsigned max_depth)
     : num_classes(num_classes), max_depth(max_depth)
 {
-  //TimeTrace("build_tree");
+  // TimeTrace("build_tree");
   ++unique_counter;
   unique_id = unique_counter;
 }
@@ -78,7 +80,7 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes,
                                    unsigned max_depth)
     : num_classes(num_classes), max_depth(max_depth)
 {
-  //TimeTrace("build_tree");
+  // TimeTrace("build_tree");
   ++unique_counter;
   unique_id = unique_counter;
   // Assumes all feature vectors are equal.
@@ -98,13 +100,15 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes,
 }
 
 
-void DecisionTreeImpl::generate_source(Node &node, OutputFormatter &source_fmt) {
+void DecisionTreeImpl::generate_source(Node &node, OutputFormatter &source_fmt)
+{
   if (!node.left && !node.right) {
     source_fmt << "return " & node.predicted_class & ";\n";
     return;
   }
 
-  source_fmt << "if (features[" & node.feature_idx & "] < " & node.threshold & ") {\n";
+  source_fmt << "if (features[" & node.feature_idx & "] < " & node.threshold &
+      ") {\n";
   if (node.left) {
     ++source_fmt;
     generate_source(*node.left, source_fmt);
@@ -163,11 +167,13 @@ void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
     abort();
   }
 #else
-  throw std::runtime_error("DTree JIT requires compilation with ENABLE_JIT_DTREE on");
+  throw std::runtime_error(
+      "DTree JIT requires compilation with ENABLE_JIT_DTREE on");
 #endif
 }
 
-DecisionTreeImpl::~DecisionTreeImpl() {
+DecisionTreeImpl::~DecisionTreeImpl()
+{
   std::string function_name =
       std::string("_jit_eval_") + std::to_string(unique_id);
   std::string shared_library_name =
@@ -186,7 +192,7 @@ void DecisionTreeImpl::save(const std::string &filename)
 
 int DecisionTreeImpl::predict(const std::vector<float> &features)
 {
-  //TimeTrace("predict");
+  // TimeTrace("predict");
 #ifdef ENABLE_JIT_DTREE
   return jit_evaluate_function(features);
 #else
@@ -335,17 +341,20 @@ std::tuple<float, Iterator, size_t, float> DecisionTreeImpl::split(
                                  const std::pair<std::vector<float>, int> &y) {
               return x.first[split_feature_idx] < y.first[split_feature_idx];
             });
-  return std::make_tuple(min_gini, split_it, split_feature_idx, split_threshold);
+  return std::make_tuple(min_gini,
+                         split_it,
+                         split_feature_idx,
+                         split_threshold);
 }
 
 template <typename Iterator>
 DecisionTreeImpl::Node *DecisionTreeImpl::build_tree(const Iterator &Begin,
-                                   const Iterator &End,
-                                   const size_t max_depth,
-                                   size_t depth)
+                                                     const Iterator &End,
+                                                     const size_t max_depth,
+                                                     size_t depth)
 {
-  //std::string s = std::string("build_tree@") + std::to_string(depth);
-  //TimeTrace t(s);
+  // std::string s = std::string("build_tree@") + std::to_string(depth);
+  // TimeTrace t(s);
 
   auto gini_res = compute_gini(Begin, End);
   auto count_per_class = gini_res.first;
@@ -388,7 +397,7 @@ void DecisionTreeImpl::output_tree(OutputFormatter &outfmt,
   outfmt << "max_depth: " & max_depth & ",\n";
   outfmt << "classes: [ ";
   for (auto it : classes)
-    outfmt & it & ", ";
+    outfmt &it & ", ";
   outfmt & "],\n";
   outfmt << "num_features: " & num_features & ",\n";
   output_node(outfmt, *root, "root");
@@ -400,7 +409,7 @@ void DecisionTreeImpl::output_tree(OutputFormatter &outfmt,
       outfmt << idx & ": { ";
       outfmt & "features: [ ";
       for (auto features_it : it.first)
-        outfmt & features_it & ", ";
+        outfmt &features_it & ", ";
       outfmt & "], ";
       outfmt & "class: " & it.second;
       outfmt & " },\n";
@@ -414,8 +423,8 @@ void DecisionTreeImpl::output_tree(OutputFormatter &outfmt,
 }
 
 void DecisionTreeImpl::output_node(OutputFormatter &outfmt,
-                                    Node &tree,
-                                    std::string key)
+                                   Node &tree,
+                                   std::string key)
 {
   outfmt << key & ": {\n";
 
@@ -456,7 +465,7 @@ void DecisionTreeImpl::parse_count_per_class(
   }
 }
 
-DecisionTreeImpl::Node * DecisionTreeImpl::parse_node(std::istream &is)
+DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(std::istream &is)
 {
   std::smatch m;
   float gini;
@@ -469,7 +478,7 @@ DecisionTreeImpl::Node * DecisionTreeImpl::parse_node(std::istream &is)
   std::unordered_map<int, size_t> count_per_class;
 
   for (std::string line; std::getline(is, line);) {
-    //std::cout << "PARSE_NODE LINE: " << line << "\n";
+    // std::cout << "PARSE_NODE LINE: " << line << "\n";
     if (std::regex_match(line, m, std::regex("\\s+gini: ([0-9]+\\.[0-9]*|0),")))
       gini = std::stof(m[1]);
     else if (std::regex_match(line,
@@ -516,7 +525,7 @@ void DecisionTreeImpl::parse_data(std::istream &is)
 {
   std::smatch m;
   for (std::string line; std::getline(is, line);) {
-    //std::cout << "PARSE_DATA LINE" << line << "\n";
+    // std::cout << "PARSE_DATA LINE" << line << "\n";
     if (std::regex_match(line,
                          m,
                          std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) \\], "
@@ -532,7 +541,7 @@ void DecisionTreeImpl::parse_data(std::istream &is)
                                      regex);
       std::sregex_token_iterator end = std::sregex_token_iterator();
       for (; i != end; ++i)
-      response = std::stoi(m[2]);
+        response = std::stoi(m[2]);
       data.push_back({features, response});
     } else if (std::regex_match(line, std::regex("\\s+\\},")))
       break;
@@ -546,7 +555,7 @@ void DecisionTreeImpl::parse_tree(std::istream &is)
   std::smatch m;
 
   for (std::string line; std::getline(is, line);) {
-    //std::cout << "PARSE_TREE LINE: " << line << "\n";
+    // std::cout << "PARSE_TREE LINE: " << line << "\n";
     if (std::regex_match(line, std::regex("#.*")))
       continue;
     else if (std::regex_match(line, std::regex("tree: \\{")))

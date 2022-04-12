@@ -7,8 +7,8 @@
 #define APOLLO_HELPERS_TIMETRACE_H
 
 #include <chrono>
-#include <string>
 #include <iostream>
+#include <string>
 
 // Simple time tracing class, outputs time elapsed in a block scope.
 class TimeTrace

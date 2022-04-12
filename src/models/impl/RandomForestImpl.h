@@ -6,18 +6,16 @@
 #ifndef APOLLO_MODELS_RANDOMFORESTIMPL_H
 #define APOLLO_MODELS_RANDOMFORESTIMPL_H
 
-#include "DecisionTreeImpl.h"
-
 #include <string>
 #include <vector>
+
+#include "DecisionTreeImpl.h"
 
 class RandomForestImpl
 {
 public:
   RandomForestImpl(int num_classes, std::string filename);
-  RandomForestImpl(int num_classes,
-                   unsigned num_trees,
-                   unsigned max_depth);
+  RandomForestImpl(int num_classes, unsigned num_trees, unsigned max_depth);
   RandomForestImpl(int num_classes,
                    std::vector<std::vector<float>> &features,
                    std::vector<int> &responses,

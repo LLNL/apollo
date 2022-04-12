@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define hipErrchk(ans)                    \
-  {                                        \
+  {                                       \
     hipAssert((ans), __FILE__, __LINE__); \
   }
 
@@ -29,35 +29,32 @@ std::unique_ptr<Apollo::Timer> Apollo::Timer::create<Apollo::Timer::HipAsync>()
 
 TimerHipAsync::TimerHipAsync()
 {
-  hipErrchk( hipEventCreateWithFlags(&event_start, hipEventDefault) );
-  hipErrchk( hipEventCreateWithFlags(&event_stop, hipEventDefault) );
+  hipErrchk(hipEventCreateWithFlags(&event_start, hipEventDefault));
+  hipErrchk(hipEventCreateWithFlags(&event_stop, hipEventDefault));
 }
 
 TimerHipAsync::~TimerHipAsync()
 {
-  hipErrchk( hipEventDestroy(event_start) );
-  hipErrchk( hipEventDestroy(event_stop) );
+  hipErrchk(hipEventDestroy(event_start));
+  hipErrchk(hipEventDestroy(event_stop));
 }
 
 void TimerHipAsync::start()
 {
   // TODO: handle multiple streams.
-  hipErrchk( hipEventRecord(event_start, 0) );
+  hipErrchk(hipEventRecord(event_start, 0));
 }
 
-void TimerHipAsync::stop()
-{
-  hipErrchk( hipEventRecord(event_stop, 0) );
-}
+void TimerHipAsync::stop() { hipErrchk(hipEventRecord(event_stop, 0)); }
 
 bool TimerHipAsync::isDone(double &metric)
 {
   float hipTime;
 
   static hipError_t code;
-  if ((code = hipEventElapsedTime(&hipTime, event_start, event_stop)) != hipSuccess) {
-    if (code == hipErrorNotReady)
-      return false;
+  if ((code = hipEventElapsedTime(&hipTime, event_start, event_stop)) !=
+      hipSuccess) {
+    if (code == hipErrorNotReady) return false;
 
     hipAssert(code, __FILE__, __LINE__);
   }

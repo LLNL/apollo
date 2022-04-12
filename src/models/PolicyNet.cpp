@@ -506,15 +506,15 @@ void PolicyNet::trainNet(std::vector<std::vector<float>> &states,
     trainRewards[i] =
         rewards[i] -
         baseline;  // Subtract the moving average baseline to reduce variance.
-    //std::cout << "=====\n;";
-    //std::cout << "TRAINING DATA i " << i << "\n";
-    //std::cout << "trainState [ ";
-    //for (int j = 0; j < inputSize; ++j)
-    //  std::cout << trainStates[i * inputSize + j] << ", ";
-    //std::cout << " ]\n";
-    //std::cout << "trainActions " << trainActions[i] << "\n";
-    //std::cout << "trainRewards " << trainRewards[i] << "\n";
-    //std::cout << "=====\n";
+    // std::cout << "=====\n;";
+    // std::cout << "TRAINING DATA i " << i << "\n";
+    // std::cout << "trainState [ ";
+    // for (int j = 0; j < inputSize; ++j)
+    //   std::cout << trainStates[i * inputSize + j] << ", ";
+    // std::cout << " ]\n";
+    // std::cout << "trainActions " << trainActions[i] << "\n";
+    // std::cout << "trainRewards " << trainRewards[i] << "\n";
+    // std::cout << "=====\n";
   }
 
   // Train the network.
@@ -577,11 +577,11 @@ int PolicyNet::getIndex(std::vector<float> &features)
     // Add the action probabilities to the cache to be reused later.
     actionProbabilityMap.insert(std::make_pair(key, actionProbs));
   }
-  //std::cout << " probs: ";
-  //for (auto &p : actionProbs) {
-  //  std::cout << p << " ";
-  //}
-  //std::cout << std::endl;
+  // std::cout << " probs: ";
+  // for (auto &p : actionProbs) {
+  //   std::cout << p << " ";
+  // }
+  // std::cout << std::endl;
 
   // Sample a policy from the action probabilities.
   std::discrete_distribution<> d(actionProbs.begin(), actionProbs.end());
@@ -590,10 +590,7 @@ int PolicyNet::getIndex(std::vector<float> &features)
   return policyIndex;
 }
 
-bool PolicyNet::isTrainable()
-{
-  return trainable;
-}
+bool PolicyNet::isTrainable() { return trainable; }
 
 void PolicyNet::store(const std::string &filename)
 {

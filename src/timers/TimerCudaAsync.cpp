@@ -29,35 +29,32 @@ std::unique_ptr<Apollo::Timer> Apollo::Timer::create<Apollo::Timer::CudaAsync>()
 
 TimerCudaAsync::TimerCudaAsync()
 {
-  cudaErrchk( cudaEventCreateWithFlags(&event_start, cudaEventDefault) );
-  cudaErrchk( cudaEventCreateWithFlags(&event_stop, cudaEventDefault) );
+  cudaErrchk(cudaEventCreateWithFlags(&event_start, cudaEventDefault));
+  cudaErrchk(cudaEventCreateWithFlags(&event_stop, cudaEventDefault));
 }
 
 TimerCudaAsync::~TimerCudaAsync()
 {
-  cudaErrchk( cudaEventDestroy(event_start) );
-  cudaErrchk( cudaEventDestroy(event_stop) );
+  cudaErrchk(cudaEventDestroy(event_start));
+  cudaErrchk(cudaEventDestroy(event_stop));
 }
 
 void TimerCudaAsync::start()
 {
   // TODO: handle multiple streams.
-  cudaErrchk( cudaEventRecord(event_start, 0) );
+  cudaErrchk(cudaEventRecord(event_start, 0));
 }
 
-void TimerCudaAsync::stop()
-{
-  cudaErrchk( cudaEventRecord(event_stop, 0) );
-}
+void TimerCudaAsync::stop() { cudaErrchk(cudaEventRecord(event_stop, 0)); }
 
 bool TimerCudaAsync::isDone(double &metric)
 {
   float cudaTime;
 
   static cudaError_t code;
-  if ((code = cudaEventElapsedTime(&cudaTime, event_start, event_stop)) != cudaSuccess) {
-    if (code == cudaErrorNotReady)
-      return false;
+  if ((code = cudaEventElapsedTime(&cudaTime, event_start, event_stop)) !=
+      cudaSuccess) {
+    if (code == cudaErrorNotReady) return false;
 
     cudaAssert(code, __FILE__, __LINE__);
   }

@@ -16,7 +16,7 @@ class PolicyModel
 {
 public:
   PolicyModel(int num_policies, std::string name)
-      : policy_count(num_policies), name(name) {};
+      : policy_count(num_policies), name(name){};
   virtual ~PolicyModel() {}
   //
   virtual int getIndex(std::vector<float> &features) = 0;

@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "RandomForestImpl.h"
-#include "helpers/TimeTrace.h"
 
 #include <cassert>
 #include <chrono>
@@ -15,6 +14,7 @@
 #include <vector>
 
 #include "DecisionTreeImpl.h"
+#include "helpers/TimeTrace.h"
 
 RandomForestImpl::RandomForestImpl(int num_classes, std::string filename)
     : num_classes(num_classes)
@@ -85,7 +85,7 @@ void RandomForestImpl::output_rfc(OutputFormatter &outfmt)
   outfmt << "max_depth: " & max_depth & ",\n";
   outfmt << "classes: [ ";
   for (unsigned i = 0; i < num_classes; ++i) {
-    outfmt & i & ", ";
+    outfmt &i & ", ";
   }
   outfmt & "],\n";
   unsigned tree_idx = 0;
@@ -114,7 +114,7 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
 
   unsigned tree_idx = 0;
   for (std::string line; std::getline(ifs, line);) {
-    //std::cout << "PARSE_RFC LINE: " << line << "\n";
+    // std::cout << "PARSE_RFC LINE: " << line << "\n";
     if (std::regex_match(line, std::regex("#.*")))
       continue;
     else if (std::regex_match(line, std::regex("rfc: \\{")))
@@ -124,8 +124,9 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
         throw std::runtime_error("Expected less trees");
       rfc.push_back(std::make_unique<DecisionTreeImpl>(num_classes, ifs));
       ++tree_idx;
-    }
-    else if (std::regex_match(line, m, std::regex("\\s+max_depth: ([0-9]+),")))
+    } else if (std::regex_match(line,
+                                m,
+                                std::regex("\\s+max_depth: ([0-9]+),")))
       max_depth = std::stoul(m[1]);
     else if (std::regex_match(line,
                               m,
@@ -142,7 +143,8 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
   }
 }
 
-void RandomForestImpl::load(const std::string &filename) {
+void RandomForestImpl::load(const std::string &filename)
+{
   std::ifstream ifs(filename);
   if (!ifs) throw std::runtime_error("Error loading file: " + filename);
   parse_rfc(ifs);
@@ -153,7 +155,7 @@ int RandomForestImpl::predict(const std::vector<float> &features)
 {
   // Predict by majority vote over all decision trees.
   int count_per_class[num_classes];
-  for(size_t i = 0; i < num_classes; ++i)
+  for (size_t i = 0; i < num_classes; ++i)
     count_per_class[i] = 0;
 
   for (auto &dtree : rfc) {
@@ -163,14 +165,14 @@ int RandomForestImpl::predict(const std::vector<float> &features)
   }
 
   int class_idx = 0;
-  for(size_t i = 1; i < num_classes; ++i)
-    if (count_per_class[i] > count_per_class[class_idx])
-      class_idx = i;
+  for (size_t i = 1; i < num_classes; ++i)
+    if (count_per_class[i] > count_per_class[class_idx]) class_idx = i;
 
   return class_idx;
 }
 
-void RandomForestImpl::print_forest() {
+void RandomForestImpl::print_forest()
+{
   OutputFormatter outfmt(std::cout);
   output_rfc(outfmt);
 }

@@ -5,17 +5,16 @@
 
 #include "OutputFormatter.h"
 
-OutputFormatter::OutputFormatter(std::ostream &os)
-    : os(os), level(0)
-{
-}
+OutputFormatter::OutputFormatter(std::ostream &os) : os(os), level(0) {}
 
-OutputFormatter &OutputFormatter::operator++() {
+OutputFormatter &OutputFormatter::operator++()
+{
   level++;
   return *this;
 }
 
-OutputFormatter &OutputFormatter::operator--() {
+OutputFormatter &OutputFormatter::operator--()
+{
   level--;
   return *this;
 }

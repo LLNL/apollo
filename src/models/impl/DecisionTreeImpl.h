@@ -6,8 +6,6 @@
 #ifndef APOLLO_MODELS_DECISIONTREEIMPL_H
 #define APOLLO_MODELS_DECISIONTREEIMPL_H
 
-#include "helpers/OutputFormatter.h"
-
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -21,13 +19,14 @@
 #include <utility>
 #include <vector>
 
+#include "helpers/OutputFormatter.h"
+
 class DecisionTreeImpl
 {
 public:
   DecisionTreeImpl(int num_classes, std::istream &is);
   DecisionTreeImpl(int num_classes, std::string filename);
-  DecisionTreeImpl(int num_classes,
-                   unsigned max_depth);
+  DecisionTreeImpl(int num_classes, unsigned max_depth);
   DecisionTreeImpl(int num_classes,
                    std::vector<std::vector<float>> &features,
                    std::vector<int> &responses,
@@ -93,9 +92,7 @@ private:
                    const size_t max_depth,
                    size_t depth);
 
-  void output_node(OutputFormatter &outfmt,
-                   Node &tree,
-                   std::string key);
+  void output_node(OutputFormatter &outfmt, Node &tree, std::string key);
   void parse_count_per_class(std::istream &is,
                              std::unordered_map<int, size_t> &count_per_class);
 

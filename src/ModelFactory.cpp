@@ -53,14 +53,14 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
     auto it = model_params.find("policy");
     if (it != model_params.end()) policy = std::stoi(it->second);
     if (policy < 0 || policy >= num_policies)
-      throw std::runtime_error("Invalid policy " + std::to_string(policy) + " for Static");
+      throw std::runtime_error("Invalid policy " + std::to_string(policy) +
+                               " for Static");
     return std::make_unique<Static>(num_policies, policy);
   } else if (model_name == "Random") {
     return std::make_unique<Random>(num_policies);
   } else if (model_name == "RoundRobin") {
     return std::make_unique<RoundRobin>(num_policies);
-  }
-  else if (model_name == "DecisionTree") {
+  } else if (model_name == "DecisionTree") {
     // Default max_depth
     unsigned max_depth = 2;
     auto it = model_params.find("max_depth");
@@ -81,9 +81,7 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
                                    num_policies,
                                    explore_model_params);
 
-    return std::make_unique<DecisionTree>(num_policies,
-                                          max_depth,
-                                          explorer);
+    return std::make_unique<DecisionTree>(num_policies, max_depth, explorer);
   } else if (model_name == "RandomForest") {
     // Default num_trees, max_depth
     unsigned num_trees = 10;
@@ -132,11 +130,9 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
 
     return std::make_unique<PolicyNet>(
         num_policies, num_features, lr, beta, beta1, beta2, threshold);
-  }
-  else if (model_name == "Optimal") {
+  } else if (model_name == "Optimal") {
     return std::make_unique<Optimal>();
-  }
-  else {
+  } else {
     std::cerr << __FILE__ << ":" << __LINE__ << ":: Invalid model "
               << model_name << std::endl;
     abort();

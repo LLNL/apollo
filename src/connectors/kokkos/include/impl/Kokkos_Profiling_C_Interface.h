@@ -37,9 +37,9 @@
 #include <cstddef>
 #include <cstdint>
 #else
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #endif
 
 #define KOKKOSP_INTERFACE_VERSION 20210225
@@ -56,7 +56,9 @@ struct Kokkos_Profiling_SpaceHandle {
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_initFunction)(
-    const int, const uint64_t, const uint32_t,
+    const int,
+    const uint64_t,
+    const uint32_t,
     struct Kokkos_Profiling_KokkosPDeviceInfo*);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_finalizeFunction)();
@@ -65,7 +67,8 @@ typedef void (*Kokkos_Profiling_parseArgsFunction)(int, char**);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_printHelpFunction)(char*);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
-typedef void (*Kokkos_Profiling_beginFunction)(const char*, const uint32_t,
+typedef void (*Kokkos_Profiling_beginFunction)(const char*,
+                                               const uint32_t,
                                                uint64_t*);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_endFunction)(uint64_t);
@@ -77,11 +80,15 @@ typedef void (*Kokkos_Profiling_popFunction)();
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_allocateDataFunction)(
-    const struct Kokkos_Profiling_SpaceHandle, const char*, const void*,
+    const struct Kokkos_Profiling_SpaceHandle,
+    const char*,
+    const void*,
     const uint64_t);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_deallocateDataFunction)(
-    const struct Kokkos_Profiling_SpaceHandle, const char*, const void*,
+    const struct Kokkos_Profiling_SpaceHandle,
+    const char*,
+    const void*,
     const uint64_t);
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
@@ -99,17 +106,24 @@ typedef void (*Kokkos_Profiling_profileEventFunction)(const char*);
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_beginDeepCopyFunction)(
-    struct Kokkos_Profiling_SpaceHandle, const char*, const void*,
-    struct Kokkos_Profiling_SpaceHandle, const char*, const void*, uint64_t);
+    struct Kokkos_Profiling_SpaceHandle,
+    const char*,
+    const void*,
+    struct Kokkos_Profiling_SpaceHandle,
+    const char*,
+    const void*,
+    uint64_t);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_endDeepCopyFunction)();
-typedef void (*Kokkos_Profiling_beginFenceFunction)(const char*, const uint32_t,
+typedef void (*Kokkos_Profiling_beginFenceFunction)(const char*,
+                                                    const uint32_t,
                                                     uint64_t*);
 typedef void (*Kokkos_Profiling_endFenceFunction)(uint64_t);
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_dualViewSyncFunction)(const char*,
-                                                      const void* const, bool);
+                                                      const void* const,
+                                                      bool);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Profiling_dualViewModifyFunction)(const char*,
                                                         const void* const,
@@ -137,10 +151,12 @@ struct Kokkos_Tools_ToolSettings {
 
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Tools_provideToolProgrammingInterfaceFunction)(
-    const uint32_t, struct Kokkos_Tools_ToolProgrammingInterface);
+    const uint32_t,
+    struct Kokkos_Tools_ToolProgrammingInterface);
 // NOLINTNEXTLINE(modernize-use-using): C compatibility
 typedef void (*Kokkos_Tools_requestToolSettingsFunction)(
-    const uint32_t, struct Kokkos_Tools_ToolSettings*);
+    const uint32_t,
+    struct Kokkos_Tools_ToolSettings*);
 
 // Tuning
 
@@ -223,18 +239,27 @@ struct Kokkos_Tools_VariableValue {
 };
 
 typedef void (*Kokkos_Tools_outputTypeDeclarationFunction)(
-    const char*, const size_t, struct Kokkos_Tools_VariableInfo* info);
+    const char*,
+    const size_t,
+    struct Kokkos_Tools_VariableInfo* info);
 typedef void (*Kokkos_Tools_inputTypeDeclarationFunction)(
-    const char*, const size_t, struct Kokkos_Tools_VariableInfo* info);
+    const char*,
+    const size_t,
+    struct Kokkos_Tools_VariableInfo* info);
 
 typedef void (*Kokkos_Tools_requestValueFunction)(
-    const size_t, const size_t, const struct Kokkos_Tools_VariableValue*,
-    const size_t count, struct Kokkos_Tools_VariableValue*);
+    const size_t,
+    const size_t,
+    const struct Kokkos_Tools_VariableValue*,
+    const size_t count,
+    struct Kokkos_Tools_VariableValue*);
 typedef void (*Kokkos_Tools_contextBeginFunction)(const size_t);
 typedef void (*Kokkos_Tools_contextEndFunction)(
-    const size_t, struct Kokkos_Tools_VariableValue);
+    const size_t,
+    struct Kokkos_Tools_VariableValue);
 typedef void (*Kokkos_Tools_optimizationGoalDeclarationFunction)(
-    const size_t, const struct Kokkos_Tools_OptimzationGoal goal);
+    const size_t,
+    const struct Kokkos_Tools_OptimzationGoal goal);
 
 struct Kokkos_Profiling_EventSet {
   Kokkos_Profiling_initFunction init;

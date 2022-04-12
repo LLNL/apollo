@@ -3,9 +3,9 @@
 // Laboratory. See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
-#include <string>
-
 #include "apollo/Config.h"
+
+#include <string>
 
 int Config::APOLLO_COLLECTIVE_TRAINING;
 int Config::APOLLO_LOCAL_TRAINING;

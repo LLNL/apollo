@@ -16,8 +16,8 @@
 #include "apollo/Apollo.h"
 #include "apollo/Dataset.h"
 #include "apollo/PolicyModel.h"
-#include "apollo/TimingModel.h"
 #include "apollo/Timer.h"
+#include "apollo/TimingModel.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
@@ -92,7 +92,8 @@ struct Apollo::RegionContext {
   int policy;
   unsigned long long idx;
 
-  RegionContext(int num_features) {
+  RegionContext(int num_features)
+  {
     // Pre-allocate features vector to avoid re-allocations.
     features.reserve(num_features);
   }

@@ -22,9 +22,7 @@ public:
   void load(const std::string &filename){};
   void store(const std::string &filename){};
   bool isTrainable() { return false; }
-  void train(Apollo::Dataset &dataset)
-  {
-  }
+  void train(Apollo::Dataset &dataset) {}
 
 private:
   std::random_device random_dev;

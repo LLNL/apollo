@@ -88,8 +88,8 @@ void DecisionTree::train(Apollo::Dataset &dataset)
   std::vector<int> responses;
   std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
   dataset.findMinMetricPolicyByFeatures(features,
-                                         responses,
-                                         min_metric_policies);
+                                        responses,
+                                        min_metric_policies);
 
 #ifdef ENABLE_OPENCV
   Mat fmat;

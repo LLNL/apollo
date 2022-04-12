@@ -91,8 +91,8 @@ void RandomForest::train(Apollo::Dataset &dataset)
   std::vector<int> responses;
   std::map<std::vector<float>, std::pair<int, double>> min_metric_policies;
   dataset.findMinMetricPolicyByFeatures(features,
-                                         responses,
-                                         min_metric_policies);
+                                        responses,
+                                        min_metric_policies);
 #ifdef ENABLE_OPENCV
   Mat fmat;
   for (auto &i : features) {
@@ -115,8 +115,7 @@ RandomForest::~RandomForest() { return; }
 
 int RandomForest::getIndex(std::vector<float> &features)
 {
-  if (!trainable)
-    return rfc->predict(features);
+  if (!trainable) return rfc->predict(features);
 
   return explorer->getIndex(features);
 }

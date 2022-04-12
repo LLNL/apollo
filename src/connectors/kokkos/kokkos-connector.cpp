@@ -30,10 +30,12 @@
 // @HEADER
 */
 
-#include <algorithm>
 #include <apollo/Apollo.h>
 #include <apollo/ModelFactory.h>
 #include <apollo/Region.h>
+#include <sys/stat.h>
+
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cinttypes>
@@ -46,7 +48,6 @@
 #include <queue>
 #include <set>
 #include <string>
-#include <sys/stat.h>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -58,8 +59,9 @@ constexpr const double epsilon = 1E-24;
 int flush_interval = 500;
 using valunion =
     decltype(std::declval<Kokkos::Tools::Experimental::VariableValue>().value);
-using valtype = decltype(
-    std::declval<Kokkos::Tools::Experimental::VariableValue>().metadata->type);
+using valtype =
+    decltype(std::declval<Kokkos::Tools::Experimental::VariableValue>()
+                 .metadata->type);
 
 struct VariableDatabaseData {
   int64_t canonical_id;
@@ -69,50 +71,59 @@ struct VariableDatabaseData {
   valunion maximum;
   Kokkos::Tools::Experimental::VariableValue *candidate_values;
 };
-int64_t slice_helper(double upper, double lower, double step) {
+int64_t slice_helper(double upper, double lower, double step)
+{
   return ((upper - lower) / step);
 }
 static size_t num_unconverged_regions;
 
 int64_t count_range_slices(Kokkos::Tools::Experimental::ValueRange &in,
-                           Kokkos::Tools::Experimental::ValueType type) {
+                           Kokkos::Tools::Experimental::ValueType type)
+{
   switch (type) {
-  case ValueType::kokkos_value_int64:
-    return 1 + ((((!in.openUpper) ? in.upper.int_value : (in.upper.int_value - 1)) -
-            ((!in.openLower) ? in.lower.int_value : (in.lower.int_value + 1))) /
-           in.step.int_value);
-  case ValueType::kokkos_value_double:
-    return (in.step.double_value ==
-            0.0) // intentional comparison to double value 0.0, this shouldn't
-                 // be a calculated value, but a value that has been set to the
-                 // literal 0.0
-               ? slice_continuous
-               : slice_helper(in.openUpper ? in.upper.double_value
-                                           : (in.upper.double_value - epsilon),
-                              in.openLower ? in.lower.double_value
-                                           : (in.lower.double_value + epsilon),
-                              in.step.double_value);
-  case ValueType::kokkos_value_string:
-    // TODO: error mechanism?
-    return -1;
+    case ValueType::kokkos_value_int64:
+      return 1 + ((((!in.openUpper) ? in.upper.int_value
+                                    : (in.upper.int_value - 1)) -
+                   ((!in.openLower) ? in.lower.int_value
+                                    : (in.lower.int_value + 1))) /
+                  in.step.int_value);
+    case ValueType::kokkos_value_double:
+      return (in.step.double_value ==
+              0.0)  // intentional comparison to double value 0.0, this
+                    // shouldn't be a calculated value, but a value that has
+                    // been set to the literal 0.0
+                 ? slice_continuous
+                 : slice_helper(in.openUpper
+                                    ? in.upper.double_value
+                                    : (in.upper.double_value - epsilon),
+                                in.openLower
+                                    ? in.lower.double_value
+                                    : (in.lower.double_value + epsilon),
+                                in.step.double_value);
+    case ValueType::kokkos_value_string:
+      // TODO: error mechanism?
+      return -1;
   }
   return -1;
 }
 
-Kokkos::Tools::Experimental::VariableValue
-mvv(size_t id, Kokkos_Tools_VariableValue_ValueUnionSet values,
-    Kokkos::Tools::Experimental::VariableInfo *info, int index) {
+Kokkos::Tools::Experimental::VariableValue mvv(
+    size_t id,
+    Kokkos_Tools_VariableValue_ValueUnionSet values,
+    Kokkos::Tools::Experimental::VariableInfo *info,
+    int index)
+{
   Kokkos_Tools_VariableValue_ValueUnion holder;
   switch (info->type) {
-  case ValueType::kokkos_value_int64:
-    holder.int_value = values.int_value[index];
-    break;
-  case ValueType::kokkos_value_double:
-    holder.double_value = values.double_value[index];
-    break;
-  case ValueType::kokkos_value_string:
-    strncpy(holder.string_value, values.string_value[index], 64);
-    break;
+    case ValueType::kokkos_value_int64:
+      holder.int_value = values.int_value[index];
+      break;
+    case ValueType::kokkos_value_double:
+      holder.double_value = values.double_value[index];
+      break;
+    case ValueType::kokkos_value_string:
+      strncpy(holder.string_value, values.string_value[index], 64);
+      break;
   }
   Kokkos::Tools::Experimental::VariableValue value;
   value.type_id = id;
@@ -123,20 +134,22 @@ mvv(size_t id, Kokkos_Tools_VariableValue_ValueUnionSet values,
   return value;
 }
 
-Kokkos::Tools::Experimental::VariableValue
-mvv(size_t id, Kokkos_Tools_VariableValue_ValueUnion value,
-    Kokkos::Tools::Experimental::VariableInfo *info) {
+Kokkos::Tools::Experimental::VariableValue mvv(
+    size_t id,
+    Kokkos_Tools_VariableValue_ValueUnion value,
+    Kokkos::Tools::Experimental::VariableInfo *info)
+{
   Kokkos_Tools_VariableValue_ValueUnion holder;
   switch (info->type) {
-  case ValueType::kokkos_value_int64:
-    holder.int_value = value.int_value;
-    break;
-  case ValueType::kokkos_value_double:
-    holder.double_value = value.double_value;
-    break;
-  case ValueType::kokkos_value_string:
-    strncpy(holder.string_value, value.string_value, 64);
-    break;
+    case ValueType::kokkos_value_int64:
+      holder.int_value = value.int_value;
+      break;
+    case ValueType::kokkos_value_double:
+      holder.double_value = value.double_value;
+      break;
+    case ValueType::kokkos_value_string:
+      strncpy(holder.string_value, value.string_value, 64);
+      break;
   }
   Kokkos::Tools::Experimental::VariableValue ret_value;
   ret_value.type_id = id;
@@ -145,9 +158,11 @@ mvv(size_t id, Kokkos_Tools_VariableValue_ValueUnion value,
   return ret_value;
 }
 void form_set_from_range(Kokkos::Tools::Experimental::VariableValue *fill_this,
-                         Kokkos_Tools_ValueRange with_this, int64_t num_slices,
+                         Kokkos_Tools_ValueRange with_this,
+                         int64_t num_slices,
                          size_t id,
-                         Kokkos::Tools::Experimental::VariableInfo *info) {
+                         Kokkos::Tools::Experimental::VariableInfo *info)
+{
   if (info->type == ValueType::kokkos_value_int64) {
     for (int x = 0; x < num_slices; ++x) {
       auto lower =
@@ -170,37 +185,42 @@ void form_set_from_range(Kokkos::Tools::Experimental::VariableValue *fill_this,
   }
 }
 void associate_candidates(const size_t id,
-                          Kokkos::Tools::Experimental::VariableInfo *info) {
+                          Kokkos::Tools::Experimental::VariableInfo *info)
+{
   int64_t candidate_set_size = 0;
   auto *databaseInfo =
       reinterpret_cast<VariableDatabaseData *>(info->toolProvidedInfo);
   switch (info->valueQuantity) {
-  case Kokkos::Tools::Experimental::CandidateValueType::kokkos_value_set:
-    candidate_set_size = info->candidates.set.size;
-    break;
-  case CandidateValueType::kokkos_value_range:
-    candidate_set_size = count_range_slices(info->candidates.range, info->type);
-    break;
-  case CandidateValueType::kokkos_value_unbounded:
-    candidate_set_size = 0;
-    break;
+    case Kokkos::Tools::Experimental::CandidateValueType::kokkos_value_set:
+      candidate_set_size = info->candidates.set.size;
+      break;
+    case CandidateValueType::kokkos_value_range:
+      candidate_set_size =
+          count_range_slices(info->candidates.range, info->type);
+      break;
+    case CandidateValueType::kokkos_value_unbounded:
+      candidate_set_size = 0;
+      break;
   }
   if (candidate_set_size > 0) {
     Kokkos::Tools::Experimental::VariableValue *candidate_values =
         new Kokkos::Tools::Experimental::VariableValue[candidate_set_size];
     switch (info->valueQuantity) {
-    case CandidateValueType::kokkos_value_set:
-      for (int x = 0; x < candidate_set_size; ++x) {
-        candidate_values[x] = mvv(id, info->candidates.set.values, info, x);
-      }
-      break;
-    case CandidateValueType::kokkos_value_range:
-      form_set_from_range(candidate_values, info->candidates.range,
-                          candidate_set_size, id, info);
-      break;
-    case CandidateValueType::kokkos_value_unbounded:
-      candidate_set_size = 0;
-      break;
+      case CandidateValueType::kokkos_value_set:
+        for (int x = 0; x < candidate_set_size; ++x) {
+          candidate_values[x] = mvv(id, info->candidates.set.values, info, x);
+        }
+        break;
+      case CandidateValueType::kokkos_value_range:
+        form_set_from_range(candidate_values,
+                            info->candidates.range,
+                            candidate_set_size,
+                            id,
+                            info);
+        break;
+      case CandidateValueType::kokkos_value_unbounded:
+        candidate_set_size = 0;
+        break;
     }
     databaseInfo->candidate_values = candidate_values;
   }
@@ -220,9 +240,12 @@ struct variableSet {
 
 int choices[max_choices];
 
-namespace std {
-template <> struct less<variableSet> {
-  bool operator() (const variableSet &l, const variableSet &r) const {
+namespace std
+{
+template <>
+struct less<variableSet> {
+  bool operator()(const variableSet &l, const variableSet &r) const
+  {
     if (l.num_variables != r.num_variables) {
       return l.num_variables < r.num_variables;
     }
@@ -234,7 +257,7 @@ template <> struct less<variableSet> {
     return false;
   }
 };
-} // namespace std
+}  // namespace std
 
 struct options {
   bool disable_retrain;
@@ -242,7 +265,8 @@ struct options {
   bool trace;
 };
 
-extern "C" void kokkosp_parse_args(int argc, char **argv) {
+extern "C" void kokkosp_parse_args(int argc, char **argv)
+{
   options parsed_options;
   for (int x = 0; x < argc; ++x) {
     std::string arg(argv[x]);
@@ -284,7 +308,8 @@ extern "C" void kokkosp_parse_args(int argc, char **argv) {
   }
 }
 
-extern "C" void kokkosp_print_help(char *) {
+extern "C" void kokkosp_print_help(char *)
+{
   std::string OPTIONS_BLOCK =
       R"(
 Apollo Connector for Kokkos, supported options
@@ -303,7 +328,8 @@ Apollo *apollo;
 extern "C" void kokkosp_init_library(const int loadSeq,
                                      const uint64_t interfaceVer,
                                      const uint32_t devInfoCount,
-                                     void *deviceInfo) {
+                                     void *deviceInfo)
+{
   printf("Initializing Apollo Tuning adapter\n");
   for (int x = 0; x < max_choices; ++x) {
     choices[x] = x;
@@ -322,7 +348,8 @@ using RegionData = std::pair<std::string, Apollo::Region *>;
 static std::map<size_t, std::pair<Apollo::Region *, Apollo::RegionContext *>>
     tuned_contexts;
 static std::map<variableSet, RegionData> tuning_regions;
-extern "C" void kokkosp_finalize_library() {
+extern "C" void kokkosp_finalize_library()
+{
   printf("Finalizing Apollo Tuning adapter\n");
   for (auto kv : tuning_regions) {
     RegionData data = kv.second;
@@ -331,62 +358,73 @@ extern "C" void kokkosp_finalize_library() {
   }
 }
 Kokkos::Tools::Experimental::ToolProgrammingInterface helper_functions;
-void invoke_fence(uint32_t devID) {
+void invoke_fence(uint32_t devID)
+{
   if ((helper_functions.fence != nullptr) && (num_unconverged_regions > 0)) {
     helper_functions.fence(devID);
   }
 }
 extern "C" void kokkosp_provide_tool_programming_interface(
     uint32_t num_actions,
-    Kokkos::Tools::Experimental::ToolProgrammingInterface action) {
+    Kokkos::Tools::Experimental::ToolProgrammingInterface action)
+{
   helper_functions = action;
 }
 
 extern "C" void kokkosp_request_tool_settings(
     uint32_t num_responses,
-    Kokkos::Tools::Experimental::ToolSettings *response) {
+    Kokkos::Tools::Experimental::ToolSettings *response)
+{
   response->requires_global_fencing = false;
 }
 
 extern "C" void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
-                                           uint64_t *kID) {
+                                           uint64_t *kID)
+{
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
+extern "C" void kokkosp_end_parallel_for(const uint64_t kID)
+{
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
 extern "C" void kokkosp_begin_parallel_scan(const char *name,
                                             const uint32_t devID,
-                                            uint64_t *kID) {
+                                            uint64_t *kID)
+{
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
+extern "C" void kokkosp_end_parallel_scan(const uint64_t kID)
+{
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
 extern "C" void kokkosp_begin_parallel_reduce(const char *name,
                                               const uint32_t devID,
-                                              uint64_t *kID) {
+                                              uint64_t *kID)
+{
   invoke_fence(devID);
   *kID = devID;
 }
 
-extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
+extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID)
+{
   uint32_t devID = kID;
   invoke_fence(devID);
 }
 
-extern "C" void
-kokkosp_declare_output_type(const char *name, const size_t id,
-                            Kokkos::Tools::Experimental::VariableInfo *info) {
+extern "C" void kokkosp_declare_output_type(
+    const char *name,
+    const size_t id,
+    Kokkos::Tools::Experimental::VariableInfo *info)
+{
   auto *metadata = new VariableDatabaseData();
   metadata->name = (char *)malloc(sizeof(char) * 65);
   strncpy(metadata->name, name, 64);
@@ -394,51 +432,58 @@ kokkosp_declare_output_type(const char *name, const size_t id,
   associate_candidates(id, info);
 }
 
-extern "C" void
-kokkosp_declare_input_type(const char *name, const size_t id,
-                           Kokkos::Tools::Experimental::VariableInfo *info) {
+extern "C" void kokkosp_declare_input_type(
+    const char *name,
+    const size_t id,
+    Kokkos::Tools::Experimental::VariableInfo *info)
+{
   auto *metadata = new VariableDatabaseData();
   metadata->name = (char *)malloc(sizeof(char) * 65);
   strncpy(metadata->name, name, 64);
   info->toolProvidedInfo = metadata;
 }
 
-float variableToFloat(Kokkos::Tools::Experimental::VariableValue value) {
+float variableToFloat(Kokkos::Tools::Experimental::VariableValue value)
+{
   switch (value.metadata->type) {
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_int64:
-    return static_cast<float>(value.value.int_value);
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_double:
-    return static_cast<float>(value.value.double_value);
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_string:
-    return static_cast<float>(
-        std::hash<std::string>{}(value.value.string_value)); // terrible
-  default:
-    return 0.0; // TODO: break in some fashion instead
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_int64:
+      return static_cast<float>(value.value.int_value);
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_double:
+      return static_cast<float>(value.value.double_value);
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_string:
+      return static_cast<float>(
+          std::hash<std::string>{}(value.value.string_value));  // terrible
+    default:
+      return 0.0;  // TODO: break in some fashion instead
   }
 }
 
-Kokkos::Tools::Experimental::VariableValue
-mvv(size_t index, Kokkos::Tools::Experimental::VariableValue reference,
-    Kokkos::Tools::Experimental::ValueSet &set) {
+Kokkos::Tools::Experimental::VariableValue mvv(
+    size_t index,
+    Kokkos::Tools::Experimental::VariableValue reference,
+    Kokkos::Tools::Experimental::ValueSet &set)
+{
   Kokkos::Tools::Experimental::VariableValue value;
   value.type_id = reference.type_id;
   value.metadata = reference.metadata;
   switch (reference.metadata->type) {
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_int64:
-    value.value.int_value = set.values.int_value[index];
-    break;
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_double:
-    value.value.double_value = set.values.double_value[index];
-    break;
-  case Kokkos::Tools::Experimental::ValueType::kokkos_value_string:
-    strncpy(value.value.string_value, set.values.string_value[index],
-            KOKKOS_TOOLS_TUNING_STRING_LENGTH);
-    break;
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_int64:
+      value.value.int_value = set.values.int_value[index];
+      break;
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_double:
+      value.value.double_value = set.values.double_value[index];
+      break;
+    case Kokkos::Tools::Experimental::ValueType::kokkos_value_string:
+      strncpy(value.value.string_value,
+              set.values.string_value[index],
+              KOKKOS_TOOLS_TUNING_STRING_LENGTH);
+      break;
   }
   return value;
 }
 
-std::string get_region_name(variableSet variables) {
+std::string get_region_name(variableSet variables)
+{
   std::string name;
   for (int x = 0; x < variables.num_variables; ++x) {
     auto *database_data = reinterpret_cast<VariableDatabaseData *>(
@@ -453,15 +498,18 @@ std::string get_region_name(variableSet variables) {
   }
   return name;
 }
-bool file_exists(std::string path) {
+bool file_exists(std::string path)
+{
   struct stat buffer;
   return (stat(path.c_str(), &buffer) == 0);
 }
 extern "C" void kokkosp_request_values(
-    size_t contextId, size_t numContextVariables,
+    size_t contextId,
+    size_t numContextVariables,
     Kokkos::Tools::Experimental::VariableValue *contextValues,
     size_t numTuningVariables,
-    Kokkos::Tools::Experimental::VariableValue *tuningValues) {
+    Kokkos::Tools::Experimental::VariableValue *tuningValues)
+{
   if (numTuningVariables == 0) {
     return;
   }
@@ -504,7 +552,8 @@ extern "C" void kokkosp_request_values(
                                   /* min_training_data */ 0,
                                   final_name);
     } else {
-      region = new Apollo::Region(numContextVariables, name.c_str(),
+      region = new Apollo::Region(numContextVariables,
+                                  name.c_str(),
                                   choiceSpaceSize);
       ++num_unconverged_regions;
     }
@@ -533,7 +582,8 @@ extern "C" void kokkosp_request_values(
   }
 }
 
-extern "C" void kokkosp_end_context(size_t contextId) {
+extern "C" void kokkosp_end_context(size_t contextId)
+{
   auto search = tuned_contexts.find(contextId);
   if (search == tuned_contexts.end()) {
     return;
@@ -546,6 +596,6 @@ extern "C" void kokkosp_end_context(size_t contextId) {
   static int encounter;
   if ((++encounter % flush_interval) == 0) {
     apollo->flushAllRegionMeasurements(0);
-    num_unconverged_regions = 0; // TODO: better
+    num_unconverged_regions = 0;  // TODO: better
   }
 }
