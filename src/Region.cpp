@@ -362,7 +362,7 @@ Apollo::RegionContext *Apollo::Region::begin()
   return context;
 }
 
-Apollo::RegionContext *Apollo::Region::begin(std::vector<float> features)
+Apollo::RegionContext *Apollo::Region::begin(std::vector<float> &features)
 {
   Apollo::RegionContext *context = begin();
   context->features = features;

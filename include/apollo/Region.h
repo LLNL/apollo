@@ -38,17 +38,16 @@ public:
 
   // DEPRECATED interface assuming synchronous execution, will be removed
   void end();
-  // lower == better, 0.0 == perfect
-  void end(double synthetic_duration_or_weight);
+  void end(double metric);
   int getPolicyIndex(void);
   void setFeature(float value);
   // END of DEPRECATED
 
   Apollo::RegionContext *begin();
-  Apollo::RegionContext *begin(std::vector<float>);
-  void end(Apollo::RegionContext *);
-  void end(Apollo::RegionContext *, double);
-  int getPolicyIndex(Apollo::RegionContext *);
+  Apollo::RegionContext *begin(std::vector<float> &features);
+  void end(Apollo::RegionContext *context);
+  void end(Apollo::RegionContext *context, double metric);
+  int getPolicyIndex(Apollo::RegionContext *context);
   void setFeature(Apollo::RegionContext *, float value);
 
   int idx;
