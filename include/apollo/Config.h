@@ -26,8 +26,12 @@ public:
   static int APOLLO_GLOBAL_TRAIN_PERIOD;
   static int APOLLO_PER_REGION_TRAIN_PERIOD;
   static int APOLLO_TRACE_CSV;
+  static int APOLLO_PERSISTENT_DATASETS;
   static std::string APOLLO_POLICY_MODEL;
-  static std::string APOLLO_TRACE_CSV_FOLDER_SUFFIX;
+  static std::string APOLLO_OUTPUT_DIR;
+  static std::string APOLLO_DATASETS_DIR;
+  static std::string APOLLO_TRACES_DIR;
+  static std::string APOLLO_MODELS_DIR;
 
 private:
   Config();

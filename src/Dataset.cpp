@@ -5,6 +5,8 @@
 
 #include "apollo/Dataset.h"
 
+#include <regex>
+
 size_t Apollo::Dataset::size() { return data.size(); }
 
 void Apollo::Dataset::clear() { data.clear(); }
@@ -119,4 +121,73 @@ void Apollo::Dataset::findMinMetricPolicyByFeatures(
   }
 
   min_metric_policies = std::move(best_policies);
+}
+
+void Apollo::Dataset::store(std::ostream &os)
+{
+  os << "data: {\n";
+  int idx = 0;
+  for (auto &d : data) {
+    const auto &features = d.first.first;
+    const auto &policy = d.first.second;
+    const auto &metric = d.second;
+    os << "\t" << idx << ": { features: [ ";
+    for (auto &f : features)
+      os << f << ",";
+    os << " ], ";
+    os << "policy: " << policy << ", ";
+    os << "xtime: " << metric;
+    os << " },\n";
+    ++idx;
+  }
+  os << "}\n";
+}
+
+void Apollo::Dataset::load(std::istream &is)
+{
+  std::smatch m;
+
+  for (std::string line; std::getline(is, line);) {
+    // std::cout << "PARSE LINE: " << line << "\n";
+    if (std::regex_match(line, std::regex("#.*")))
+      continue;
+    else if (std::regex_match(line, std::regex("data: \\{")))
+      continue;
+    else if (std::regex_match(line,
+                              m,
+                              std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) "
+                                         "\\], "
+                                         "policy: ([0-9]+), xtime: (.*) "
+                                         "\\},"))) {
+
+      std::vector<float> features;
+      int policy;
+      double xtime;
+
+      std::string feature_list(m[1]);
+      std::regex regex("([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+),");
+      std::sregex_token_iterator i =
+          std::sregex_token_iterator(feature_list.begin(),
+                                     feature_list.end(),
+                                     regex,
+                                     /* first sub-match*/ 1);
+      std::sregex_token_iterator end = std::sregex_token_iterator();
+      for (; i != end; ++i)
+        features.push_back(std::stof(*i));
+      policy = std::stoi(m[2]);
+      xtime = std::stof(m[3]);
+
+      // std::cout << "features: [ ";
+      // for(auto &f : features)
+      //   std::cout << f << ", ";
+      // std::cout << "]\n";
+      // std::cout << "policy " << policy << "\n";
+      // std::cout << "xtime " << xtime << "\n";
+      insert(features, policy, xtime);
+    } else if (std::regex_match(line, std::regex("\\s*\\}")))
+      break;
+    else
+      throw std::runtime_error("Error parsing dataset during loading line: " +
+                               line);
+  }
 }

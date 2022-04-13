@@ -538,12 +538,13 @@ extern "C" void kokkosp_request_values(
   auto iter =
       tuning_regions.emplace(tuningProblem, std::make_pair("", nullptr));
   if (iter.second) {
+    std::string path = ".apollo/models/";
     std::string prefix = "RandomForest-step-0-rank-0-";
     std::string suffix = ".yaml";
     std::string name = get_region_name(tuningProblem);
     constexpr const int apollo_user_file_length = 63;
     name = name.substr(0, apollo_user_file_length);
-    std::string final_name = prefix + name + suffix;
+    std::string final_name = path + prefix + name + suffix;
     Apollo::Region *region;
     if (file_exists(final_name)) {
       region = new Apollo::Region(numContextVariables,

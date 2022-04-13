@@ -6,6 +6,8 @@
 #include "apollo/Apollo.h"
 
 #include <execinfo.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <algorithm>
 #include <cassert>
@@ -79,6 +81,14 @@ inline const char *safeGetEnv(const char *var_name,
   }
 }
 
+// TODO: convert to filesystem C++17 API when Apollo moves to it
+void createDir(const std::string &dirname)
+{
+  int ret = mkdir(dirname.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  if (ret != 0 && errno != EEXIST)
+    throw std::runtime_error("Error creating directory " + dirname + " : " +
+                             strerror(errno));
+}
 
 }  // namespace apolloUtils
 
@@ -144,8 +154,16 @@ Apollo::Apollo()
       apolloUtils::safeGetEnv("APOLLO_RETRAIN_REGION_THRESHOLD", "0.5"));
   Config::APOLLO_TRACE_CSV =
       std::stoi(apolloUtils::safeGetEnv("APOLLO_TRACE_CSV", "0"));
-  Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX =
-      apolloUtils::safeGetEnv("APOLLO_TRACE_CSV_FOLDER_SUFFIX", "");
+  Config::APOLLO_PERSISTENT_DATASETS =
+      std::stoi(apolloUtils::safeGetEnv("APOLLO_PERSISTENT_DATASETS", "0"));
+  Config::APOLLO_OUTPUT_DIR =
+      apolloUtils::safeGetEnv("APOLLO_OUTPUT_DIR", ".apollo");
+  Config::APOLLO_DATASETS_DIR =
+      apolloUtils::safeGetEnv("APOLLO_DATASETS_DIR", "datasets");
+  Config::APOLLO_TRACES_DIR =
+      apolloUtils::safeGetEnv("APOLLO_TRACES_DIR", "traces");
+  Config::APOLLO_MODELS_DIR =
+      apolloUtils::safeGetEnv("APOLLO_MODELS_DIR", "models");
 
   if (Config::APOLLO_COLLECTIVE_TRAINING) {
 #ifndef ENABLE_MPI
@@ -179,6 +197,20 @@ Apollo::Apollo()
               << std::endl;
     abort();
   }
+
+  apolloUtils::createDir(Config::APOLLO_OUTPUT_DIR);
+
+  if (Config::APOLLO_PERSISTENT_DATASETS)
+    apolloUtils::createDir(Config::APOLLO_OUTPUT_DIR + "/" +
+                           Config::APOLLO_DATASETS_DIR);
+
+  if (Config::APOLLO_TRACE_CSV)
+    apolloUtils::createDir(Config::APOLLO_OUTPUT_DIR + "/" +
+                           Config::APOLLO_TRACES_DIR);
+
+  if (Config::APOLLO_STORE_MODELS)
+    apolloUtils::createDir(Config::APOLLO_OUTPUT_DIR + "/" +
+                           Config::APOLLO_MODELS_DIR);
 
 #ifdef ENABLE_MPI
   MPI_Comm_dup(MPI_COMM_WORLD, &apollo_mpi_comm);

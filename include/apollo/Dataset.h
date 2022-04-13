@@ -32,6 +32,9 @@ public:
       std::map<std::vector<float>, std::pair<int, double>> &min_metric_policies)
       const;
 
+  void load(std::istream &is);
+  void store(std::ostream &os);
+
 private:
   //  Key: features, policy -> value: metric (execution time) exponential moving
   //  average.

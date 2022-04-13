@@ -84,12 +84,17 @@ void Apollo::Region::train(int step, bool doCollectPendingContexts)
 #endif
 
   if (Config::APOLLO_STORE_MODELS) {
-    model->store(model->name + "-step-" + std::to_string(step) + "-rank-" +
-                 std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
-    model->store(model->name +
-                 "-latest"
-                 "-rank-" +
-                 std::to_string(apollo->mpiRank) + "-" + name + ".yaml");
+    std::string filename =
+        Config::APOLLO_OUTPUT_DIR + "/" + Config::APOLLO_MODELS_DIR + "/" +
+        model->name + "-step-" + std::to_string(step) + "-rank-" +
+        std::to_string(apollo->mpiRank) + "-" + name + ".yaml";
+    model->store(filename);
+    filename = Config::APOLLO_OUTPUT_DIR + "/" + Config::APOLLO_MODELS_DIR +
+               "/" + model->name +
+               "-latest"
+               "-rank-" +
+               std::to_string(apollo->mpiRank) + "-" + name + ".yaml";
+    model->store(filename);
 
     if (Config::APOLLO_RETRAIN_ENABLE) {
 #ifdef ENABLE_OPENCV
@@ -202,65 +207,16 @@ void Apollo::Region::parsePolicyModel(const std::string &model_info)
   } while (std::string::npos != pos);
 }
 
-void Apollo::Region::parseDataset(std::istream &is)
-{
-  std::smatch m;
-
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE LINE: " << line << "\n";
-    if (std::regex_match(line, std::regex("#.*")))
-      continue;
-    else if (std::regex_match(line, std::regex("data: \\{")))
-      continue;
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) "
-                                         "\\], "
-                                         "policy: ([0-9]+), xtime: (.*) "
-                                         "\\},"))) {
-
-      std::vector<float> features;
-      int policy;
-      double xtime;
-
-      std::string feature_list(m[1]);
-      std::regex regex("([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+),");
-      std::sregex_token_iterator i =
-          std::sregex_token_iterator(feature_list.begin(),
-                                     feature_list.end(),
-                                     regex,
-                                     /* first sub-match*/ 1);
-      std::sregex_token_iterator end = std::sregex_token_iterator();
-      for (; i != end; ++i)
-        features.push_back(std::stof(*i));
-      policy = std::stoi(m[2]);
-      xtime = std::stof(m[3]);
-
-      // std::cout << "features: [ ";
-      // for(auto &f : features)
-      //   std::cout << f << ", ";
-      // std::cout << "]\n";
-      // std::cout << "policy " << policy << "\n";
-      // std::cout << "xtime " << xtime << "\n";
-      dataset.insert(features, policy, xtime);
-    } else if (std::regex_match(line, std::regex("\\s*\\}")))
-      break;
-    else
-      throw std::runtime_error("Error parsing dataset during loading line: " +
-                               line);
-  }
-}
-
 Apollo::Region::Region(const int num_features,
                        const char *regionName,
                        int num_policies,
                        int min_training_data,
-                       const std::string &model_info,
+                       const std::string &_model_info,
                        const std::string &modelYamlFile)
     : num_features(num_features),
       num_policies(num_policies),
       min_training_data(min_training_data),
-      model_info(model_info),
+      model_info(_model_info),
       current_context(nullptr),
       idx(0)
 {
@@ -271,10 +227,8 @@ Apollo::Region::Region(const int num_features,
 
   // If there is no model_info, parse the policy model from the env
   // variable, else parse it from the model_info argument.
-  if (model_info.empty())
-    parsePolicyModel(Config::APOLLO_POLICY_MODEL);
-  else
-    parsePolicyModel(model_info);
+  if (model_info.empty()) model_info = Config::APOLLO_POLICY_MODEL;
+  parsePolicyModel(model_info);
 
   model = ModelFactory::createPolicyModel(model_name,
                                           num_features,
@@ -286,7 +240,8 @@ Apollo::Region::Region(const int num_features,
   if (model_params.count("load")) {
     std::string model_file;
     if (model_params["load"].empty())
-      model_file = model_name + "-latest-rank-" +
+      model_file = Config::APOLLO_OUTPUT_DIR + "/" + Config::APOLLO_MODELS_DIR +
+                   "/" + model_name + "-latest-rank-" +
                    std::to_string(apollo->mpiRank) + "-" + std::string(name) +
                    ".yaml";
     else
@@ -302,15 +257,34 @@ Apollo::Region::Region(const int num_features,
     }
   }
 
+  if (Config::APOLLO_PERSISTENT_DATASETS) {
+    std::string dataset_file = Config::APOLLO_OUTPUT_DIR + "/" +
+                               Config::APOLLO_DATASETS_DIR + "/Dataset-" +
+                               std::string(name) + ".yaml";
+    std::ifstream ifs(dataset_file);
+    if (ifs) dataset.load(ifs);
+    ifs.close();
+
+    // Check if auto-training applies: min_training_data is set and dataset size
+    // is large enough.
+    autoTrain();
+  }
+
   if (model_params.count("load-dataset")) {
-    std::string dataset_file = "Dataset-" + std::string(name) + ".yaml";
+    std::string dataset_file = Config::APOLLO_OUTPUT_DIR + "/" +
+                               Config::APOLLO_DATASETS_DIR + "/Dataset-" +
+                               std::string(name) + ".yaml";
     std::ifstream ifs(dataset_file);
     if (!ifs) {
       std::cerr << "ERROR: could not load dataset file " << dataset_file
                 << std::endl;
       abort();
     }
-    parseDataset(ifs);
+
+    dataset.load(ifs);
+
+    // Train with whatever data existing in the dataset, ignore
+    // min_training_data (if set).
     train(0);
     ifs.close();
   }
@@ -328,20 +302,9 @@ Apollo::Region::Region(const int num_features,
   }
 
   if (Config::APOLLO_TRACE_CSV) {
-    // TODO: assumes model comes from env, fix to use model provided in the
-    // constructor
-    // TODO: convert to filesystem C++17 API when Apollo moves to it
-    int ret;
-    ret = mkdir(
-        std::string("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX).c_str(),
-        S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (ret != 0 && errno != EEXIST) {
-      perror("TRACE_CSV mkdir");
-      abort();
-    }
-
-    std::string fname("./trace" + Config::APOLLO_TRACE_CSV_FOLDER_SUFFIX +
-                      "/trace-" + model_info + "-region-" + name + "-rank-" +
+    std::string fname(Config::APOLLO_OUTPUT_DIR + "/" +
+                      Config::APOLLO_TRACES_DIR + "/trace-" + model_info +
+                      "-region-" + name + "-rank-" +
                       std::to_string(apollo->mpiRank) + ".csv");
     std::cout << "TRACE_CSV fname " << fname << std::endl;
     trace_file.open(fname);
@@ -356,6 +319,7 @@ Apollo::Region::Region(const int num_features,
       trace_file << " f" << i;
     trace_file << " policy xtime\n";
   }
+
   // std::cout << "Insert region " << name << " ptr " << this << std::endl;
   const auto ret = apollo->regions.insert({name, this});
 
@@ -370,6 +334,17 @@ Apollo::Region::~Region()
     collectPendingContexts();
 
   if (Config::APOLLO_TRACE_CSV) trace_file.close();
+
+  if (Config::APOLLO_PERSISTENT_DATASETS) {
+    std::ofstream file_out(Config::APOLLO_OUTPUT_DIR + "/" +
+                           Config::APOLLO_DATASETS_DIR + "/Dataset-" +
+                           std::string(name) + ".yaml");
+    if (!file_out.is_open())
+      std::cerr << "ERROR: Cannot write dataset of " + std::string(name) +
+                       " to database\n";
+    dataset.store(file_out);
+    file_out.close();
+  }
 
   return;
 }

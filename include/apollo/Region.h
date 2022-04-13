@@ -81,8 +81,6 @@ private:
   std::vector<Apollo::RegionContext *> pending_contexts;
   void collectContext(Apollo::RegionContext *, double);
 
-  void parseDataset(std::istream &is);
-
   void autoTrain();
 
   int min_training_data;
