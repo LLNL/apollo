@@ -26,7 +26,6 @@ int main()
                                          NUM_POLICIES,
                                          /* min_training_data */ 0,
                                          "Static,policy=0");
-                                         //"RandomForest,num_trees=3");
 
   auto start = std::chrono::steady_clock::now();
 
@@ -51,7 +50,8 @@ int main()
 
   std::cout << "Execution time overhead total " << duration * 1e3 << " ms,"
             << " per iteration " << (duration / i) * 1e6 << " us \n";
-  std::cout << "Memory usage (maxrss) " << rs.ru_maxrss/(1024.0 * 1024.0) << " MB\n";
+  std::cout << "Memory usage (maxrss) " << rs.ru_maxrss / (1024.0 * 1024.0)
+            << " MB\n";
 
   std::cout << "=== Testing complete\n";
 

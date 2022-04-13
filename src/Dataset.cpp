@@ -9,25 +9,39 @@ size_t Apollo::Dataset::size() { return data.size(); }
 
 void Apollo::Dataset::clear() { data.clear(); }
 
-const std::vector<std::tuple<std::vector<float>, int, double>>
-    &Apollo::Dataset::toVectorOfTuples() const
+const std::vector<std::tuple<std::vector<float>, int, double>> Apollo::Dataset::
+    toVectorOfTuples() const
 {
-  return data;
+  std::vector<std::tuple<std::vector<float>, int, double>> vector;
+  for (const auto &d : data) {
+    const auto &features = d.first.first;
+    const auto &policy = d.first.second;
+    const auto &metric = d.second;
+    vector.push_back(std::make_tuple(features, policy, metric));
+  }
+
+  return vector;
 }
 
 void Apollo::Dataset::insert(const std::vector<float> &features,
                              int policy,
                              double metric)
 {
-  return data.push_back(std::make_tuple(features, policy, metric));
+  auto key = std::make_pair(features, policy);
+  auto it = data.find(key);
+  if (it == data.end())
+    data[key] = metric;
+  else
+    // Exponential moving average (a=0.5) to update the metric.
+    it->second = .5 * it->second + .5 * metric;
 }
 
 void Apollo::Dataset::insert(Apollo::Dataset &ds)
 {
   for (auto &d : ds.data) {
-    auto &features = std::get<0>(d);
-    auto &policy = std::get<1>(d);
-    auto &metric = std::get<2>(d);
+    const auto &features = d.first.first;
+    const auto &policy = d.first.second;
+    const auto &metric = d.second;
     insert(features, policy, metric);
   }
 }
@@ -42,10 +56,10 @@ void Apollo::Dataset::findMinMetricPolicyByFeatures(
   std::map<std::vector<float>, std::pair<int, double>> best_policies;
 
   // Group measures by <features, policy> to gather metrics in a vector.
-  for (auto &measure : data) {
-    const auto &features = std::get<0>(measure);
-    const auto &policy = std::get<1>(measure);
-    const auto &metric = std::get<2>(measure);
+  for (auto &d : data) {
+    const auto &features = d.first.first;
+    const auto &policy = d.first.second;
+    const auto &metric = d.second;
 
     auto pair = std::make_pair(features, policy);
     auto iter = groups.find({features, policy});

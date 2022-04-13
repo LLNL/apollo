@@ -7,6 +7,7 @@
 #define APOLLO_DATASET_H
 
 #include <iostream>
+#include <map>
 #include <numeric>
 #include <utility>
 #include <vector>
@@ -23,7 +24,7 @@ public:
   void insert(Apollo::Dataset &ds);
 
   const std::vector<std::tuple<std::vector<float>, int, double>>
-      &toVectorOfTuples() const;
+  toVectorOfTuples() const;
 
   void findMinMetricPolicyByFeatures(
       std::vector<std::vector<float>> &features,
@@ -32,7 +33,9 @@ public:
       const;
 
 private:
-  std::vector<std::tuple<std::vector<float>, int, double>> data;
+  //  Key: features, policy -> value: metric (execution time) exponential moving
+  //  average.
+  std::map<std::pair<std::vector<float>, int>, double> data;
 };  // end: Apollo::Dataset
 
 #endif
