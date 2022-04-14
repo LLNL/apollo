@@ -8,9 +8,10 @@ import glob
 Reads data from CSV traces and creates a loadable dataset for training models.
 '''
 
+
 def print_to_str(index, features, policy, xtime):
     features = [str(n) for n in features]
-    output = '\t' + str(index) + ': { features: [ '
+    output = '  ' + str(index) + ': { features: [ '
     for fi in features:
         output += fi + ', '
     output += ']'
@@ -18,6 +19,7 @@ def print_to_str(index, features, policy, xtime):
     output += ', xtime: ' + str(xtime)
     output += ' },\n'
     return output
+
 
 def agg_by_none(data_per_region):
     output = '# agg by none\n'
@@ -27,10 +29,12 @@ def agg_by_none(data_per_region):
 
     # Output all the data points.
     for i, row in data_per_region.iterrows():
-        output += print_to_str(i, row[feature_cols], row['policy'], row['xtime'])
+        output += print_to_str(i, row[feature_cols],
+                               row['policy'], row['xtime'])
 
     output += '}\n\n'
     return output
+
 
 def agg_by_mean(data_per_region):
     output = '# agg by mean\n'
@@ -51,6 +55,7 @@ def agg_by_mean(data_per_region):
 
     output += '}\n\n'
     return output
+
 
 def agg_by_min(data_per_region):
     output = '# agg by min\n'
@@ -73,6 +78,7 @@ def agg_by_min(data_per_region):
 
     output += '}\n\n'
     return output
+
 
 def agg_by_mean_min(data_per_region):
     output = '# agg by mean_min\n'
@@ -103,6 +109,7 @@ def agg_by_mean_min(data_per_region):
     output += '}\n\n'
     return output
 
+
 def read_tracefiles(tracefiles):
     data = pd.DataFrame()
 
@@ -117,6 +124,7 @@ def read_tracefiles(tracefiles):
 
     return data
 
+
 def read_tracedirs(tracedirs):
     data = pd.DataFrame()
 
@@ -126,6 +134,7 @@ def read_tracedirs(tracedirs):
         data = pd.concat([data, data_dir], ignore_index=True, sort=False)
 
     return data
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -152,7 +161,8 @@ def main():
 
     # Create datasets per region.
     for r in regions:
-        data_per_region = data.loc[data['region'] == r].dropna(axis='columns').reset_index()
+        data_per_region = data.loc[data['region'] ==
+                                   r].dropna(axis='columns').reset_index()
 
         if args.agg == 'none':
             output = agg_by_none(data_per_region)
@@ -166,6 +176,7 @@ def main():
             raise RuntimeError('Invalid aggregation args ' + str(args.agg))
         with open('Dataset-' + r + '.yaml', 'w') as f:
             f.write(output)
+
 
 if __name__ == "__main__":
     main()

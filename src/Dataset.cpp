@@ -5,7 +5,7 @@
 
 #include "apollo/Dataset.h"
 
-#include <regex>
+#include <sstream>
 
 size_t Apollo::Dataset::size() { return data.size(); }
 
@@ -131,9 +131,9 @@ void Apollo::Dataset::store(std::ostream &os)
     const auto &features = d.first.first;
     const auto &policy = d.first.second;
     const auto &metric = d.second;
-    os << "\t" << idx << ": { features: [ ";
+    os << "  " << idx << ": { features: [ ";
     for (auto &f : features)
-      os << f << ",";
+      os << float(f) << ",";
     os << " ], ";
     os << "policy: " << policy << ", ";
     os << "xtime: " << metric;
@@ -145,49 +145,124 @@ void Apollo::Dataset::store(std::ostream &os)
 
 void Apollo::Dataset::load(std::istream &is)
 {
-  std::smatch m;
+  std::string token;
 
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE LINE: " << line << "\n";
-    if (std::regex_match(line, std::regex("#.*")))
-      continue;
-    else if (std::regex_match(line, std::regex("data: \\{")))
-      continue;
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) "
-                                         "\\], "
-                                         "policy: ([0-9]+), xtime: (.*) "
-                                         "\\},"))) {
+  auto error = [&](std::string msg) {
+    int pos = is.tellg();
+    is.seekg(0);
+    std::string line;
+    int col = 1;
+    int lineno = 1;
+    // Find the line, line number, and column of the error.
+    while (std::getline(is, line)) {
+      if (is.tellg() >= pos) break;
+      lineno++;
+      col = is.tellg();
+    }
+    col = pos - col - 1;
+    std::cerr << line << "\n";
 
-      std::vector<float> features;
+    for (int j = 0; j < col; ++j)
+      std::cerr << " ";
+    std::cerr << "^\n";
+    std::cerr << "Line: " << lineno << " Col: " << pos - col - 1
+              << ", Parse error: " << msg << "\n";
+    abort();
+  };
+
+  auto getNextToken = [&]() {
+    is >> token;
+    while (token[0] == '#') {
+      is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      is >> token;
+    }
+  };
+
+  auto parseExpected = [&](std::string &&expected) {
+    if (token != expected) error("Expected " + expected);
+  };
+
+  auto parseIdx = [&](int &idx) {
+    std::stringstream ss(token);
+    if (!(ss >> idx)) error("Expected int");
+    char c;
+    ss >> c;
+    if (c != ':') error("Expected ':'");
+  };
+
+  auto parseFeature = [&](float &feature) {
+    std::stringstream ss(token);
+    if (!(ss >> feature)) error("Expected float");
+    char c;
+    ss >> c;
+    if (c != ',') error("Expected ','");
+  };
+
+  auto parsePolicy = [&](int &policy) {
+    std::stringstream ss(token);
+    if (!(ss >> policy)) error("Expected int");
+    char c;
+    ss >> c;
+    if (c != ',') error("Expected ','");
+  };
+
+  auto parseXtime = [&](double &xtime) {
+    std::stringstream ss(token);
+    if (!(ss >> xtime)) error("Expected double");
+  };
+
+  for (; !is.eof(); getNextToken()) {
+    getNextToken();
+    parseExpected("data:");
+
+    getNextToken();
+    parseExpected("{");
+
+    for (getNextToken(); token != "}"; getNextToken()) {
+      int idx;
       int policy;
+      std::vector<float> features;
       double xtime;
 
-      std::string feature_list(m[1]);
-      std::regex regex("([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+),");
-      std::sregex_token_iterator i =
-          std::sregex_token_iterator(feature_list.begin(),
-                                     feature_list.end(),
-                                     regex,
-                                     /* first sub-match*/ 1);
-      std::sregex_token_iterator end = std::sregex_token_iterator();
-      for (; i != end; ++i)
-        features.push_back(std::stof(*i));
-      policy = std::stoi(m[2]);
-      xtime = std::stof(m[3]);
+      parseIdx(idx);
+
+      getNextToken();
+      parseExpected("{");
+
+      getNextToken();
+      parseExpected("features:");
+
+      getNextToken();
+      parseExpected("[");
+
+      for (getNextToken(); token != "],"; getNextToken()) {
+        float feature;
+        parseFeature(feature);
+        features.push_back(feature);
+      }
+
+      getNextToken();
+      parseExpected("policy:");
+      getNextToken();
+      parsePolicy(policy);
+
+      getNextToken();
+      parseExpected("xtime:");
+      getNextToken();
+      parseXtime(xtime);
+
+      getNextToken();
+      parseExpected("},");
 
       // std::cout << "features: [ ";
-      // for(auto &f : features)
+      // for (auto &f : features)
       //   std::cout << f << ", ";
       // std::cout << "]\n";
       // std::cout << "policy " << policy << "\n";
       // std::cout << "xtime " << xtime << "\n";
+      //  getchar();
+
       insert(features, policy, xtime);
-    } else if (std::regex_match(line, std::regex("\\s*\\}")))
-      break;
-    else
-      throw std::runtime_error("Error parsing dataset during loading line: " +
-                               line);
+    }
   }
 }
