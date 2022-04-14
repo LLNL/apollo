@@ -23,7 +23,7 @@ available only with Apollo builtin ML Library, i.e., when `ENABLE_OPENCV=OFF`)
 By default all those flags are OFF and without setting them builds a fully working Apollo runtime library
 that can time synchronously executing code regions. When asynchronous CUDA/HIP kernels are used it is required
 to set `ENABLE_CUDA` or `ENABLE_HIP` to ON. It is recommended to use the builtin ML library instead of OpenCV
-(so ENABLE_OPENCV=OFF)
+(so keep `ENABLE_OPENCV=OFF`)
 
 Example build commands for HIP async timing:
 
@@ -178,11 +178,11 @@ An example of overriding that for a DecisionTree tuning model of depth 4 with Ro
 ---
 
 ### Storing and loading models
-Apollo can save trained models and load them to bootstrap tuned execution without exploration setting this env var:
+Apollo can save trained models and load them to bootstrap tuned execution without exploration by setting this env var:
 
 `APOLLO_STORE_MODELS=1`
 
-Apollo stores models in the current executing directory and will load those models when a tuning policy
+Apollo stores model files under the path `.apollo/models` in the current executing directory and will load those models when a tuning policy
 (DecisionTree, RandomForest, PolicyNet) is given the parameter `load` through `APOLLO_POLICY_MODEL` and
 the application executable is ran from the directory containing the previously stored model files.
 
@@ -200,10 +200,10 @@ $ APOLLO_POLICY_MODEL=DecisionTree,load <executable>`
 
 ### Tracing
 
-Apollo provides a CSV trace of execution (not intended to enable for performance runs) capturing region execution and timing information setting this env var:
+Apollo provides a CSV trace of execution (not intended to be enabled for production runs) capturing region execution and timing information setting this env var:
 
 `APOLLO_TRACE_CSV=1`
 
-Tracing data are store under a directory name `trace` in the current executing directory.
+Trace files are store under the path `.apollo/traces` in the current executing directory.
 
 
