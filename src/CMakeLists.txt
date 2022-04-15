@@ -25,6 +25,7 @@ set(APOLLO_SOURCES
     ModelFactory.cpp
     Region.cpp
     helpers/OutputFormatter.cpp
+    helpers/Parser.cpp
     models/Random.cpp
     models/Static.cpp
     models/RoundRobin.cpp

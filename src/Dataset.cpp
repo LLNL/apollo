@@ -5,7 +5,9 @@
 
 #include "apollo/Dataset.h"
 
-#include <sstream>
+#include <typeinfo>
+
+#include "helpers/Parser.h"
 
 size_t Apollo::Dataset::size() { return data.size(); }
 
@@ -145,124 +147,79 @@ void Apollo::Dataset::store(std::ostream &os)
 
 void Apollo::Dataset::load(std::istream &is)
 {
-  std::string token;
+  Parser parser(is);
+  while (!parser.eof()) {
+    parser.getNextToken();
+    parser.parseExpected<std::string>("data:");
+    parser.consumeToken();
 
-  auto error = [&](std::string msg) {
-    int pos = is.tellg();
-    is.seekg(0);
-    std::string line;
-    int col = 1;
-    int lineno = 1;
-    // Find the line, line number, and column of the error.
-    while (std::getline(is, line)) {
-      if (is.tellg() >= pos) break;
-      lineno++;
-      col = is.tellg();
-    }
-    col = pos - col - 1;
-    std::cerr << line << "\n";
+    parser.getNextToken();
+    parser.parseExpected<std::string>("{");
+    parser.consumeToken();
 
-    for (int j = 0; j < col; ++j)
-      std::cerr << " ";
-    std::cerr << "^\n";
-    std::cerr << "Line: " << lineno << " Col: " << pos - col - 1
-              << ", Parse error: " << msg << "\n";
-    abort();
-  };
-
-  auto getNextToken = [&]() {
-    is >> token;
-    while (token[0] == '#') {
-      is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-      is >> token;
-    }
-  };
-
-  auto parseExpected = [&](std::string &&expected) {
-    if (token != expected) error("Expected " + expected);
-  };
-
-  auto parseIdx = [&](int &idx) {
-    std::stringstream ss(token);
-    if (!(ss >> idx)) error("Expected int");
-    char c;
-    ss >> c;
-    if (c != ':') error("Expected ':'");
-  };
-
-  auto parseFeature = [&](float &feature) {
-    std::stringstream ss(token);
-    if (!(ss >> feature)) error("Expected float");
-    char c;
-    ss >> c;
-    if (c != ',') error("Expected ','");
-  };
-
-  auto parsePolicy = [&](int &policy) {
-    std::stringstream ss(token);
-    if (!(ss >> policy)) error("Expected int");
-    char c;
-    ss >> c;
-    if (c != ',') error("Expected ','");
-  };
-
-  auto parseXtime = [&](double &xtime) {
-    std::stringstream ss(token);
-    if (!(ss >> xtime)) error("Expected double");
-  };
-
-  for (; !is.eof(); getNextToken()) {
-    getNextToken();
-    parseExpected("data:");
-
-    getNextToken();
-    parseExpected("{");
-
-    for (getNextToken(); token != "}"; getNextToken()) {
+    while (parser.getNextToken() != "}") {
       int idx;
       int policy;
       std::vector<float> features;
       double xtime;
 
-      parseIdx(idx);
+      parser.parse<int>(idx);
+      parser.parseExpected<char>(':');
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("{");
+      parser.getNextToken();
+      parser.parseExpected<std::string>("{");
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("features:");
+      parser.getNextToken();
+      parser.parseExpected<std::string>("features:");
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("[");
+      parser.getNextToken();
+      parser.parseExpected<std::string>("[");
+      parser.consumeToken();
 
-      for (getNextToken(); token != "],"; getNextToken()) {
+      while (parser.getNextToken() != "],") {
         float feature;
-        parseFeature(feature);
+        parser.parse<float>(feature);
+        parser.parseExpected<char>(',');
+        parser.consumeToken();
         features.push_back(feature);
       }
+      // Consume right square bracket.
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("policy:");
-      getNextToken();
-      parsePolicy(policy);
+      parser.getNextToken();
+      parser.parseExpected<std::string>("policy:");
+      parser.consumeToken();
+      parser.getNextToken();
+      parser.parse<int>(policy);
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("xtime:");
-      getNextToken();
-      parseXtime(xtime);
+      parser.getNextToken();
+      parser.parseExpected<std::string>("xtime:");
+      parser.consumeToken();
+      parser.getNextToken();
+      parser.parse<double>(xtime);
+      parser.consumeToken();
 
-      getNextToken();
-      parseExpected("},");
+      parser.getNextToken();
+      parser.parseExpected<std::string>("},");
+      parser.consumeToken();
 
+      // std::cout << "=== BEGIN \n";
+      // std::cout << "idx " << idx << "\n";
       // std::cout << "features: [ ";
       // for (auto &f : features)
       //   std::cout << f << ", ";
       // std::cout << "]\n";
       // std::cout << "policy " << policy << "\n";
       // std::cout << "xtime " << xtime << "\n";
-      //  getchar();
+      // std::cout << "=== END \n";
 
       insert(features, policy, xtime);
     }
+    // Consume right brace.
+    parser.consumeToken();
   }
 }
