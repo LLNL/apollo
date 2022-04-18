@@ -6,29 +6,34 @@
 #ifndef APOLLO_HELPERS_TIMETRACE_H
 #define APOLLO_HELPERS_TIMETRACE_H
 
-#include <chrono>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
+
+#include "apollo/Timer.h"
 
 // Simple time tracing class, outputs time elapsed in a block scope.
 class TimeTrace
 {
-  std::chrono::time_point<std::chrono::steady_clock> start;
   std::string ref;
+  std::unique_ptr<Apollo::Timer> timer;
 
 public:
-  TimeTrace(std::string ref) : ref(ref)
+  TimeTrace(std::string ref)
+      : ref(ref), timer(Apollo::Timer::create<Apollo::Timer::Sync>())
   {
-    start = std::chrono::steady_clock::now();
+    timer->start();
   }
   ~TimeTrace()
   {
-    auto end = std::chrono::steady_clock::now();
-    std::cout << "=== T ref " << ref << " = "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end -
-                                                                       start)
-                     .count()
-              << " us" << std::endl;
+    timer->stop();
+    double duration;
+    timer->isDone(duration);
+    std::stringstream outs;
+    outs << std::fixed << std::setprecision(0) << duration * 1e6;
+    std::cout << "=== T ref " << ref << " = " << outs.str() << " us"
+              << std::endl;
   }
 };
 
