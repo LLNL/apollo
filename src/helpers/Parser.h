@@ -12,19 +12,15 @@ public:
   template <typename T>
   void parse(T &out);
 
-  template <typename T>
-  void parseExpected(const T &expected);
-  void parseExpectedString(const std::string &expected);
+  void parseExpected(const std::string &expected);
 
-  std::string getNextToken();
+  const std::string &getNextToken();
 
   bool eof();
 
-  void consumeToken();
-
 private:
   std::istream &is;
-  std::streampos pos, next_pos;
+  std::stringstream ss;
   std::string token;
   void error(const std::string &msg);
 };
@@ -33,19 +29,7 @@ template <typename T>
 void Parser::parse(T &val)
 {
   // std::cout << "Parsing " << typeid(T).name() << "\n";
-  if (!(is >> val)) error("Not matching type " + std::string(typeid(T).name()));
-}
-
-template <typename T>
-void Parser::parseExpected(const T &expected)
-{
-  T out;
-  is >> out;
-  if (out != expected) {
-    std::stringstream error_msg;
-    error_msg << "Expected \"" << expected << "\" but parsed \"" << out << "\"";
-    error(error_msg.str());
-  }
+  if (!(ss >> val)) error("Not matching type " + std::string(typeid(T).name()));
 }
 
 #endif

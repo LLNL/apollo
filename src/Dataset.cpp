@@ -150,12 +150,10 @@ void Apollo::Dataset::load(std::istream &is)
   Parser parser(is);
   while (!parser.eof()) {
     parser.getNextToken();
-    parser.parseExpected<std::string>("data:");
-    parser.consumeToken();
+    parser.parseExpected("data:");
 
     parser.getNextToken();
-    parser.parseExpected<std::string>("{");
-    parser.consumeToken();
+    parser.parseExpected("{");
 
     while (parser.getNextToken() != "}") {
       int idx;
@@ -164,48 +162,36 @@ void Apollo::Dataset::load(std::istream &is)
       double xtime;
 
       parser.parse<int>(idx);
-      parser.parseExpected<char>(':');
-      parser.consumeToken();
+      parser.parseExpected(":");
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("{");
-      parser.consumeToken();
+      parser.parseExpected("{");
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("features:");
-      parser.consumeToken();
+      parser.parseExpected("features:");
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("[");
-      parser.consumeToken();
+      parser.parseExpected("[");
 
       while (parser.getNextToken() != "],") {
         float feature;
         parser.parse<float>(feature);
-        parser.parseExpected<char>(',');
-        parser.consumeToken();
+        parser.parseExpected(",");
         features.push_back(feature);
       }
-      // Consume right square bracket.
-      parser.consumeToken();
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("policy:");
-      parser.consumeToken();
+      parser.parseExpected("policy:");
       parser.getNextToken();
       parser.parse<int>(policy);
-      parser.consumeToken();
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("xtime:");
-      parser.consumeToken();
+      parser.parseExpected("xtime:");
       parser.getNextToken();
       parser.parse<double>(xtime);
-      parser.consumeToken();
 
       parser.getNextToken();
-      parser.parseExpected<std::string>("},");
-      parser.consumeToken();
+      parser.parseExpected("},");
 
       // std::cout << "=== BEGIN \n";
       // std::cout << "idx " << idx << "\n";
@@ -219,7 +205,5 @@ void Apollo::Dataset::load(std::istream &is)
 
       insert(features, policy, xtime);
     }
-    // Consume right brace.
-    parser.consumeToken();
   }
 }

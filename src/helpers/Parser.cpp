@@ -4,7 +4,7 @@
 
 bool Parser::eof()
 {
-  pos = is.tellg();
+  std::streampos pos = is.tellg();
   std::string tmp;
   is >> tmp;
   if (is.eof()) return true;
@@ -12,32 +12,25 @@ bool Parser::eof()
   return false;
 }
 
-std::string Parser::getNextToken()
+const std::string &Parser::getNextToken()
 {
-  pos = is.tellg();
-  auto state = is.rdstate();
   is >> token;
   // std::cout << "parser token " << token << "\n";
   while (token[0] == '#') {
     is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    pos = is.tellg();
     is >> token;
   }
 
-  next_pos = is.tellg();
-  // is.setstate(state);
-  is.clear(state);
-  is.seekg(pos);
+  ss.clear();
+  ss.str(token);
 
   return token;
 }
 
-void Parser::consumeToken() { is.seekg(next_pos); }
-
 void Parser::error(const std::string &msg)
 {
   is.clear();
-  int err_pos = next_pos;
+  int err_pos = is.tellg();
   is.seekg(0);
   int col = 1;
   int lineno = 1;
@@ -58,4 +51,15 @@ void Parser::error(const std::string &msg)
   std::cerr << "Line: " << lineno << " Col: " << col << ", Parse error: " << msg
             << "\n";
   abort();
+}
+
+void Parser::parseExpected(const std::string &expected)
+{
+  std::string out;
+  ss >> out;
+  if (out != expected) {
+    std::stringstream error_msg;
+    error_msg << "Expected \"" << expected << "\" but parsed \"" << out << "\"";
+    error(error_msg.str());
+  }
 }
