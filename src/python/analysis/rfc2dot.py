@@ -18,7 +18,7 @@ def parse_rfc(y):
     dot += '\"];\n'
 
     for tree_idx in range(rfc['num_trees']):
-        dot += parse_tree(rfc, 'tree_%s' % (tree_idx))
+        dot += parse_tree(rfc['trees'][tree_idx], 'tree_%s' % (tree_idx))
         dot += 'rfc -> tree_%s\n' % (tree_idx)
 
     return dot

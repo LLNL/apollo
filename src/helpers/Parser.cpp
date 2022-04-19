@@ -12,6 +12,8 @@ bool Parser::eof()
   return false;
 }
 
+const std::string &Parser::getToken() { return token; }
+
 const std::string &Parser::getNextToken()
 {
   is >> token;

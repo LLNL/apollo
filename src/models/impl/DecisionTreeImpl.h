@@ -11,7 +11,6 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <regex>
 #include <set>
 #include <string>
 #include <tuple>
@@ -20,6 +19,7 @@
 #include <vector>
 
 #include "helpers/OutputFormatter.h"
+#include "helpers/Parser.h"
 
 class DecisionTreeImpl
 {
@@ -93,12 +93,12 @@ private:
                    size_t depth);
 
   void output_node(OutputFormatter &outfmt, Node &tree, std::string key);
-  void parse_count_per_class(std::istream &is,
+  void parse_count_per_class(Parser &parser,
                              std::unordered_map<int, size_t> &count_per_class);
 
   void parse_tree(std::istream &is);
-  Node *parse_node(std::istream &is);
-  void parse_data(std::istream &is);
+  Node *parse_node(Parser &parser);
+  void parse_data(Parser &parser);
 
   std::vector<std::pair<std::vector<float>, int>> data;
   std::set<int> classes;

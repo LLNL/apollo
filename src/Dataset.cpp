@@ -5,8 +5,6 @@
 
 #include "apollo/Dataset.h"
 
-#include <typeinfo>
-
 #include "helpers/Parser.h"
 
 size_t Apollo::Dataset::size() { return data.size(); }
@@ -148,62 +146,60 @@ void Apollo::Dataset::store(std::ostream &os)
 void Apollo::Dataset::load(std::istream &is)
 {
   Parser parser(is);
-  while (!parser.eof()) {
-    parser.getNextToken();
-    parser.parseExpected("data:");
+  parser.getNextToken();
+  parser.parseExpected("data:");
+
+  parser.getNextToken();
+  parser.parseExpected("{");
+
+  while (parser.getNextToken() != "}") {
+    int idx;
+    int policy;
+    std::vector<float> features;
+    double xtime;
+
+    parser.parse<int>(idx);
+    parser.parseExpected(":");
 
     parser.getNextToken();
     parser.parseExpected("{");
 
-    while (parser.getNextToken() != "}") {
-      int idx;
-      int policy;
-      std::vector<float> features;
-      double xtime;
+    parser.getNextToken();
+    parser.parseExpected("features:");
 
-      parser.parse<int>(idx);
-      parser.parseExpected(":");
+    parser.getNextToken();
+    parser.parseExpected("[");
 
-      parser.getNextToken();
-      parser.parseExpected("{");
-
-      parser.getNextToken();
-      parser.parseExpected("features:");
-
-      parser.getNextToken();
-      parser.parseExpected("[");
-
-      while (parser.getNextToken() != "],") {
-        float feature;
-        parser.parse<float>(feature);
-        parser.parseExpected(",");
-        features.push_back(feature);
-      }
-
-      parser.getNextToken();
-      parser.parseExpected("policy:");
-      parser.getNextToken();
-      parser.parse<int>(policy);
-
-      parser.getNextToken();
-      parser.parseExpected("xtime:");
-      parser.getNextToken();
-      parser.parse<double>(xtime);
-
-      parser.getNextToken();
-      parser.parseExpected("},");
-
-      // std::cout << "=== BEGIN \n";
-      // std::cout << "idx " << idx << "\n";
-      // std::cout << "features: [ ";
-      // for (auto &f : features)
-      //   std::cout << f << ", ";
-      // std::cout << "]\n";
-      // std::cout << "policy " << policy << "\n";
-      // std::cout << "xtime " << xtime << "\n";
-      // std::cout << "=== END \n";
-
-      insert(features, policy, xtime);
+    while (parser.getNextToken() != "],") {
+      float feature;
+      parser.parse<float>(feature);
+      parser.parseExpected(",");
+      features.push_back(feature);
     }
+
+    parser.getNextToken();
+    parser.parseExpected("policy:");
+    parser.getNextToken();
+    parser.parse<int>(policy);
+
+    parser.getNextToken();
+    parser.parseExpected("xtime:");
+    parser.getNextToken();
+    parser.parse<double>(xtime);
+
+    parser.getNextToken();
+    parser.parseExpected("},");
+
+    // std::cout << "=== BEGIN \n";
+    // std::cout << "idx " << idx << "\n";
+    // std::cout << "features: [ ";
+    // for (auto &f : features)
+    //   std::cout << f << ", ";
+    // std::cout << "]\n";
+    // std::cout << "policy " << policy << "\n";
+    // std::cout << "xtime " << xtime << "\n";
+    // std::cout << "=== END \n";
+
+    insert(features, policy, xtime);
   }
 }

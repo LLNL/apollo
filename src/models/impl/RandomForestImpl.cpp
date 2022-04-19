@@ -9,12 +9,10 @@
 #include <chrono>
 #include <iostream>
 #include <random>
-#include <regex>
 #include <string>
 #include <vector>
 
 #include "DecisionTreeImpl.h"
-#include "helpers/TimeTrace.h"
 
 RandomForestImpl::RandomForestImpl(int num_classes, std::string filename)
     : num_classes(num_classes)
@@ -88,13 +86,16 @@ void RandomForestImpl::output_rfc(OutputFormatter &outfmt)
     outfmt &i & ", ";
   }
   outfmt & "],\n";
+  outfmt << "trees:" & " [\n";
   unsigned tree_idx = 0;
   for (auto &dtree : rfc) {
-    std::string key = std::string("tree_") + std::to_string(tree_idx);
-    dtree->output_tree(outfmt, key);
+    ++outfmt;
+    dtree->output_tree(outfmt, "tree");
     outfmt << ",\n";
+    --outfmt;
     tree_idx++;
   }
+  outfmt << "]\n";
   --outfmt;
   outfmt << "}\n";
 }
@@ -107,40 +108,60 @@ void RandomForestImpl::save(const std::string &filename)
   output_rfc(outfmt);
   ofs.close();
 }
+template <typename T>
+static void parseKeyVal(Parser &parser, std::string &&key, T &val)
+{
+  parser.getNextToken();
+  parser.parseExpected(key);
+
+  parser.getNextToken();
+  parser.parse(val);
+  parser.parseExpected(",");
+};
 
 void RandomForestImpl::parse_rfc(std::ifstream &ifs)
 {
-  std::smatch m;
+  Parser parser(ifs);
 
-  unsigned tree_idx = 0;
-  for (std::string line; std::getline(ifs, line);) {
-    // std::cout << "PARSE_RFC LINE: " << line << "\n";
-    if (std::regex_match(line, std::regex("#.*")))
-      continue;
-    else if (std::regex_match(line, std::regex("rfc: \\{")))
-      continue;
-    else if (std::regex_match(line, std::regex("\\s+tree[_0-9]*: \\{"))) {
-      if (num_trees <= tree_idx)
-        throw std::runtime_error("Expected less trees");
-      rfc.push_back(std::make_unique<DecisionTreeImpl>(num_classes, ifs));
-      ++tree_idx;
-    } else if (std::regex_match(line,
-                                m,
-                                std::regex("\\s+max_depth: ([0-9]+),")))
-      max_depth = std::stoul(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+num_trees: ([0-9]+),"))) {
-      num_trees = std::stoul(m[1]);
-    } else if (std::regex_match(line, m, std::regex("\\s+classes: \\[.*\\],")))
-      continue;
-    else if (std::regex_match(line, std::regex("\\s+,")))
-      continue;
-    else if (std::regex_match(line, std::regex("\\}")))
-      break;
-    else
-      throw std::runtime_error("Error parsing during loading line: " + line);
+  parser.getNextToken();
+  parser.parseExpected("rfc:");
+
+  parser.getNextToken();
+  parser.parseExpected("{");
+
+  parseKeyVal(parser, "num_trees:", num_trees);
+  parseKeyVal(parser, "max_depth:", max_depth);
+
+  parser.getNextToken();
+  parser.parseExpected("classes:");
+  parser.getNextToken();
+  parser.parseExpected("[");
+  int class_idx = 0;
+  while (parser.getNextToken() != "],") {
+    parser.parse(class_idx);
+    parser.parseExpected(",");
+    ++class_idx;
   }
+  if (class_idx != num_classes)
+    throw std::runtime_error("Expected class_idx " + std::to_string(class_idx) +
+                             " equal to constructor num_classes " +
+                             std::to_string(num_classes));
+
+  parser.getNextToken();
+  parser.parseExpected("trees:");
+  parser.getNextToken();
+  parser.parseExpected("[");
+
+  for (int i = 0; i < num_trees; ++i) {
+    rfc.push_back(std::make_unique<DecisionTreeImpl>(num_classes, ifs));
+    parser.getNextToken();
+    parser.parseExpected(",");
+  }
+  parser.getNextToken();
+  parser.parseExpected("]");
+
+  parser.getNextToken();
+  parser.parseExpected("}");
 }
 
 void RandomForestImpl::load(const std::string &filename)

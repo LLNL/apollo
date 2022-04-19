@@ -15,6 +15,7 @@ public:
   void parseExpected(const std::string &expected);
 
   const std::string &getNextToken();
+  const std::string &getToken();
 
   bool eof();
 

@@ -26,7 +26,7 @@ def parse_node(node, name):
 
 
 def parse_tree(y, name):
-    tree = y[name]
+    tree = y['tree']
     dot = name + ' [ shape=oval, label=\"' + name + '\n'
     for k in tree:
         if k == 'root':

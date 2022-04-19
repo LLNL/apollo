@@ -12,7 +12,6 @@
 #include <chrono>
 #include <cstdio>
 #include <iostream>
-#include <regex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -21,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-#include "helpers/TimeTrace.h"
+#include "helpers/Parser.h"
 
 int DecisionTreeImpl::unique_counter = 0;
 
@@ -249,6 +248,7 @@ DecisionTreeImpl::Node::Node(std::unordered_map<int, size_t> &count_per_class,
 
 void DecisionTreeImpl::load(const std::string &filename)
 {
+  // TimeTrace t("DecisionTreeImpl::load");
   std::ifstream ifs(filename);
   if (!ifs) throw std::runtime_error("Error loading file: " + filename);
   parse_tree(ifs);
@@ -448,26 +448,73 @@ void DecisionTreeImpl::output_node(OutputFormatter &outfmt,
 }
 
 void DecisionTreeImpl::parse_count_per_class(
-    std::istream &is,
+    Parser &parser,
     std::unordered_map<int, size_t> &count_per_class)
 {
-  std::smatch m;
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE_COUNT_PER_CLASS LINE: " << line << "\n";
-    if (std::regex_match(line, m, std::regex("\\s+([0-9]+): ([0-9]+),"))) {
-      int key = std::stoi(m[1]);
-      int count = std::stoul(m[2]);
-      count_per_class[key] = count;
-    } else if (std::regex_match(line, std::regex("\\s+\\},")))
-      break;
-    else
-      throw std::runtime_error("Error parsing during loading line: " + line);
+  while (parser.getNextToken() != "},") {
+    int key;
+    size_t val;
+    parser.parse(key);
+    parser.parseExpected(":");
+    parser.getNextToken();
+    parser.parse(val);
+    parser.parseExpected(",");
+    count_per_class[key] = val;
   }
 }
 
-DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(std::istream &is)
+void DecisionTreeImpl::parse_data(Parser &parser)
 {
-  std::smatch m;
+  parser.getNextToken();
+  parser.parseExpected("data:");
+  parser.getNextToken();
+  parser.parseExpected("{");
+
+  while (parser.getNextToken() != "},") {
+    parser.getNextToken();
+    parser.parseExpected("{");
+
+    parser.getNextToken();
+    parser.parseExpected("features:");
+
+    parser.getNextToken();
+    parser.parseExpected("[");
+
+    std::vector<float> features;
+    int response;
+    while (parser.getNextToken() != "],") {
+      float feature;
+      parser.parse(feature);
+      parser.parseExpected(",");
+      features.push_back(feature);
+    }
+
+    parser.getNextToken();
+    parser.parseExpected("class:");
+
+    parser.getNextToken();
+    parser.parse(response);
+
+    data.push_back(std::make_pair(features, response));
+
+    parser.getNextToken();
+    parser.parseExpected("},");
+  }
+}
+
+template <typename T>
+static void parseKeyVal(Parser &parser, std::string &&key, T &val)
+{
+  parser.getNextToken();
+  parser.parseExpected(key);
+
+  parser.getNextToken();
+  parser.parse(val);
+  parser.parseExpected(",");
+};
+
+DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(Parser &parser)
+{
   float gini;
   size_t num_samples;
   int predicted_class;
@@ -477,39 +524,32 @@ DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(std::istream &is)
   Node *right = nullptr;
   std::unordered_map<int, size_t> count_per_class;
 
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE_NODE LINE: " << line << "\n";
-    if (std::regex_match(line, m, std::regex("\\s+gini: ([0-9]+\\.[0-9]*|0),")))
-      gini = std::stof(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+num_samples: ([0-9]+),")))
-      num_samples = std::stoul(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+predicted_class: ([0-9]+),")))
-      predicted_class = std::stoul(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+feature_idx: ([0-9]+|-1),")))
-      feature_idx = std::stoi(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+threshold: "
-                                         "([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+"
-                                         "),")))
-      threshold = std::stof(m[1]);
-    else if (std::regex_match(line, std::regex("\\s+count_per_class: \\{")))
-      parse_count_per_class(is, count_per_class);
-    else if (std::regex_match(line, std::regex("\\s+left: \\{")))
-      left = parse_node(is);
-    else if (std::regex_match(line, std::regex("\\s+right: \\{")))
-      right = parse_node(is);
-    else if (std::regex_match(line, std::regex("\\s+\\},")))
-      break;
-    else
-      throw std::runtime_error("Error parsing during loading line: " + line);
+  parser.getNextToken();
+  parser.parseExpected("{");
+
+  parseKeyVal(parser, "gini:", gini);
+  parseKeyVal(parser, "num_samples:", num_samples);
+  parseKeyVal(parser, "predicted_class:", predicted_class);
+  parseKeyVal(parser, "feature_idx:", feature_idx);
+  parseKeyVal(parser, "threshold:", threshold);
+
+  parser.getNextToken();
+  parser.parseExpected("count_per_class:");
+  parser.getNextToken();
+  parser.parseExpected("{");
+  parse_count_per_class(parser, count_per_class);
+
+  parser.getNextToken();
+  if (parser.getToken() == "left:") {
+    left = parse_node(parser);
+    parser.getNextToken();
   }
+  if (parser.getToken() == "right:") {
+    right = parse_node(parser);
+    parser.getNextToken();
+  }
+
+  parser.parseExpected("},");
 
   return new Node(gini,
                   num_samples,
@@ -521,65 +561,36 @@ DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(std::istream &is)
                   count_per_class);
 }
 
-void DecisionTreeImpl::parse_data(std::istream &is)
-{
-  std::smatch m;
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE_DATA LINE" << line << "\n";
-    if (std::regex_match(line,
-                         m,
-                         std::regex("\\s+[0-9]+: \\{ features: \\[ (.*) \\], "
-                                    "class: ([0-9]+) \\},"))) {
-      std::vector<float> features;
-      int response;
-
-      std::string feature_list(m[1]);
-      std::regex regex("([+|-]?[0-9]+\\.[0-9]*|[+|-]?[0-9]+),");
-      std::sregex_token_iterator i =
-          std::sregex_token_iterator(feature_list.begin(),
-                                     feature_list.end(),
-                                     regex);
-      std::sregex_token_iterator end = std::sregex_token_iterator();
-      for (; i != end; ++i)
-        response = std::stoi(m[2]);
-      data.push_back({features, response});
-    } else if (std::regex_match(line, std::regex("\\s+\\},")))
-      break;
-    else
-      throw std::runtime_error("Error parsing during loading line: " + line);
-  }
-}
-
 void DecisionTreeImpl::parse_tree(std::istream &is)
 {
-  std::smatch m;
+  Parser parser(is);
 
-  for (std::string line; std::getline(is, line);) {
-    // std::cout << "PARSE_TREE LINE: " << line << "\n";
-    if (std::regex_match(line, std::regex("#.*")))
-      continue;
-    else if (std::regex_match(line, std::regex("tree: \\{")))
-      continue;
-    else if (std::regex_match(line, std::regex("\\s+root: \\{")))
-      root = parse_node(is);
-    else if (std::regex_match(line, m, std::regex("\\s+max_depth: ([0-9]+),")))
-      max_depth = std::stoul(m[1]);
-    else if (std::regex_match(line,
-                              m,
-                              std::regex("\\s+num_features: ([0-9]+),")))
-      num_features = std::stoul(m[1]);
-    else if (std::regex_match(line, m, std::regex("\\s+classes: \\[.*\\],"))) {
-      std::regex regex("([0-9]+), ");
-      std::sregex_token_iterator i = std::sregex_token_iterator(
-          line.begin(), line.end(), regex, /* first sub-match */ 1);
-      std::sregex_token_iterator end = std::sregex_token_iterator();
-      for (; i != end; ++i)
-        classes.insert(std::stoi(*i));
-    } else if (std::regex_match(line, std::regex("\\s+data: \\{")))
-      parse_data(is);
-    else if (std::regex_match(line, std::regex("\\s*\\}")))
-      break;
-    else
-      throw std::runtime_error("Error parsing during loading line: " + line);
+  parser.getNextToken();
+  parser.parseExpected("tree:");
+
+  parser.getNextToken();
+  parser.parseExpected("{");
+
+  parseKeyVal(parser, "max_depth:", max_depth);
+
+  parser.getNextToken();
+  parser.parseExpected("classes:");
+  parser.getNextToken();
+  parser.parseExpected("[");
+  while (parser.getNextToken() != "],") {
+    int class_idx;
+    parser.parse<int>(class_idx);
+    parser.parseExpected(",");
+    classes.insert(class_idx);
   }
+
+  parseKeyVal(parser, "num_features:", num_features);
+
+  parser.getNextToken();
+  parser.parseExpected("root:");
+  root = parse_node(parser);
+  parse_data(parser);
+
+  parser.getNextToken();
+  parser.parseExpected("}");
 }
