@@ -265,8 +265,8 @@ Apollo::Region::Region(const int num_features,
     if (ifs) dataset.load(ifs);
     ifs.close();
 
-    // Check if auto-training applies: min_training_data is set and dataset size
-    // is large enough.
+    // Check if auto-training applies: min_training_data is set and dataset
+    // size is large enough.
     autoTrain();
   }
 
