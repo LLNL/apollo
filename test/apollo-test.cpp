@@ -46,7 +46,7 @@ int main()
   int match;
   // Outer loop to simulate iterative execution of inner region, install tuned
   // model after first iteration that fully explores features and variants.
-  for (int j = 1; j <= 20; j++) {
+  for (int j = 1; j <= 2; j++) {
     match = 0;
     // Features match policies, iterate over all possible pairs when RoundRobin.
     // Do so REPS times to gather multiple measurements per pair.
@@ -75,7 +75,7 @@ int main()
     }
 
     // Second outer loop iteration should have perfect matching.
-    printf("matched region j %d %d / %d\n",
+    printf("test-region iteration %d matched %d / %d\n",
            j,
            match,
            REPS * NUM_POLICIES * NUM_POLICIES);
