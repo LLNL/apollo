@@ -61,7 +61,9 @@ public:
   std::unique_ptr<PolicyModel> model;
 
   void collectPendingContexts();
-  void train(int step, bool doCollectPendingContexts = true);
+  void train(int step,
+             bool doCollectPendingContexts = true,
+             bool force = false);
 
   void parsePolicyModel(const std::string &model_info);
   // Model information, name and params.

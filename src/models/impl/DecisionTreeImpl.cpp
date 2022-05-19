@@ -60,6 +60,7 @@ void DecisionTreeImpl::train(std::vector<std::vector<float>> &features,
   // Assumes all feature vectors are of equal size.
   num_features = features.begin()->size();
   classes.insert(responses.begin(), responses.end());
+  data.clear();
   for (size_t i = 0, end = features.size(); i < end; ++i)
     data.push_back({features[i], responses[i]});
 
@@ -264,14 +265,11 @@ std::pair<std::unordered_map<int, size_t>, float> DecisionTreeImpl::
   size_t n_total = std::distance(Begin, End);
 
   std::unordered_map<int, size_t> count_per_class;
-  for (auto c : classes) {
-    size_t n =
-        std::count_if(Begin, End, [&](std::pair<std::vector<float>, int> &x) {
-          return (x.second == c);
-        });
-    count_per_class[c] = n;
+  for (auto It = Begin; It != End; ++It)
+    count_per_class[It->second]++;
 
-    float p = ((float)n) / n_total;
+  for (auto c : classes) {
+    float p = ((float)count_per_class[c]) / n_total;
     g += (p * p);
   }
 

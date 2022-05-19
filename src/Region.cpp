@@ -34,9 +34,10 @@ static inline bool fileExists(std::string path)
   return (stat(path.c_str(), &stbuf) == 0);
 }
 
-void Apollo::Region::train(int step, bool doCollectPendingContexts)
+void Apollo::Region::train(int step, bool doCollectPendingContexts, bool force)
 {
-  if (!model->isTrainable()) return;
+  if (!force)
+    if (!model->isTrainable()) return;
 
   // Conditionally collect pending contexts. Auto-training must not
   // collect contexts to avoid infinite recursion since auto-training
