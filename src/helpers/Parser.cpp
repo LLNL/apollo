@@ -1,6 +1,7 @@
 #include "helpers/Parser.h"
 
 #include <iostream>
+#include <limits>
 
 bool Parser::eof()
 {

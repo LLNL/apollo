@@ -62,7 +62,7 @@ void DecisionTreeImpl::train(std::vector<std::vector<float>> &features,
   classes.insert(responses.begin(), responses.end());
   data.clear();
   for (size_t i = 0, end = features.size(); i < end; ++i)
-    data.push_back({features[i], responses[i]});
+    data.push_back(std::make_pair(features[i], responses[i]));
 
   root = build_tree(data.begin(),
                     data.end(),
@@ -87,7 +87,7 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes,
   num_features = features.begin()->size();
   classes.insert(responses.begin(), responses.end());
   for (size_t i = 0, end = features.size(); i < end; ++i)
-    data.push_back({features[i], responses[i]});
+    data.push_back(std::make_pair(features[i], responses[i]));
 
   root = build_tree(data.begin(),
                     data.end(),
