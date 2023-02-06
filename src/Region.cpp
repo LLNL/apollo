@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
