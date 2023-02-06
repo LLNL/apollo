@@ -44,7 +44,7 @@ public:
   // END of DEPRECATED
 
   Apollo::RegionContext *begin();
-  Apollo::RegionContext *begin(std::vector<float> &features);
+  Apollo::RegionContext *begin(const std::vector<float> &features);
   void end(Apollo::RegionContext *context);
   void end(Apollo::RegionContext *context, double metric);
   int getPolicyIndex(Apollo::RegionContext *context);
