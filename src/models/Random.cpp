@@ -9,6 +9,9 @@
 
 #include "apollo/Config.h"
 
+namespace apollo
+{
+
 int Random::getIndex(std::vector<float> &features)
 {
   int choice = 0;
@@ -31,3 +34,5 @@ Random::Random(int num_policies) : PolicyModel(num_policies, "Random")
 }
 
 Random::~Random() { return; }
+
+}  // end namespace apollo.

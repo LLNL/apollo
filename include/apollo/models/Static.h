@@ -10,6 +10,8 @@
 
 #include "apollo/PolicyModel.h"
 
+namespace apollo
+{
 class Static : public PolicyModel
 {
 public:
@@ -30,5 +32,6 @@ private:
 
 };  // end: Static (class)
 
+}  // end namespace apollo.
 
 #endif

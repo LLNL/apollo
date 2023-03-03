@@ -11,6 +11,9 @@
 
 #include "apollo/Dataset.h"
 
+
+namespace apollo
+{
 // Abstract
 class PolicyModel
 {
@@ -32,5 +35,6 @@ public:
   std::string name = "";
 };  // end: PolicyModel (abstract class)
 
+}  // end namespace apollo.
 
 #endif

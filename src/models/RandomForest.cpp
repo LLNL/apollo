@@ -24,6 +24,9 @@
 
 using namespace std;
 
+namespace apollo
+{
+
 static inline bool fileExists(std::string path)
 {
   struct stat stbuf;
@@ -126,3 +129,5 @@ void RandomForest::load(const std::string &filename)
   rfc->load(filename);
 }
 void RandomForest::store(const std::string &filename) { rfc->save(filename); }
+
+}  // end namespace apollo.

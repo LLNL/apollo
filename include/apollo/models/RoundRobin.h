@@ -12,6 +12,8 @@
 
 #include "apollo/PolicyModel.h"
 
+namespace apollo
+{
 class RoundRobin : public PolicyModel
 {
 public:
@@ -30,5 +32,6 @@ private:
 
 };  // end: RoundRobin (class)
 
+}  // end namespace apollo.
 
 #endif

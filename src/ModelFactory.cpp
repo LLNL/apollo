@@ -19,6 +19,9 @@
 #include "apollo/models/Optimal.h"
 #include "apollo/models/PolicyNet.h"
 
+namespace apollo
+{
+
 std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
     const std::string &model_name,
     int num_policies,
@@ -148,3 +151,5 @@ std::unique_ptr<TimingModel> ModelFactory::createRegressionTree(
   throw std::runtime_error("Regression trees require OpenCV");
 #endif
 }
+
+}  // end namespace apollo.

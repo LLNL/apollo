@@ -8,4 +8,9 @@
 #include <cstring>
 #include <string>
 
+namespace apollo
+{
+
 int Static::getIndex(std::vector<float> &features) { return policy_choice; }
+
+}  // end namespace apollo.

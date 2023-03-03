@@ -14,6 +14,9 @@
 #include "helpers/OutputFormatter.h"
 #include "helpers/TimeTrace.h"
 
+namespace apollo
+{
+
 class FCLayer
 {
 public:
@@ -680,3 +683,5 @@ void PolicyNet::load(const std::string &filename)
 
   f.close();
 }
+
+}  // end namespace apollo.

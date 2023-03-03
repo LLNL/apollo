@@ -58,7 +58,7 @@ public:
   Apollo::Dataset dataset;
 
   std::unique_ptr<TimingModel> time_model;
-  std::unique_ptr<PolicyModel> model;
+  std::unique_ptr<apollo::PolicyModel> model;
 
   void collectPendingContexts();
   void train(int step,

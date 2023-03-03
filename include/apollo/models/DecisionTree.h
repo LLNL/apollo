@@ -19,6 +19,8 @@ using namespace cv::ml;
 #endif
 class DecisionTreeImpl;
 
+namespace apollo
+{
 class DecisionTree : public PolicyModel
 {
 
@@ -47,5 +49,6 @@ private:
   std::unique_ptr<PolicyModel> explorer;
 };
 
+}  // end namespace apollo.
 
 #endif

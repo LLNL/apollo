@@ -31,7 +31,6 @@
 */
 
 #include <apollo/Apollo.h>
-#include <apollo/ModelFactory.h>
 #include <apollo/Region.h>
 #include <sys/stat.h>
 
@@ -324,7 +323,7 @@ Apollo Connector for Kokkos, supported options
   std::cout << OPTIONS_BLOCK;
 }
 
-Apollo *apollo;
+Apollo *apolloRuntime;
 extern "C" void kokkosp_init_library(const int loadSeq,
                                      const uint64_t interfaceVer,
                                      const uint32_t devInfoCount,
@@ -340,7 +339,7 @@ extern "C" void kokkosp_init_library(const int loadSeq,
   putenv(const_cast<char *>("APOLLO_LOCAL_TRAINING=1"));
   putenv(const_cast<char *>("APOLLO_COLLECTIVE_TRAINING=0"));
   putenv(const_cast<char *>("APOLLO_TRACE_BEST_POLICIES=1"));
-  apollo = Apollo::instance();
+  apolloRuntime = Apollo::instance();
 }
 
 using RegionData = std::pair<std::string, Apollo::Region *>;
@@ -596,7 +595,7 @@ extern "C" void kokkosp_end_context(size_t contextId)
   tuned_contexts.erase(contextId);
   static int encounter;
   if ((++encounter % flush_interval) == 0) {
-    apollo->flushAllRegionMeasurements(0);
+    apolloRuntime->flushAllRegionMeasurements(0);
     num_unconverged_regions = 0;  // TODO: better
   }
 }

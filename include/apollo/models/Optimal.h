@@ -11,6 +11,9 @@
 
 #include "apollo/PolicyModel.h"
 
+namespace apollo
+{
+
 class Optimal : public PolicyModel
 {
 public:
@@ -30,5 +33,6 @@ private:
 
 };  // end: Optimal (class)
 
+}  // end namespace apollo.
 
 #endif

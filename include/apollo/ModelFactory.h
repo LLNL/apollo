@@ -13,6 +13,8 @@
 #include "apollo/PolicyModel.h"
 #include "apollo/TimingModel.h"
 
+namespace apollo
+{
 // Factory
 class ModelFactory
 {
@@ -31,5 +33,6 @@ public:
       Apollo::Dataset &dataset);
 };  // end: ModelFactory
 
+}  // end namespace apollo.
 
 #endif

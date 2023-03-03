@@ -10,6 +10,9 @@
 #include <iostream>
 #include <string>
 
+namespace apollo
+{
+
 Optimal::Optimal(std::string file) : PolicyModel(0, "Optimal")
 {
   std::ifstream infile(file);
@@ -45,3 +48,5 @@ void Optimal::load(const std::string &filename)
 
   infile.close();
 }
+
+}  // end namespace apollo.

@@ -13,6 +13,9 @@
 
 #include "apollo/PolicyModel.h"
 
+namespace apollo
+{
+
 class Net;
 
 class PolicyNet : public PolicyModel
@@ -52,5 +55,6 @@ private:
   bool trainable;
 };  // end: PolicyNet (class)
 
+}  // end namespace apollo.
 
 #endif

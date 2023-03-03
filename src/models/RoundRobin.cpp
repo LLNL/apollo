@@ -10,6 +10,9 @@
 
 #include "apollo/Config.h"
 
+namespace apollo
+{
+
 int RoundRobin::getIndex(std::vector<float> &features)
 {
   int choice = (last_policy + 1) % policy_count;
@@ -51,3 +54,5 @@ RoundRobin::RoundRobin(int num_policies)
 }
 
 RoundRobin::~RoundRobin() { return; }
+
+}  // end namespace apollo.

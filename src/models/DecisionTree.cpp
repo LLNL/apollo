@@ -23,6 +23,9 @@
 #include <opencv2/core/types.hpp>
 #endif
 
+namespace apollo
+{
+
 static inline bool fileExists(std::string path)
 {
   struct stat stbuf;
@@ -122,3 +125,5 @@ void DecisionTree::load(const std::string &filename)
   dtree->load(filename);
 }
 void DecisionTree::store(const std::string &filename) { dtree->save(filename); }
+
+}  // end namespace apollo.

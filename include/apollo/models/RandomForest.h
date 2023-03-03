@@ -20,6 +20,9 @@ using namespace cv::ml;
 
 class RandomForestImpl;
 
+namespace apollo
+{
+
 class RandomForest : public PolicyModel
 {
 public:
@@ -48,5 +51,6 @@ private:
   std::unique_ptr<PolicyModel> explorer;
 };
 
+}  // end namespace apollo.
 
 #endif

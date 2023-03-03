@@ -232,10 +232,10 @@ Apollo::Region::Region(const int num_features,
   if (model_info.empty()) model_info = Config::APOLLO_POLICY_MODEL;
   parsePolicyModel(model_info);
 
-  model = ModelFactory::createPolicyModel(model_name,
-                                          num_features,
-                                          num_policies,
-                                          model_params);
+  model = apollo::ModelFactory::createPolicyModel(model_name,
+                                                  num_features,
+                                                  num_policies,
+                                                  model_params);
 
   if (!modelYamlFile.empty()) model->load(modelYamlFile);
 
