@@ -166,7 +166,7 @@ def main():
     if args.nstatic > 0:
         csv_map = {}
         for p in range(0, args.nstatic):
-            read_csv(args.dir, 'Static,%d' % (p), csv_map)
+            read_csv(args.dir, 'Static,policy=%d' % (p), csv_map)
         data_map['Static'] = pd.concat(
             csv_map.values(), ignore_index=True, sort=True)
 
