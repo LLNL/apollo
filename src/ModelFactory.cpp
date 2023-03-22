@@ -55,9 +55,15 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
     int policy = 0;
     auto it = model_params.find("policy");
     if (it != model_params.end()) policy = std::stoi(it->second);
-    if (policy < 0 || policy >= num_policies)
+    if (policy < 0)
       throw std::runtime_error("Invalid policy " + std::to_string(policy) +
                                " for Static");
+    if (policy >= num_policies) {
+      std::cerr << "WARNING: policy " << std::to_string(policy)
+                << " for Static exceeds num_policies " << num_policies
+                << ", reset to 0\n";
+      policy = 0;
+    }
     return std::make_unique<Static>(num_policies, policy);
   } else if (model_name == "Random") {
     return std::make_unique<Random>(num_policies);
