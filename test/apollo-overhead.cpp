@@ -20,6 +20,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+#ifdef ENABLE_MPI
+  MPI_Init(nullptr, nullptr);
+#endif
+
   unsigned NUM_FEATURES = atoi(argv[1]);
   unsigned NUM_POLICIES = atoi(argv[2]);
   unsigned NUM_TRAINING_DATA = atoi(argv[3]);
@@ -93,6 +97,10 @@ int main(int argc, char *argv[])
             << " us\n";
 
   std::cout << "=== Testing complete\n";
+
+#ifdef ENABLE_MPI
+  MPI_Finalize();
+#endif
 
   return 0;
 }

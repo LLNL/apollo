@@ -12,3 +12,8 @@ add_executable(apollo-overhead apollo-overhead.cpp)
 target_link_libraries(apollo-test-simple apollo)
 target_link_libraries(apollo-test apollo)
 target_link_libraries(apollo-overhead apollo)
+
+if (ENABLE_MPI)
+    add_executable(apollo-test-mpi apollo-test-mpi.cpp)
+    target_link_libraries(apollo-test-mpi apollo)
+endif()

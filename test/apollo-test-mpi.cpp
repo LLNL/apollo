@@ -4,18 +4,18 @@
 // See the top-level LICENSE file for details.
 // SPDX-License-Identifier: MIT
 
-#include <iostream>
+#include <mpi.h>
+
 #include <chrono>
+#include <iostream>
 
 #include "apollo/Apollo.h"
 #include "apollo/Region.h"
-#include "apollo-test.h"
-#include <mpi.h>
 
 #define NUM_FEATURES 1
 #define NUM_POLICIES 4
-#define REPS         4
-#define DELAY        0.1
+#define REPS 4
+#define DELAY 0.1
 
 
 static void delay_loop(const double delay)
@@ -42,10 +42,11 @@ int main()
 
   Apollo *apollo = Apollo::instance();
 
-  Apollo::Region *r =
-      new Apollo::Region(NUM_FEATURES, "test-region1", NUM_POLICIES);
-  Apollo::Region *r2 =
-      new Apollo::Region(NUM_FEATURES, "test-region2", NUM_POLICIES);
+  Apollo::Region *r = new Apollo::Region(NUM_FEATURES,
+                                         "test-region",
+                                         NUM_POLICIES,
+                                         /* min_training_data */ 0,
+                                         "DecisionTree,max_depth=3");
 
   int match;
   // Outer loop to simulate iterative execution of inner region, install tuned
@@ -79,7 +80,10 @@ int main()
     }
 
     // Second outer loop iteration should have perfect matching.
-    printf("matched region j %d %d / %d\n", j, match, REPS*NUM_POLICIES*NUM_POLICIES);
+    printf("matched region j %d %d / %d\n",
+           j,
+           match,
+           REPS * NUM_POLICIES * NUM_POLICIES);
     if (j == 0) {
       printf("Install model\n");
       apollo->train(0);
