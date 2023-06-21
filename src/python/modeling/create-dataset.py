@@ -113,14 +113,20 @@ def agg_by_mean_min(data_per_region):
 def read_tracefiles(tracefiles):
     data = pd.DataFrame()
 
-    for f in tracefiles:
-        print('Read', f)
+    csv_data = []
+    print('Reading tracefiles...')
+    nfiles = len(tracefiles)
+    for i, f in enumerate(tracefiles):
+        print('\r=== Reading %-100s %06d/%06d' %
+              (f, i+1, nfiles), flush=True, end='')
         try:
-            csv = pd.read_csv(f, sep=' ', header=0, index_col=False)
+            csv_data.append(pd.read_csv(f, sep=' ', header=0, index_col=False))
         except pd.errors.EmptyDataError:
             print('Warning: no data in', f)
+    print()
 
-        data = pd.concat([data, csv], ignore_index=True, sort=False)
+    print('Create concat pandas dataframe...')
+    data = pd.concat(csv_data, ignore_index=True, sort=False)
 
     return data
 
@@ -160,7 +166,9 @@ def main():
     regions = data['region'].unique().tolist()
 
     # Create datasets per region.
+    print('Creating datasets...')
     for r in regions:
+        print(f'Processing region {r}...')
         data_per_region = data.loc[data['region'] ==
                                    r].dropna(axis='columns').reset_index()
 
