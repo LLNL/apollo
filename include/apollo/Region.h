@@ -25,6 +25,8 @@
 
 class Apollo::Region
 {
+  enum TimingKind { TIMING_SYNC, TIMING_CUDA_ASYNC, TIMING_HIP_ASYNC };
+
 public:
   Region(const int num_features,
          const char *regionName,
@@ -44,6 +46,7 @@ public:
   // END of DEPRECATED
 
   Apollo::RegionContext *begin();
+  Apollo::RegionContext *begin(TimingKind tk);
   Apollo::RegionContext *begin(const std::vector<float> &features);
   void end(Apollo::RegionContext *context);
   void end(Apollo::RegionContext *context, double metric);
@@ -81,6 +84,7 @@ private:
 
   std::vector<Apollo::RegionContext *> pending_contexts;
   void collectContext(Apollo::RegionContext *, double);
+  Apollo::RegionContext *getSingletonSyncContext();
 
   void autoTrain();
 

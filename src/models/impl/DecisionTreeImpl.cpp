@@ -59,7 +59,7 @@ void DecisionTreeImpl::train(std::vector<std::vector<float>> &features,
   classes.insert(responses.begin(), responses.end());
   data.clear();
   for (size_t i = 0, end = features.size(); i < end; ++i)
-    data.push_back(std::make_pair(features[i], responses[i]));
+    data.emplace_back(std::move(features[i]), responses[i]);
 
   root = build_tree(data.begin(),
                     data.end(),
@@ -83,7 +83,7 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes,
   num_features = features.begin()->size();
   classes.insert(responses.begin(), responses.end());
   for (size_t i = 0, end = features.size(); i < end; ++i)
-    data.push_back(std::make_pair(features[i], responses[i]));
+    data.emplace_back(std::move(features[i]), responses[i]);
 
   root = build_tree(data.begin(),
                     data.end(),
@@ -253,11 +253,9 @@ void DecisionTreeImpl::load(const std::string &filename)
   ifs.close();
 }
 
-// Returns pair(counts per class, gini value)
 template <typename Iterator>
 void DecisionTreeImpl::compute_gini(const Iterator &Begin,
                                     const Iterator &End,
-                                    std::vector<size_t> &count_per_class,
                                     float &gini_score)
 {
   float g = 0.0f;
@@ -271,13 +269,32 @@ void DecisionTreeImpl::compute_gini(const Iterator &Begin,
       if (data_cls == cls) count++;
     }
 
-    count_per_class.push_back(count);
-
     float p = (float)count / n_total;
     g += (p * p);
   }
 
   gini_score = 1.0f - g;
+}
+
+template <typename Iterator>
+std::vector<size_t> DecisionTreeImpl::get_count_per_class(const Iterator &Begin,
+                                                          const Iterator &End)
+{
+  std::vector<size_t> count_per_class;
+
+  for (auto it = classes.begin(), end = classes.end(); it != end; ++it) {
+    int cls = *it;
+    int count = 0;
+    for (auto It = Begin; It != End; ++It) {
+      int data_cls = It->second;
+      if (data_cls == cls) count++;
+    }
+
+    count_per_class.push_back(count);
+  }
+
+
+  return count_per_class;
 }
 
 int DecisionTreeImpl::evaluate_tree(const Node &tree,
@@ -324,10 +341,9 @@ std::tuple<float, Iterator, size_t, float> DecisionTreeImpl::split(
       if (feature_val_left == feature_val_right) continue;
 
 
-      std::vector<size_t> left_count_per_class, right_count_per_class;
       float left_gini_score, right_gini_score;
-      compute_gini(Begin, It, left_count_per_class, left_gini_score);
-      compute_gini(It, End, right_count_per_class, right_gini_score);
+      compute_gini(Begin, It, left_gini_score);
+      compute_gini(It, End, right_gini_score);
 
       size_t idx = std::distance(Begin, It);
       // weighted gini
@@ -364,9 +380,9 @@ DecisionTreeImpl::Node *DecisionTreeImpl::build_tree(const Iterator &Begin,
 {
   // std::string s = std::string("build_tree@") + std::to_string(depth);
   // TimeTrace t(s);
-  std::vector<size_t> count_per_class;
   float gini_score;
-  compute_gini(Begin, End, count_per_class, gini_score);
+  compute_gini(Begin, End, gini_score);
+  std::vector<size_t> count_per_class = get_count_per_class(Begin, End);
   size_t size = std::distance(Begin, End);
   Node *node = new Node(*this, count_per_class, gini_score, size);
   tree_nodes.push_back(node);
@@ -493,6 +509,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
     parser.parseExpected("[");
 
     std::vector<float> features;
+    features.reserve(num_features);
     int response;
     while (!parser.getNextTokenEquals("],")) {
       float feature;
@@ -507,7 +524,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
     parser.getNextToken();
     parser.parse(response);
 
-    data.push_back(std::make_pair(std::move(features), response));
+    data.emplace_back(std::move(features), response);
 
     parser.getNextToken();
     parser.parseExpected("},");

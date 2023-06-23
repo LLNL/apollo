@@ -75,8 +75,11 @@ private:
   template <typename Iterator>
   void compute_gini(const Iterator &Begin,
                     const Iterator &End,
-                    std::vector<size_t> &count_per_class,
                     float &gini_score);
+
+  template <typename Iterator>
+  std::vector<size_t> get_count_per_class(const Iterator &Begin,
+                                          const Iterator &End);
 
   int evaluate_tree(const Node &tree, const std::vector<float> &features);
   void compile_and_link_jit_evaluate_function();

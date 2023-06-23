@@ -25,14 +25,14 @@ const std::vector<std::tuple<std::vector<float>, int, double>> Apollo::Dataset::
   return vector;
 }
 
-void Apollo::Dataset::insert(const std::vector<float> &features,
+void Apollo::Dataset::insert(std::vector<float> &features,
                              int policy,
                              double metric)
 {
-  auto key = std::make_pair(features, policy);
+  auto key = std::make_pair(std::move(features), policy);
   auto it = data.find(key);
   if (it == data.end())
-    data[key] = metric;
+    data.emplace(std::move(key), metric);
   else
     // Exponential moving average (a=0.5) to update the metric.
     it->second = .5 * it->second + .5 * metric;
@@ -41,9 +41,9 @@ void Apollo::Dataset::insert(const std::vector<float> &features,
 void Apollo::Dataset::insert(Apollo::Dataset &ds)
 {
   for (auto &d : ds.data) {
-    const auto &features = d.first.first;
-    const auto &policy = d.first.second;
-    const auto &metric = d.second;
+    auto features = d.first.first;
+    auto policy = d.first.second;
+    auto metric = d.second;
     insert(features, policy, metric);
   }
 }

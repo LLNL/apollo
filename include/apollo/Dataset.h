@@ -20,7 +20,7 @@ public:
   size_t size();
   void clear();
 
-  void insert(const std::vector<float> &features, int policy, double metric);
+  void insert(std::vector<float> &features, int policy, double metric);
   void insert(Apollo::Dataset &ds);
 
   const std::vector<std::tuple<std::vector<float>, int, double>>

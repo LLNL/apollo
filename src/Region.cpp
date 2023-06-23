@@ -374,14 +374,45 @@ Apollo::Region::~Region()
   return;
 }
 
-Apollo::RegionContext *Apollo::Region::begin()
+Apollo::RegionContext *Apollo::Region::begin() { return begin(TIMING_SYNC); }
+
+Apollo::RegionContext *Apollo::Region::getSingletonSyncContext()
 {
-  Apollo::RegionContext *context = new Apollo::RegionContext(num_features);
+  static Apollo::RegionContext *sync_context_ptr = nullptr;
+  if (!sync_context_ptr) {
+    static Apollo::RegionContext sync_context(num_features);
+    sync_context.timer = Timer::create<Timer::Sync>();
+    sync_context_ptr = &sync_context;
+  }
+
+  return sync_context_ptr;
+}
+
+Apollo::RegionContext *Apollo::Region::begin(TimingKind tk)
+{
+  Apollo::RegionContext *context = nullptr;
+  switch (tk) {
+    case TIMING_SYNC:
+      context = getSingletonSyncContext();
+      break;
+    case TIMING_CUDA_ASYNC:
+      context = new Apollo::RegionContext(num_features);
+      context->timer = Apollo::Timer::create<Apollo::Timer::CudaAsync>();
+      break;
+    case TIMING_HIP_ASYNC:
+      context = new Apollo::RegionContext(num_features);
+      context->timer = Apollo::Timer::create<Apollo::Timer::HipAsync>();
+      break;
+    default:
+      fatal_error("Cannot resolve timing kind");
+  }
+
+  if (!context) fatal_error("Expected non-null context pointer");
+
   current_context = context;
   context->idx = this->idx;
   this->idx++;
-  // Use the sync timer by default.
-  context->timer = Timer::create<Timer::Sync>();
+
   context->timer->start();
 
   return context;
@@ -412,8 +443,6 @@ void Apollo::Region::autoTrain()
 void Apollo::Region::collectContext(Apollo::RegionContext *context,
                                     double metric)
 {
-  dataset.insert(context->features, context->policy, metric);
-
   if (Config::APOLLO_TRACE_CSV) {
     trace_file << apollo->mpiRank << " ";
     trace_file << model->name << " ";
@@ -425,11 +454,13 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
     trace_file << metric << "\n";
   }
 
+  dataset.insert(context->features, context->policy, metric);
+
   apollo->region_executions++;
 
   autoTrain();
 
-  delete context;
+  if (context != getSingletonSyncContext()) delete context;
   current_context = nullptr;
 }
 
