@@ -120,7 +120,7 @@ void Apollo::Dataset::load(std::istream &is)
   parser.getNextToken();
   parser.parseExpected("{");
 
-  while (parser.getNextToken() != "}") {
+  while (!parser.getNextTokenEquals("}")) {
     int idx;
     int policy;
     std::vector<float> features;
@@ -138,7 +138,7 @@ void Apollo::Dataset::load(std::istream &is)
     parser.getNextToken();
     parser.parseExpected("[");
 
-    while (parser.getNextToken() != "],") {
+    while (!parser.getNextTokenEquals("],")) {
       float feature;
       parser.parse<float>(feature);
       parser.parseExpected(",");
@@ -150,6 +150,7 @@ void Apollo::Dataset::load(std::istream &is)
     parser.getNextToken();
     parser.parse<int>(policy);
 
+    parser.parseExpected(",");
     parser.getNextToken();
     parser.parseExpected("xtime:");
     parser.getNextToken();

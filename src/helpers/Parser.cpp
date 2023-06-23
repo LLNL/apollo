@@ -1,33 +1,53 @@
 #include "helpers/Parser.h"
 
+#include <cstring>
 #include <iostream>
+#include <iterator>
 #include <limits>
 
-bool Parser::eof()
+#include "helpers/ErrorHandling.h"
+
+const char *Parser::getToken() const { return token; }
+
+bool Parser::getTokenEquals(const char *s)
 {
-  std::streampos pos = is.tellg();
-  std::string tmp;
-  is >> tmp;
-  if (is.eof()) return true;
-  is.seekg(pos);
-  return false;
+  return (std::strcmp(token, s) == 0);
 }
 
-const std::string &Parser::getToken() { return token; }
-
-const std::string &Parser::getNextToken()
+const char *Parser::getNextToken()
 {
-  is >> token;
-  // std::cout << "parser token " << token << "\n";
-  while (token[0] == '#') {
-    is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    is >> token;
-  }
+  std::istreambuf_iterator<char> it(is);
+  std::istreambuf_iterator<char> end;
 
-  ss.clear();
-  ss.str(token);
+  int idx = 0;
+  if (it != end) {
+    while (std::isspace(*it))
+      ++it;
+
+    while (*it == '#') {
+      is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      while (std::isspace(*it))
+        ++it;
+    }
+
+    while (!std::isspace(*it)) {
+      buffer[idx] = *it;
+      ++idx;
+      ++it;
+      if (idx >= BUFSIZE) fatal_error("Token exceeds buffer size");
+    }
+  }
+  buffer[idx] = '\0';
+
+  token = buffer;
 
   return token;
+}
+
+bool Parser::getNextTokenEquals(const char *s)
+{
+  getNextToken();
+  return getTokenEquals(s);
 }
 
 void Parser::error(const std::string &msg)
@@ -56,13 +76,54 @@ void Parser::error(const std::string &msg)
   abort();
 }
 
-void Parser::parseExpected(const std::string &expected)
+void Parser::parseExpected(const char *expected)
 {
-  std::string out;
-  ss >> out;
-  if (out != expected) {
+  if (std::strcmp(token, expected)) {
     std::stringstream error_msg;
-    error_msg << "Expected \"" << expected << "\" but parsed \"" << out << "\"";
+    error_msg << "Expected \"" << expected << "\" but parsed \"" << token
+              << "\"";
     error(error_msg.str());
   }
+}
+
+template <>
+void Parser::parse(int &val)
+{
+  std::size_t pos;
+  val = std::stoi(token, &pos);
+  token = &buffer[pos];
+}
+
+template <>
+void Parser::parse(double &val)
+{
+  std::size_t pos;
+  val = std::stod(token, &pos);
+  token = &buffer[pos];
+}
+
+template <>
+void Parser::parse(float &val)
+{
+  std::size_t pos;
+  val = std::stof(token, &pos);
+  token = &buffer[pos];
+}
+
+
+template <>
+void Parser::parse(unsigned int &val)
+{
+  std::size_t pos;
+  val = std::stoul(token, &pos);
+  token = &buffer[pos];
+}
+
+
+template <>
+void Parser::parse(unsigned long &val)
+{
+  std::size_t pos;
+  val = std::stoull(token, &pos);
+  token = &buffer[pos];
 }

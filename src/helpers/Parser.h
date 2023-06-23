@@ -12,25 +12,20 @@ public:
   template <typename T>
   void parse(T &out);
 
-  void parseExpected(const std::string &expected);
+  void parseExpected(const char *expected);
 
-  const std::string &getNextToken();
-  const std::string &getToken();
-
-  bool eof();
+  const char *getNextToken();
+  const char *getToken() const;
+  bool getTokenEquals(const char *s);
+  bool getNextTokenEquals(const char *s);
 
 private:
   std::istream &is;
-  std::stringstream ss;
-  std::string token;
+  static constexpr size_t BUFSIZE = 64;
+  char buffer[BUFSIZE];
+  char *token;
   void error(const std::string &msg);
 };
 
-template <typename T>
-void Parser::parse(T &val)
-{
-  // std::cout << "Parsing " << typeid(T).name() << "\n";
-  if (!(ss >> val)) error("Not matching type " + std::string(typeid(T).name()));
-}
 
 #endif

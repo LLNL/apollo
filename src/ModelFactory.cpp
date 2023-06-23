@@ -8,6 +8,7 @@
 #include <cassert>
 #include <iostream>
 
+#include "apollo/models/DatasetMap.h"
 #include "apollo/models/DecisionTree.h"
 #include "apollo/models/Random.h"
 #include "apollo/models/RandomForest.h"
@@ -28,7 +29,7 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
     const std::string &path)
 {
   if (model_name == "Static" || model_name == "Random" ||
-      model_name == "RoundRobin") {
+      model_name == "RoundRobin" || model_name == "DatasetMap") {
     throw std::runtime_error(
         "Static, Random, RoundRobin do not support loading model from file.");
   } else if (model_name == "Optimal") {
@@ -65,6 +66,8 @@ std::unique_ptr<PolicyModel> ModelFactory::createPolicyModel(
       policy = 0;
     }
     return std::make_unique<Static>(num_policies, policy);
+  } else if (model_name == "DatasetMap") {
+    return std::make_unique<DatasetMap>(num_policies);
   } else if (model_name == "Random") {
     return std::make_unique<Random>(num_policies);
   } else if (model_name == "RoundRobin") {

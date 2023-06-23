@@ -5,7 +5,7 @@
 
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(
-  ./connectors/kokkos/include
+    ./connectors/kokkos/include
 )
 set(APOLLO_HEADERS
     ../include/apollo/Apollo.h
@@ -16,7 +16,7 @@ set(APOLLO_HEADERS
     ../include/apollo/TimingModel.h
     ../include/apollo/ModelFactory.h
     ../include/apollo/Timer.h
-    )
+)
 
 set(APOLLO_SOURCES
     Apollo.cpp
@@ -28,6 +28,7 @@ set(APOLLO_SOURCES
     helpers/Parser.cpp
     models/Random.cpp
     models/Static.cpp
+    models/DatasetMap.cpp
     models/RoundRobin.cpp
     models/DecisionTree.cpp
     models/RandomForest.cpp
@@ -37,41 +38,41 @@ set(APOLLO_SOURCES
     models/Optimal.cpp
     connectors/kokkos/kokkos-connector.cpp
     timers/TimerSync.cpp
-    )
+)
 
-if (ENABLE_OPENCV)
+if(ENABLE_OPENCV)
     list(APPEND APOLLO_SOURCES
         models/RegressionTree.cpp
-        )
+    )
 endif()
 
-if (ENABLE_CUDA)
+if(ENABLE_CUDA)
     list(APPEND APOLLO_SOURCES
         timers/TimerCudaAsync.cpp
-        )
+    )
 endif()
 
-if (ENABLE_HIP)
+if(ENABLE_HIP)
     list(APPEND APOLLO_SOURCES
         timers/TimerHipAsync.cpp
-        )
+    )
 endif()
 
-if (BUILD_SHARED_LIBS)
+if(BUILD_SHARED_LIBS)
     add_library(apollo SHARED ${APOLLO_SOURCES})
 else()
     add_library(apollo STATIC ${APOLLO_SOURCES})
 endif()
 
-if (ENABLE_MPI)
+if(ENABLE_MPI)
     target_link_libraries(apollo PUBLIC MPI::MPI_CXX)
 endif()
 
-if (ENABLE_OPENCV)
+if(ENABLE_OPENCV)
     target_link_libraries(apollo PRIVATE dl ${OpenCV_LIBS})
 endif()
 
-if (ENABLE_JIT_DTREE)
+if(ENABLE_JIT_DTREE)
     target_link_libraries(apollo PRIVATE ${CMAKE_DL_LIBS})
 endif()
 

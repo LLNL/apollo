@@ -109,7 +109,7 @@ void RandomForestImpl::save(const std::string &filename)
   ofs.close();
 }
 template <typename T>
-static void parseKeyVal(Parser &parser, std::string &&key, T &val)
+static void parseKeyVal(Parser &parser, const char *key, T &val)
 {
   parser.getNextToken();
   parser.parseExpected(key);
@@ -137,7 +137,7 @@ void RandomForestImpl::parse_rfc(std::ifstream &ifs)
   parser.getNextToken();
   parser.parseExpected("[");
   int class_idx = 0;
-  while (parser.getNextToken() != "],") {
+  while (!parser.getNextTokenEquals("],")) {
     parser.parse(class_idx);
     parser.parseExpected(",");
     ++class_idx;

@@ -14,7 +14,6 @@
 #include <set>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -52,28 +51,32 @@ private:
     float threshold;
     Node *left;
     Node *right;
-    std::unordered_map<int, size_t> count_per_class;
+    std::vector<size_t> count_per_class;
+    DecisionTreeImpl &DT;
 
-    Node(float gini,
+    Node(DecisionTreeImpl &DT,
+         float gini,
          size_t num_samples,
          int predicted_class,
          int feature_idx,
          float threshold,
          Node *left,
          Node *right,
-         std::unordered_map<int, size_t> &count_per_class);
+         std::vector<size_t> &count_per_class);
 
 
-    Node(std::unordered_map<int, size_t> &count_per_class,
+    Node(DecisionTreeImpl &DT,
+         std::vector<size_t> &count_per_class,
          float gini,
          size_t num_samples);
   };
 
   // Returns pair(counts per class, gini value)
   template <typename Iterator>
-  std::pair<std::unordered_map<int, size_t>, float> compute_gini(
-      const Iterator &Begin,
-      const Iterator &End);
+  void compute_gini(const Iterator &Begin,
+                    const Iterator &End,
+                    std::vector<size_t> &count_per_class,
+                    float &gini_score);
 
   int evaluate_tree(const Node &tree, const std::vector<float> &features);
   void compile_and_link_jit_evaluate_function();
@@ -93,8 +96,7 @@ private:
                    size_t depth);
 
   void output_node(OutputFormatter &outfmt, Node &tree, std::string key);
-  void parse_count_per_class(Parser &parser,
-                             std::unordered_map<int, size_t> &count_per_class);
+  std::vector<size_t> parse_count_per_class(Parser &parser);
 
   void parse_tree(std::istream &is);
   Node *parse_node(Parser &parser);
@@ -108,6 +110,7 @@ private:
   unsigned num_classes;
   unsigned unique_id;
   static int unique_counter;
+  std::vector<Node *> tree_nodes;
 };
 
 #endif

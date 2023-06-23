@@ -23,6 +23,7 @@
 
 #include "apollo/Apollo.h"
 #include "apollo/ModelFactory.h"
+#include "helpers/ErrorHandling.h"
 #include "timers/TimerSync.h"
 
 #ifdef ENABLE_MPI
@@ -285,6 +286,8 @@ Apollo::Region::Region(const int num_features,
 
     dataset.load(ifs);
 
+    if (dataset.size() <= 0) fatal_error("dataset size is 0");
+
     // Train with whatever data existing in the dataset, ignore
     // min_training_data (if set).
     train(0);
@@ -301,6 +304,26 @@ Apollo::Region::Region(const int num_features,
     }
 
     model->load(model_file);
+  }
+
+  if (model_name == "DatasetMap") {
+    std::string dataset_file = Config::APOLLO_OUTPUT_DIR + "/" +
+                               Config::APOLLO_DATASETS_DIR + "/Dataset-" +
+                               std::string(name) + ".yaml";
+    std::ifstream ifs(dataset_file);
+    if (!ifs) {
+      std::cerr << "ERROR: could not load dataset file " << dataset_file
+                << std::endl;
+      abort();
+    }
+
+    dataset.load(ifs);
+
+    ifs.close();
+
+    if (dataset.size() <= 0) fatal_error("DatasetMap expects loaded datasets");
+
+    model->train(dataset);
   }
 
   if (Config::APOLLO_TRACE_CSV) {

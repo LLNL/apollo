@@ -16,7 +16,6 @@
 #include <sstream>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -40,7 +39,6 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::string filename)
 {
   ++unique_counter;
   unique_id = unique_counter;
-  // TimeTrace("loading");
   load(filename);
 #ifdef ENABLE_JIT_DTREE
   compile_and_link_jit_evaluate_function();
@@ -50,7 +48,6 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes, std::string filename)
 DecisionTreeImpl::DecisionTreeImpl(int num_classes, unsigned max_depth)
     : num_classes(num_classes), max_depth(max_depth)
 {
-  // TimeTrace("build_tree");
   ++unique_counter;
   unique_id = unique_counter;
 }
@@ -80,7 +77,6 @@ DecisionTreeImpl::DecisionTreeImpl(int num_classes,
                                    unsigned max_depth)
     : num_classes(num_classes), max_depth(max_depth)
 {
-  // TimeTrace("build_tree");
   ++unique_counter;
   unique_id = unique_counter;
   // Assumes all feature vectors are equal.
@@ -127,7 +123,6 @@ void DecisionTreeImpl::generate_source(Node &node, OutputFormatter &source_fmt)
 void DecisionTreeImpl::compile_and_link_jit_evaluate_function()
 {
 #ifdef ENABLE_JIT_DTREE
-  // TimeTrace("compile_and_link_jit_evaluation_function");
   std::string function_name =
       std::string("_jit_eval_") + std::to_string(unique_id);
   std::string shared_library_name =
@@ -179,6 +174,9 @@ DecisionTreeImpl::~DecisionTreeImpl()
   std::string shared_library_name =
       std::string("/tmp/") + function_name + std::string(".so");
   std::remove(shared_library_name.c_str());
+
+  for (Node *node : tree_nodes)
+    delete node;
 }
 
 void DecisionTreeImpl::save(const std::string &filename)
@@ -192,7 +190,6 @@ void DecisionTreeImpl::save(const std::string &filename)
 
 int DecisionTreeImpl::predict(const std::vector<float> &features)
 {
-  // TimeTrace("predict");
 #ifdef ENABLE_JIT_DTREE
   return jit_evaluate_function(features);
 #else
@@ -206,31 +203,35 @@ void DecisionTreeImpl::print_tree()
   output_tree(outfmt, "tree", /*include_data=*/false);
 }
 
-DecisionTreeImpl::Node::Node(float gini,
+DecisionTreeImpl::Node::Node(DecisionTreeImpl &DT,
+                             float gini,
                              size_t num_samples,
                              int predicted_class,
                              int feature_idx,
                              float threshold,
                              Node *left,
                              Node *right,
-                             std::unordered_map<int, size_t> &count_per_class)
-    : gini(gini),
+                             std::vector<size_t> &count_per_class)
+    : DT(DT),
+      gini(gini),
       num_samples(num_samples),
       predicted_class(predicted_class),
       feature_idx(feature_idx),
       threshold(threshold),
       left(left),
       right(right),
-      count_per_class(count_per_class)
+      count_per_class(std::move(count_per_class))
 {
 }
 
-DecisionTreeImpl::Node::Node(std::unordered_map<int, size_t> &count_per_class,
+DecisionTreeImpl::Node::Node(DecisionTreeImpl &DT,
+                             std::vector<size_t> &count_per_class,
                              float gini,
                              size_t num_samples)
-    : gini(gini),
+    : DT(DT),
+      gini(gini),
       num_samples(num_samples),
-      count_per_class(count_per_class),
+      count_per_class(std::move(count_per_class)),
       feature_idx(-1),
       threshold(0),
       left(nullptr),
@@ -238,18 +239,14 @@ DecisionTreeImpl::Node::Node(std::unordered_map<int, size_t> &count_per_class,
 {
   // Find predicted class as the maximum element in the
   // count_per_class.
-  predicted_class = std::max_element(count_per_class.begin(),
-                                     count_per_class.end(),
-                                     [](const std::pair<int, size_t> &x,
-                                        const std::pair<int, size_t> &y) {
-                                       return x.second < y.second;
-                                     })
-                        ->first;
+  int idx = std::distance(count_per_class.begin(),
+                          std::max_element(count_per_class.begin(),
+                                           count_per_class.end()));
+  predicted_class = *std::next(DT.classes.begin(), idx);
 }
 
 void DecisionTreeImpl::load(const std::string &filename)
 {
-  // TimeTrace t("DecisionTreeImpl::load");
   std::ifstream ifs(filename);
   if (!ifs) throw std::runtime_error("Error loading file: " + filename);
   parse_tree(ifs);
@@ -258,27 +255,37 @@ void DecisionTreeImpl::load(const std::string &filename)
 
 // Returns pair(counts per class, gini value)
 template <typename Iterator>
-std::pair<std::unordered_map<int, size_t>, float> DecisionTreeImpl::
-    compute_gini(const Iterator &Begin, const Iterator &End)
+void DecisionTreeImpl::compute_gini(const Iterator &Begin,
+                                    const Iterator &End,
+                                    std::vector<size_t> &count_per_class,
+                                    float &gini_score)
 {
   float g = 0.0f;
   size_t n_total = std::distance(Begin, End);
 
-  std::unordered_map<int, size_t> count_per_class;
-  for (auto It = Begin; It != End; ++It)
-    count_per_class[It->second]++;
+  for (auto it = classes.begin(), end = classes.end(); it != end; ++it) {
+    int cls = *it;
+    int count = 0;
+    for (auto It = Begin; It != End; ++It) {
+      int data_cls = It->second;
+      if (data_cls == cls) count++;
+    }
 
-  for (auto c : classes) {
-    float p = ((float)count_per_class[c]) / n_total;
+    count_per_class.push_back(count);
+
+    float p = (float)count / n_total;
     g += (p * p);
   }
 
-  return {count_per_class, 1.0f - g};
+  gini_score = 1.0f - g;
 }
 
 int DecisionTreeImpl::evaluate_tree(const Node &tree,
                                     const std::vector<float> &features)
 {
+  // leaf node, return predicted class.
+  if (tree.feature_idx == -1) return tree.predicted_class;
+
   if (features[tree.feature_idx] < tree.threshold) {
     if (tree.left) return evaluate_tree(*tree.left, features);
   } else if (tree.right)
@@ -316,12 +323,16 @@ std::tuple<float, Iterator, size_t, float> DecisionTreeImpl::split(
       // Feature values are the same, continue.
       if (feature_val_left == feature_val_right) continue;
 
-      auto left = compute_gini(Begin, It);
-      auto right = compute_gini(It, End);
+
+      std::vector<size_t> left_count_per_class, right_count_per_class;
+      float left_gini_score, right_gini_score;
+      compute_gini(Begin, It, left_count_per_class, left_gini_score);
+      compute_gini(It, End, right_count_per_class, right_gini_score);
 
       size_t idx = std::distance(Begin, It);
       // weighted gini
-      float g = (idx * left.second + (size - idx) * right.second) / size;
+      float g =
+          (idx * left_gini_score + (size - idx) * right_gini_score) / size;
 
       // This split does not reduce gini, continue
       if (g >= min_gini) continue;
@@ -353,12 +364,12 @@ DecisionTreeImpl::Node *DecisionTreeImpl::build_tree(const Iterator &Begin,
 {
   // std::string s = std::string("build_tree@") + std::to_string(depth);
   // TimeTrace t(s);
-
-  auto gini_res = compute_gini(Begin, End);
-  auto count_per_class = gini_res.first;
-  auto gini_score = gini_res.second;
+  std::vector<size_t> count_per_class;
+  float gini_score;
+  compute_gini(Begin, End, count_per_class, gini_score);
   size_t size = std::distance(Begin, End);
-  Node *node = new Node(count_per_class, gini_score, size);
+  Node *node = new Node(*this, count_per_class, gini_score, size);
+  tree_nodes.push_back(node);
 
   // Return if max_depth reached.
   if (depth >= max_depth) return node;
@@ -433,8 +444,10 @@ void DecisionTreeImpl::output_node(OutputFormatter &outfmt,
   outfmt << "feature_idx: " & tree.feature_idx & ",\n";
   outfmt << "threshold: " & tree.threshold & ",\n";
   outfmt << "count_per_class: {\n";
-  for (auto it : tree.count_per_class) {
-    outfmt << it.first & ": " & it.second & ",\n";
+  for (int i = 0; i < classes.size(); ++i) {
+    auto it = std::next(classes.begin(), i);
+    int cls = *it;
+    outfmt << cls & ": " & tree.count_per_class[i] & ",\n";
   }
   outfmt << "},\n";
 
@@ -445,11 +458,10 @@ void DecisionTreeImpl::output_node(OutputFormatter &outfmt,
   outfmt << "},\n";
 }
 
-void DecisionTreeImpl::parse_count_per_class(
-    Parser &parser,
-    std::unordered_map<int, size_t> &count_per_class)
+std::vector<size_t> DecisionTreeImpl::parse_count_per_class(Parser &parser)
 {
-  while (parser.getNextToken() != "},") {
+  std::vector<size_t> count_per_class;
+  while (!parser.getNextTokenEquals("},")) {
     int key;
     size_t val;
     parser.parse(key);
@@ -457,8 +469,10 @@ void DecisionTreeImpl::parse_count_per_class(
     parser.getNextToken();
     parser.parse(val);
     parser.parseExpected(",");
-    count_per_class[key] = val;
+    count_per_class.push_back(val);
   }
+
+  return count_per_class;
 }
 
 void DecisionTreeImpl::parse_data(Parser &parser)
@@ -468,7 +482,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
   parser.getNextToken();
   parser.parseExpected("{");
 
-  while (parser.getNextToken() != "},") {
+  while (!parser.getNextTokenEquals("},")) {
     parser.getNextToken();
     parser.parseExpected("{");
 
@@ -480,7 +494,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
 
     std::vector<float> features;
     int response;
-    while (parser.getNextToken() != "],") {
+    while (!parser.getNextTokenEquals("],")) {
       float feature;
       parser.parse(feature);
       parser.parseExpected(",");
@@ -493,7 +507,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
     parser.getNextToken();
     parser.parse(response);
 
-    data.push_back(std::make_pair(features, response));
+    data.push_back(std::make_pair(std::move(features), response));
 
     parser.getNextToken();
     parser.parseExpected("},");
@@ -501,7 +515,7 @@ void DecisionTreeImpl::parse_data(Parser &parser)
 }
 
 template <typename T>
-static void parseKeyVal(Parser &parser, std::string &&key, T &val)
+static void parseKeyVal(Parser &parser, const char *key, T &val)
 {
   parser.getNextToken();
   parser.parseExpected(key);
@@ -520,7 +534,7 @@ DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(Parser &parser)
   float threshold;
   Node *left = nullptr;
   Node *right = nullptr;
-  std::unordered_map<int, size_t> count_per_class;
+  ;
 
   parser.getNextToken();
   parser.parseExpected("{");
@@ -535,28 +549,32 @@ DecisionTreeImpl::Node *DecisionTreeImpl::parse_node(Parser &parser)
   parser.parseExpected("count_per_class:");
   parser.getNextToken();
   parser.parseExpected("{");
-  parse_count_per_class(parser, count_per_class);
+  std::vector<size_t> count_per_class = parse_count_per_class(parser);
 
   parser.getNextToken();
-  if (parser.getToken() == "left:") {
+  if (parser.getTokenEquals("left:")) {
     left = parse_node(parser);
     parser.getNextToken();
   }
-  if (parser.getToken() == "right:") {
+  if (parser.getTokenEquals("right:")) {
     right = parse_node(parser);
     parser.getNextToken();
   }
 
   parser.parseExpected("},");
 
-  return new Node(gini,
-                  num_samples,
-                  predicted_class,
-                  feature_idx,
-                  threshold,
-                  left,
-                  right,
-                  count_per_class);
+  Node *node = new Node(*this,
+                        gini,
+                        num_samples,
+                        predicted_class,
+                        feature_idx,
+                        threshold,
+                        left,
+                        right,
+                        count_per_class);
+
+  tree_nodes.push_back(node);
+  return node;
 }
 
 void DecisionTreeImpl::parse_tree(std::istream &is)
@@ -575,7 +593,7 @@ void DecisionTreeImpl::parse_tree(std::istream &is)
   parser.parseExpected("classes:");
   parser.getNextToken();
   parser.parseExpected("[");
-  while (parser.getNextToken() != "],") {
+  while (!parser.getNextTokenEquals("],")) {
     int class_idx;
     parser.parse<int>(class_idx);
     parser.parseExpected(",");
