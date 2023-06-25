@@ -16,7 +16,6 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -151,6 +150,69 @@ int Apollo::Region::getPolicyIndex(Apollo::RegionContext *context)
   return choice;
 }
 
+// TODO: expand validation to parameter values.
+static void validate(const std::string &model_name,
+                     std::unordered_map<std::string, std::string> &model_params)
+{
+  if (model_name == "Static") {
+    //  "(policy)=([0-9]+)"
+    for (auto &entry : model_params)
+      if (entry.first != "policy")
+        fatal_error("Unknown param key \"" + entry.first +
+                    "\" for policy Static");
+
+    return;
+  }
+
+  if (model_name == "DecisionTree") {
+    // "(max_depth)=([0-9]+)"
+    // "(explore)=(RoundRobin|Random)"
+    // "(load)"
+    // "(load-dataset)"
+    // "(load)=([a-zA-Z0-9_\\-\\.]+)"
+    for (auto &entry : model_params)
+      if (entry.first != "max_depth" && entry.first != "explore" &&
+          entry.first != "load" && entry.first != "load-dataset")
+        fatal_error("Unknown param key \"" + entry.first +
+                    "\" for policy DecisionTree");
+
+    return;
+  }
+
+  if (model_name == "RandomForest") {
+    // "(num_trees|max_depth)=([0-9]+)"
+    // "(explore)=(RoundRobin|Random)"
+    // "(load)"
+    // "(load-dataset)"
+    // "(load)=([a-zA-Z0-9_\\-\\.]+)"
+    for (auto &entry : model_params)
+      if (entry.first != "num_trees" && entry.first != "max_depth" &&
+          entry.first != "explore" && entry.first != "load" &&
+          entry.first != "load-dataset")
+        fatal_error("Unknown param key \"" + entry.first +
+                    "\" for policy RandomForst");
+    return;
+  }
+
+  if (model_name == "PolicyNet") {
+    for (auto &entry : model_params)
+      //  "(lr|beta|beta1|beta2|threshold)=(([+-]?([[:d:]]*\\.?([[:d:]]*)?))([Ee]"
+      // "(load)"
+      // "(load)=([a-zA-Z0-9_\\-\\.]+)"
+      //  "(load-dataset)"
+      if (entry.first != "lr" && entry.first != "beta" &&
+          entry.first != "beta1" && entry.first != "beta2" &&
+          entry.first != "threshold" && entry.first != "load" &&
+          entry.first != "load-dataset")
+        fatal_error("Unknown param key \"" + entry.first +
+                    "\" for policy PolicyNet");
+    return;
+  }
+
+  fatal_error("Unknow param for policy " + model_name +
+              ", policy does not have params");
+}
+
 void Apollo::Region::parsePolicyModel(const std::string &model_info)
 {
   size_t pos = model_info.find(",");
@@ -159,55 +221,25 @@ void Apollo::Region::parsePolicyModel(const std::string &model_info)
   // Parse any parameters, return if there are not any.
   if (std::string::npos == pos) return;
 
-  std::vector<std::string> params_regex;
-  if (model_name == "Static")
-    params_regex.push_back("(policy)=([0-9]+)");
-  else if (model_name == "DecisionTree") {
-    params_regex.push_back("(max_depth)=([0-9]+)");
-    params_regex.push_back("(explore)=(RoundRobin|Random)");
-    params_regex.push_back("(load)");
-    params_regex.push_back("(load-dataset)");
-    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
-  } else if (model_name == "RandomForest") {
-    params_regex.push_back("(num_trees|max_depth)=([0-9]+)");
-    params_regex.push_back("(explore)=(RoundRobin|Random)");
-    params_regex.push_back("(load)");
-    params_regex.push_back("(load-dataset)");
-    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
-  } else if (model_name == "PolicyNet") {
-    params_regex.push_back(
-        "(lr|beta|beta1|beta2|threshold)=(([+-]?([[:d:]]*\\.?([[:d:]]*)?))([Ee]"
-        "[+-]?[[:d:]]+)?)");
-    params_regex.push_back("(load)");
-    params_regex.push_back("(load)=([a-zA-Z0-9_\\-\\.]+)");
-    params_regex.push_back("(load-dataset)");
-  }
-
   std::string model_params_str = model_info.substr(pos + 1);
   do {
     pos = model_params_str.find(",");
     std::string keyval_str = model_params_str.substr(0, pos);
+
+    size_t kv_pos = keyval_str.find("=");
+    if (std::string::npos == kv_pos) {
+      model_params.emplace(keyval_str, "");
+    } else {
+      std::string key = keyval_str.substr(0, kv_pos);
+      std::string val = keyval_str.substr(kv_pos + 1);
+      model_params.emplace(key, val);
+    }
+
     model_params_str = model_params_str.substr(pos + 1);
 
-    bool matched = false;
-    std::smatch m;
-    for (auto &regex_str : params_regex) {
-      std::regex regex(regex_str);
-      if (std::regex_match(keyval_str, m, regex)) {
-        auto key = m[1];
-        auto value = m[2];
-        model_params[key] = value;
-        matched = true;
-        // std::cout << "Found key " << key << " value " << value << "\n";
-      }
-    }
-
-    if (!matched) {
-      std::cerr << "ERROR: Parameter " << keyval_str
-                << " is not valid for model " << model_name << std::endl;
-      abort();
-    }
   } while (std::string::npos != pos);
+
+  validate(model_name, model_params);
 }
 
 Apollo::Region::Region(const int num_features,
@@ -221,9 +253,13 @@ Apollo::Region::Region(const int num_features,
       min_training_data(min_training_data),
       model_info(_model_info),
       current_context(nullptr),
-      idx(0)
+      idx(0),
+      sync_context()
 {
   apollo = Apollo::instance();
+
+  // Create timer for the singleton sync context.
+  sync_context.timer = Apollo::Timer::create<Apollo::Timer::Sync>();
 
   strncpy(name, regionName, sizeof(name) - 1);
   name[sizeof(name) - 1] = '\0';
@@ -374,38 +410,45 @@ Apollo::Region::~Region()
   return;
 }
 
-Apollo::RegionContext *Apollo::Region::begin() { return begin(TIMING_SYNC); }
-
-Apollo::RegionContext *Apollo::Region::getSingletonSyncContext()
+void Apollo::Region::destroyRegionContext(Apollo::RegionContext *context)
 {
-  static Apollo::RegionContext *sync_context_ptr = nullptr;
-  if (!sync_context_ptr) {
-    static Apollo::RegionContext sync_context(num_features);
-    sync_context.timer = Timer::create<Timer::Sync>();
-    sync_context_ptr = &sync_context;
-  }
+  if (context == &sync_context) return;
 
-  return sync_context_ptr;
+  delete context;
 }
 
-Apollo::RegionContext *Apollo::Region::begin(TimingKind tk)
+Apollo::RegionContext *Apollo::Region::createRegionContext(TimingKind tk)
 {
   Apollo::RegionContext *context = nullptr;
   switch (tk) {
     case TIMING_SYNC:
-      context = getSingletonSyncContext();
+      context = &sync_context;
+      // Clear the features vector because the sync_context is persistent.
+      context->features.clear();
       break;
     case TIMING_CUDA_ASYNC:
-      context = new Apollo::RegionContext(num_features);
+      context = new Apollo::RegionContext();
       context->timer = Apollo::Timer::create<Apollo::Timer::CudaAsync>();
       break;
     case TIMING_HIP_ASYNC:
-      context = new Apollo::RegionContext(num_features);
+      context = new Apollo::RegionContext();
       context->timer = Apollo::Timer::create<Apollo::Timer::HipAsync>();
       break;
     default:
       fatal_error("Cannot resolve timing kind");
   }
+
+  // Pre-allocate the features vector of known size.
+  context->features.reserve(num_features);
+
+  return context;
+}
+
+Apollo::RegionContext *Apollo::Region::begin() { return begin(TIMING_SYNC); }
+
+Apollo::RegionContext *Apollo::Region::begin(TimingKind tk)
+{
+  Apollo::RegionContext *context = createRegionContext(tk);
 
   if (!context) fatal_error("Expected non-null context pointer");
 
@@ -460,7 +503,7 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
 
   autoTrain();
 
-  if (context != getSingletonSyncContext()) delete context;
+  destroyRegionContext(context);
   current_context = nullptr;
 }
 

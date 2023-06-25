@@ -477,6 +477,7 @@ void DecisionTreeImpl::output_node(OutputFormatter &outfmt,
 std::vector<size_t> DecisionTreeImpl::parse_count_per_class(Parser &parser)
 {
   std::vector<size_t> count_per_class;
+  count_per_class.reserve(classes.size());
   while (!parser.getNextTokenEquals("},")) {
     int key;
     size_t val;

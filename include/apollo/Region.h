@@ -23,11 +23,18 @@
 #include <mpi.h>
 #endif  // ENABLE_MPI
 
+struct Apollo::RegionContext {
+  std::vector<float> features;
+  int policy;
+  unsigned long long idx;
+  std::unique_ptr<Timer> timer;
+};  // end: Apollo::RegionContext
+
 class Apollo::Region
 {
-  enum TimingKind { TIMING_SYNC, TIMING_CUDA_ASYNC, TIMING_HIP_ASYNC };
 
 public:
+  enum TimingKind { TIMING_SYNC, TIMING_CUDA_ASYNC, TIMING_HIP_ASYNC };
   Region(const int num_features,
          const char *regionName,
          int numAvailablePolicies,
@@ -75,34 +82,21 @@ public:
   std::unordered_map<std::string, std::string> model_params;
 
 private:
-  //
   Apollo *apollo;
   // DEPRECATED wil be removed
   Apollo::RegionContext *current_context;
-  //
+  Apollo::RegionContext sync_context;
   std::ofstream trace_file;
 
   std::vector<Apollo::RegionContext *> pending_contexts;
+  Apollo::RegionContext *createRegionContext(TimingKind tk);
+  void destroyRegionContext(Apollo::RegionContext *context);
   void collectContext(Apollo::RegionContext *, double);
-  Apollo::RegionContext *getSingletonSyncContext();
+  Apollo::RegionContext *getSyncContext();
 
   void autoTrain();
 
   int min_training_data;
 };  // end: Apollo::Region
-
-struct Apollo::RegionContext {
-  std::vector<float> features;
-  int policy;
-  unsigned long long idx;
-
-  RegionContext(int num_features)
-  {
-    // Pre-allocate features vector to avoid re-allocations.
-    features.reserve(num_features);
-  }
-
-  std::unique_ptr<Timer> timer;
-};  // end: Apollo::RegionContext
 
 #endif

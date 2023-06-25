@@ -6,7 +6,7 @@
 namespace apollo
 {
 
-static void fatal_error_internal(const char *msg,
+static void fatal_error_internal(const std::string &msg,
                                  const char *file,
                                  const unsigned line)
 {
