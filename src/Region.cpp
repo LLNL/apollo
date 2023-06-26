@@ -209,6 +209,8 @@ static void validate(const std::string &model_name,
     return;
   }
 
+  if (model_name == "StaticRegion") return;
+
   fatal_error("Unknow param for policy " + model_name +
               ", policy does not have params");
 }
@@ -268,6 +270,19 @@ Apollo::Region::Region(const int num_features,
   // variable, else parse it from the model_info argument.
   if (model_info.empty()) model_info = Config::APOLLO_POLICY_MODEL;
   parsePolicyModel(model_info);
+
+  // Create a static policy per region. Policies are given by creation order,
+  // assumes regions are created in the same order in different runs.
+  if (model_name == "StaticRegion") {
+    auto it = model_params.find(name);
+    if (it == model_params.end())
+      fatal_error("Region name " + std::string(name) +
+                  " was not found in StaticRegion parameters");
+    // Replace with a Static policy for the region.
+    model_name = "Static";
+    model_params.clear();
+    model_params.emplace("policy", it->second);
+  }
 
   model = apollo::ModelFactory::createPolicyModel(model_name,
                                                   num_features,
@@ -426,14 +441,18 @@ Apollo::RegionContext *Apollo::Region::createRegionContext(TimingKind tk)
       // Clear the features vector because the sync_context is persistent.
       context->features.clear();
       break;
+#ifdef ENABLE_CUDA
     case TIMING_CUDA_ASYNC:
       context = new Apollo::RegionContext();
       context->timer = Apollo::Timer::create<Apollo::Timer::CudaAsync>();
       break;
+#endif
+#ifdef ENABLE_HIP
     case TIMING_HIP_ASYNC:
       context = new Apollo::RegionContext();
       context->timer = Apollo::Timer::create<Apollo::Timer::HipAsync>();
       break;
+#endif
     default:
       fatal_error("Cannot resolve timing kind");
   }

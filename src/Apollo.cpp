@@ -156,6 +156,8 @@ Apollo::Apollo()
       std::stoi(apolloUtils::safeGetEnv("APOLLO_TRACE_CSV", "0"));
   Config::APOLLO_PERSISTENT_DATASETS =
       std::stoi(apolloUtils::safeGetEnv("APOLLO_PERSISTENT_DATASETS", "0"));
+  Config::APOLLO_STORE_EXEC_INFO =
+      std::stoi(apolloUtils::safeGetEnv("APOLLO_STORE_EXEC_INFO", "0"));
   Config::APOLLO_OUTPUT_DIR =
       apolloUtils::safeGetEnv("APOLLO_OUTPUT_DIR", ".apollo");
   Config::APOLLO_DATASETS_DIR =
@@ -226,6 +228,17 @@ Apollo::Apollo()
 
 Apollo::~Apollo()
 {
+  if (Config::APOLLO_STORE_EXEC_INFO) {
+    std::ofstream file_out(Config::APOLLO_OUTPUT_DIR + "/" +
+                           "apollo_exec_info.csv");
+    if (!file_out.is_open())
+      std::cerr << "ERROR: Cannot write apollo exec info\n";
+    for (auto it : regions) {
+      Region *r = it.second;
+      file_out << r->name << ", " << r->idx << "\n";
+    }
+    file_out.close();
+  }
   for (auto &it : regions) {
     Region *r = it.second;
     delete r;
