@@ -6,6 +6,7 @@
 #ifndef APOLLO_H
 #define APOLLO_H
 
+#include <fstream>
 #include <map>
 #include <string>
 #include <vector>
@@ -55,6 +56,7 @@ private:
   std::map<std::string, Apollo::Region *> regions;
   // Count total number of region invocations
   unsigned long long region_executions;
+  std::ofstream gtrace_file;
 };  // end: Apollo
 
 extern "C" {

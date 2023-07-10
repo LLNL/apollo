@@ -16,7 +16,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
@@ -25,6 +24,7 @@
 
 #include "apollo/ModelFactory.h"
 #include "apollo/Region.h"
+#include "helpers/ErrorHandling.h"
 
 #ifdef ENABLE_MPI
 MPI_Comm apollo_mpi_comm;
@@ -223,6 +223,17 @@ Apollo::Apollo()
   mpiRank = 0;
 #endif  // ENABLE_MPI
 
+  if (Config::APOLLO_TRACE_CSV) {
+    std::string fname(Config::APOLLO_OUTPUT_DIR + "/" +
+                      Config::APOLLO_TRACES_DIR + "/trace-rank-" +
+                      std::to_string(mpiRank) + ".csv");
+    gtrace_file.open(fname);
+    if (gtrace_file.fail()) fatal_error("Error opening trace file " + fname);
+
+    gtrace_file << "# timestamp (us), region, idx, model, "
+                   "policy\n";
+  }
+
   return;
 }
 
@@ -243,6 +254,9 @@ Apollo::~Apollo()
     Region *r = it.second;
     delete r;
   }
+
+  gtrace_file.close();
+
   std::cerr << "Apollo: total region executions: " << region_executions
             << std::endl;
 }

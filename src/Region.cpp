@@ -280,8 +280,10 @@ Apollo::Region::Region(const int num_features,
                   " was not found in StaticRegion parameters");
     // Replace with a Static policy for the region.
     model_name = "Static";
+    std::string policy = it->second;
     model_params.clear();
-    model_params.emplace("policy", it->second);
+    model_params.emplace("policy", policy);
+    model_info = "Static,policy=" + policy;
   }
 
   model = apollo::ModelFactory::createPolicyModel(model_name,
@@ -506,6 +508,12 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
                                     double metric)
 {
   if (Config::APOLLO_TRACE_CSV) {
+    auto ts = std::chrono::system_clock::now().time_since_epoch() /
+              std::chrono::microseconds(1);
+    apollo->gtrace_file << ts << " " << this->name << " " << context->idx << " "
+                        << model_name << " "
+                        << " " << context->policy << "\n";
+
     trace_file << apollo->mpiRank << " ";
     trace_file << model->name << " ";
     trace_file << this->name << " ";
@@ -516,7 +524,8 @@ void Apollo::Region::collectContext(Apollo::RegionContext *context,
     trace_file << metric << "\n";
   }
 
-  dataset.insert(context->features, context->policy, metric);
+  if (Config::APOLLO_PERSISTENT_DATASETS or model->isTrainable())
+    dataset.insert(context->features, context->policy, metric);
 
   apollo->region_executions++;
 
@@ -560,6 +569,12 @@ void Apollo::Region::collectPendingContexts()
 void Apollo::Region::end(Apollo::RegionContext *context)
 {
   context->timer->stop();
+  if (context == &sync_context) {
+    double metric;
+    context->timer->isDone(metric);
+    collectContext(context, metric);
+    return;
+  }
   pending_contexts.push_back(context);
   collectPendingContexts();
 }
