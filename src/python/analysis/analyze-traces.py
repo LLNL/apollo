@@ -5,6 +5,7 @@ import pandas as pd
 import time
 import numpy as np
 import glob
+from IPython import embed
 
 # TODO: retrofit the best policy selection to Apollo
 
@@ -21,7 +22,7 @@ def autolabel(ax, rects):
 
 
 def read_csv(dir, model, csv_map):
-    globlist = glob.glob('%s/trace*%s*.csv' % (dir, model))
+    globlist = glob.glob('%s/trace*%s-*.csv' % (dir, model))
     nfiles = len(globlist)
     for i, f in enumerate(globlist):
         print('\r=== Reading %-100s %06d/%06d' %
@@ -84,10 +85,10 @@ def compute_accuracy(rank, data, opt_data, npolicies, DIFF_PCT, init_model, trai
                                (data['training'].str.contains(trained_model))][['region', 'idx', 'policy', 'xtime']].set_index( \
         ['region', 'idx']).sort_index()
     opt_region_idx = opt_data[['policy', 'xtime']]
-    #print('=== DATA RR ===')
+    # print('=== DATA RR ===')
     # print(data_rr_region_idx[['policy']][0:10])
     # input('cont')
-    #print('=== DATA OPT ===')
+    # print('=== DATA OPT ===')
     # print(opt_region_idx[['policy']][0:10])
     # input('cont')
 
@@ -122,7 +123,7 @@ def compute_accuracy(rank, data, opt_data, npolicies, DIFF_PCT, init_model, trai
             nrelaxed = diff_opt_rr.le(DIFF_PCT).value_counts()[True]
         except KeyError:
             nrelaxed = 0
-        #print('le than %.2f%% %d'%( DIFF_PCT, nrelaxed))
+        # print('le than %.2f%% %d'%( DIFF_PCT, nrelaxed))
         # input('cont')
         nrelaxed += nmatch
     else:
@@ -145,6 +146,8 @@ def main():
         '--dir', help='the directory that contains the trace files.', required=True)
     parser.add_argument('--plot', help='plot execution times and optimization potential.',
                         action='store_true', default=False)
+    parser.add_argument('--plot2', help='plot another set of execution times and optimization potential.',
+                        action='store_true', default=False)
     parser.add_argument('--rr', help='include RoundRobin training traces.',
                         action='store_true', default=False)
     parser.add_argument('--random', help='include Random training traces.',
@@ -166,6 +169,7 @@ def main():
     if args.nstatic > 0:
         csv_map = {}
         for p in range(0, args.nstatic):
+            print(f'\n=== Reading model Static,policy={p}')
             read_csv(args.dir, 'Static,policy=%d' % (p), csv_map)
         data_map['Static'] = pd.concat(
             csv_map.values(), ignore_index=True, sort=True)
@@ -244,7 +248,7 @@ def main():
                 with open('opt-%s-rank-%s.txt' % (region, rank), 'w') as f:
                     f.write(','.join(opt_policies))
 
-        #print('opt-rank-%d time %.6f s' % (i, t2-t1))
+        # print('opt-rank-%d time %.6f s' % (i, t2-t1))
         print('opt-rank-%d xtime %.6f' % (rank, sum(opt['xtime'])))
         min_xtime_static_pol = min(
             {k: v for k, v in xtime_per_pol.items() if 'Static' in k}, key=xtime_per_pol.get)
@@ -285,13 +289,14 @@ def main():
             plt.ylabel('Execution time (s)')
             plt.xlabel('Policy')
             rect = ax.bar(np.arange(len(xtime_per_pol)),
-                          xtime_per_pol.values())
+                          [sum(v) for v in xtime_per_pol.values()])
             plt.xticks(np.arange(len(xtime_per_pol)),
                        xtime_per_pol.keys(), rotation=-90)
             textstr = '\n'.join((
                 r'Speedup (default) Static,0 / Opt = %.2f' % (
-                    xtime_per_pol['Static,0']/xtime_per_pol['Opt']),
-                r'Speedup (best) %s / Opt = %.2f' % (min_xtime_static_pol, xtime_per_pol[min_xtime_static_pol]/xtime_per_pol['Opt'])))
+                    sum(xtime_per_pol['Static,0'])/sum(xtime_per_pol['Opt'])),
+                r'Speedup (best) %s / Opt = %.2f' % (min_xtime_static_pol,
+                                                     sum(xtime_per_pol[min_xtime_static_pol])/sum(xtime_per_pol['Opt']))))
             accuracy_print = [
                 r'%s Accuracy strict = %.2f%%|relaxed (+/- %.2f%%) %.2f%%' %
                 (k, (v[0]*100.0)/v[2], DIFF_PCT, (v[1]*100.0)/v[2])
@@ -303,7 +308,32 @@ def main():
                     verticalalignment='top', bbox=props)
             autolabel(ax, rect)
             plt.tight_layout()
-            plt.savefig('%s.pdf' % (args.dir))
+            plt.savefig(f'analysis-{args.dir}.pdf')
+
+        if args.plot2:
+            df = data_map['Static']
+            for region in df.region.unique():
+                print(f'Plot {region}...')
+                ddf = df[df.region == region].dropna(axis=1)
+                # TODO: better way for finding features.
+                features = [v for v in ddf.columns if v.startswith('f')]
+                piv = pd.pivot_table(
+                    ddf, values='xtime', index=features, columns='training', aggfunc='mean')
+                ax = piv.plot.bar()
+                ax.set_ylabel('Time (s)')
+                ax.set_xlabel('features')
+                plt.tight_layout()
+                plt.savefig(f'{region}.pdf')
+                plt.close()
+                # groups = ddf.groupby(features)
+                # fig, axs = plt.subplots(ncol=len(groups))
+                # for i, name, group in enumerate(groups):
+                #    print('name', name)
+                #    m = group.groupby('training').xtime.mean()
+                #    ax
+                #    print(m)
+                #    embed()
+                #    input('k')
 
 
 if __name__ == "__main__":
